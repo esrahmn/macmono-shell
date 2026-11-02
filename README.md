@@ -131,20 +131,20 @@ qs -c macmono
 
 ## Key bindings
 
-| Keybind               | Action               |
-| --------------------- | -------------------- |
-| `Super` (tap)         | Toggle launcher      |
-| `Super + Tab`         | Workspace overview   |
-| `Super + V`           | Clipboard manager    |
-| `Super + N`           | Toggle right sidebar |
-| `Super + M`           | Media controls       |
-| `Super + /`           | Keybind cheatsheet   |
-| `Super + J`           | Toggle bar           |
-| `Super + L`           | Lock screen          |
-| `Super + Shift + S`   | Area screenshot      |
-| `Ctrl + Super + T`    | Wallpaper picker     |
-| `Ctrl + Super + R`    | Reload shell         |
-| `Ctrl + Alt + Delete` | Session / power menu |
+| Keybind               | Action                |
+| --------------------- | --------------------- |
+| `Super` (tap)         | Toggle launcher       |
+| `Super + Tab`         | Workspace overview    |
+| `Super + V`           | Clipboard manager     |
+| `Super + N`           | Toggle control center |
+| `Super + M`           | Media controls        |
+| `Super + /`           | Keybind cheatsheet    |
+| `Super + J`           | Toggle/disable bar    |
+| `Super + L`           | Lock screen           |
+| `Super + Shift + S`   | Area screenshot       |
+| `Ctrl + Super + T`    | Wallpaper picker      |
+| `Ctrl + Super + R`    | Reload shell          |
+| `Ctrl + Alt + Delete` | Session / power menu  |
 
 The full list is in `hypr/hyprland/keybinds.lua`. Put personal keybinds in `hypr/custom/keybinds.lua`.
 
