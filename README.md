@@ -100,7 +100,32 @@ sudo pacman -S hyprland hyprlock hypridle quickshell \
 
 ## Installation
 
-There is no installer, so installation is manual. **Back up your existing config first.**
+### Quick install (script)
+
+```bash
+git clone https://github.com/esrahmn/macmono-shell.git
+cd macmono-shell
+./install.sh
+```
+
+The script installs the dependencies with `pacman` (Arch / CachyOS), backs up your existing `~/.config/hypr` and `~/.config/quickshell` as `*.bak-<timestamp>`, then copies the configs in.
+
+| Option            | Description                                                 |
+| ----------------- | ----------------------------------------------------------- |
+| `-l`, `--link`    | Symlink instead of copying, so edits in the repo apply live |
+| `-n`, `--no-deps` | Skip installing packages                                    |
+| `-y`, `--yes`     | Non-interactive, no confirmation prompts                    |
+| `-h`, `--help`    | Show help                                                   |
+
+You can also run it without cloning first (it clones the repo into `~/.local/share/macmono-shell`):
+
+```bash
+bash <(curl -fsSL https://raw.githubusercontent.com/esrahmn/macmono-shell/main/install.sh)
+```
+
+### Manual install
+
+Prefer to do it by hand? **Back up your existing config first.**
 
 ```bash
 git clone https://github.com/esrahmn/macmono-shell.git
