@@ -623,10 +623,19 @@ Singleton {
     // =====================================================================
     //  Lock screen (hyprlock dengan tema macmono)
     // =====================================================================
+    // Lock native QML (lock/LockScreen.qml). lock/lock.sh (hyprlock) cuma cadangan
+    // dari hypridle kalau qs lagi mati.
+    property bool locked: false
+    signal lockRefocus()
     function lock() {
+        if (locked) return;
         closeCCQuiet();
-        // lock/lock.sh: rakit config hyprlock (wallpaper + avatar) lalu jalankan hyprlock
-        Quickshell.execDetached(["bash", Quickshell.shellDir + "/lock/lock.sh", wallpaper, wallpaperMono ? "1" : "0"]);
+        launcherOpen = false;
+        clipboardOpen = false;
+        wallpaperOpen = false;
+        trayMenuOpen = false;
+        refresh();
+        locked = true;
     }
 
     // =====================================================================

@@ -61,7 +61,7 @@ Scope {
     //  Lock (Super+L lewat loginctl -> hypridle, dan auto-lock idle)
     // =====================================================================
     GlobalShortcut { name: "lock"; description: "macmono: lock screen"; onPressed: Sys.lock() }
-    GlobalShortcut { name: "lockFocus"; description: "macmono: (no-op) fokus lock setelah resume"; onPressed: {} }
+    GlobalShortcut { name: "lockFocus"; description: "macmono: fokus ulang lock setelah resume"; onPressed: Sys.lockRefocus() }
 
     // =====================================================================
     //  Fitur macmono
@@ -130,7 +130,11 @@ Scope {
         function recordingStarted(): void { Sys.recordingStarted(); }
         function recordingCancelled(): void { Sys.recordingCancelled(); }
     }
-    IpcHandler { target: "lock";      function activate(): void { Sys.lock(); } }
+    IpcHandler {
+        target: "lock"
+        function activate(): void { Sys.lock(); }
+        function focus(): void { Sys.lockRefocus(); }
+    }
     IpcHandler {
         target: "wallpaper"
         function toggle(): void { Sys.toggleWallpaper(); }
