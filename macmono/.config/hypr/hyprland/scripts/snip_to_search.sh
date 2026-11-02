@@ -12,7 +12,7 @@ grim -g "$geom" "$img" || exit 1
 
 link="$(curl -sf -F "files[]=@$img" 'https://uguu.se/upload' | jq -r '.files[0].url // empty')"
 if [ -z "$link" ]; then
-    notify-send -u normal "Google Lens" "Gagal mengunggah gambar" 2>/dev/null
+    notify-send -u normal "Google Lens" "Failed to upload image" 2>/dev/null
     exit 1
 fi
 xdg-open "https://lens.google.com/uploadbyurl?url=${link}"

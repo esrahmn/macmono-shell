@@ -32,10 +32,10 @@ Scope {
         case "random":     Sys.randomWallpaper(); break;
         case "screenshot": Sys.screenshot("copy", true); return;
         case "update":
-            Quickshell.execDetached(["kitty", "--hold", "-e", "sh", "-c",
+            Sys.runInTerminal(["sh", "-c",
                 "if command -v cachy-update >/dev/null; then cachy-update; " +
                 "elif command -v paru >/dev/null; then paru -Syu; " +
-                "elif command -v yay >/dev/null; then yay -Syu; else sudo pacman -Syu; fi"]);
+                "elif command -v yay >/dev/null; then yay -Syu; else sudo pacman -Syu; fi"], true);
             break;
         case "lock":       Sys.lock(); break;
         case "sleep":      Quickshell.execDetached(["sh", "-c", "systemctl suspend"]); break;
@@ -124,7 +124,7 @@ Scope {
     // jalankan app (app terminal dibuka di kitty, karena execute() Quickshell nggak membuka terminal)
     function launchEntry(e) {
         if (!e) return;
-        if (e.runInTerminal) Quickshell.execDetached(["kitty", "-e"].concat(e.command));
+        if (e.runInTerminal) Sys.runInTerminal(e.command, false);
         else e.execute();
         Sys.launcherOpen = false;
     }

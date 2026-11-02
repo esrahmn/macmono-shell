@@ -254,6 +254,27 @@ Singleton {
     }
     function removeNotif(id) { notifHistory = notifHistory.filter(x => x.id !== id); }
     function clearNotifs() { notifHistory = []; notifUnread = 0; }
+    // riwayat disimpan ke ~/.local/state/macmono/notifications.json (ditulis lewat FileView, bukan argv)
+    property bool notifLoaded: false
+    onNotifHistoryChanged: if (notifLoaded) notifSave.restart()
+    Timer { id: notifSave; interval: 1000; onTriggered: notifFile.setText(JSON.stringify(root.notifHistory)) }
+    FileView {
+        id: notifFile
+        path: Quickshell.env("HOME") + "/.local/state/macmono/notifications.json"
+        printErrors: false
+        atomicWrites: true
+        onLoaded: {
+            try {
+                const list = JSON.parse(text());
+                if (Array.isArray(list)) {
+                    root.notifHistory = list.slice(0, 50);
+                    root.notifSeq = list.reduce((m, x) => Math.max(m, x.id || 0), 0);
+                }
+            } catch (e) {}
+            root.notifLoaded = true;
+        }
+        onLoadFailed: root.notifLoaded = true
+    }
 
     property bool powerOpen: false
     property string powerScreen: ""
@@ -399,21 +420,42 @@ Singleton {
     // =====================================================================
     //  Brightness
     // =====================================================================
+    // backlight laptop lewat brightnessctl; monitor eksternal (DDC/CI) lewat ddcutil kalau ada
     property real brightness: 0.5
     property bool brightnessOk: false
+    property string brightnessBackend: ""   // "backlight" | "ddc"
+    property int ddcMax: 100
     function setBrightness(v) {
         brightness = Math.max(0.01, Math.min(1, v));
-        brightSet.exec(["brightnessctl", "--class", "backlight", "set", Math.round(brightness * 100) + "%", "-q"]);
+        if (brightnessBackend === "ddc") ddcSetDebounce.restart();   // ddcutil lambat (~0.5 dtk/panggilan)
+        else brightSet.exec(["brightnessctl", "--class", "backlight", "set", Math.round(brightness * 100) + "%", "-q"]);
+    }
+    Timer {
+        id: ddcSetDebounce
+        interval: 250
+        onTriggered: {
+            if (brightSet.running) { restart(); return; }
+            brightSet.exec(["ddcutil", "--noverify", "setvcp", "10", String(Math.round(root.brightness * root.ddcMax))]);
+        }
     }
     Process {
         id: brightGet
-        command: ["brightnessctl", "-m", "-c", "backlight"]
+        command: ["sh", "-c",
+            "brightnessctl -m -c backlight 2>/dev/null | grep -q . && exec brightnessctl -m -c backlight; " +
+            "command -v ddcutil >/dev/null && ddcutil getvcp 10 --brief 2>/dev/null | awk '$1 == \"VCP\" { print \"ddc,\" $4 \",\" $5 }'"]
         stdout: StdioCollector {
             onStreamFinished: {
-                // format: device,class,current,percent%,max
                 const f = text.trim().split(",");
-                if (f.length >= 4) {
+                if (f[0] === "ddc" && f.length >= 3) {
+                    // format: ddc,current,max
+                    root.ddcMax = parseInt(f[2]) || 100;
+                    root.brightness = (parseInt(f[1]) || 0) / root.ddcMax;
+                    root.brightnessBackend = "ddc";
+                    root.brightnessOk = true;
+                } else if (f.length >= 4) {
+                    // format brightnessctl: device,class,current,percent%,max
                     root.brightness = parseInt(f[3]) / 100;
+                    root.brightnessBackend = "backlight";
                     root.brightnessOk = true;
                 }
             }
@@ -429,8 +471,45 @@ Singleton {
     property bool nightLight: false
     function toggleNightLight() {
         nightLight = !nightLight;
+        applyNightLight();
+    }
+    function applyNightLight() {
         Quickshell.execDetached(["bash", "-c",
             "pidof hyprsunset >/dev/null || (hyprsunset >/dev/null 2>&1 &) ; sleep 0.4; hyprctl hyprsunset temperature " + (nightLight ? 4200 : 6500)]);
+    }
+    // toggle disimpan di ~/.local/state/macmono, dipulihkan saat shell start
+    property bool togglesLoaded: false
+    onDndChanged: if (togglesLoaded) saveState("dnd", dnd ? "1" : "0")
+    onKeepAwakeChanged: if (togglesLoaded) saveState("keep_awake", keepAwake ? "1" : "0")
+    onNightLightChanged: if (togglesLoaded) saveState("night_light", nightLight ? "1" : "0")
+    Process {
+        id: togglesRead
+        command: ["sh", "-c", "d=\"$HOME/.local/state/macmono\"; for f in dnd keep_awake night_light; do cat \"$d/$f\" 2>/dev/null || printf 0; echo; done"]
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const v = text.split("\n").map(l => l.trim() === "1");
+                root.dnd = v[0] ?? false;
+                root.keepAwake = v[1] ?? false;
+                root.nightLight = v[2] ?? false;
+                if (root.nightLight) root.applyNightLight();
+                root.togglesLoaded = true;
+            }
+        }
+    }
+
+    // =====================================================================
+    //  Terminal: $TERMINAL -> xdg-terminal-exec -> kitty/foot/alacritty/wezterm/konsole
+    // =====================================================================
+    readonly property string termScript:
+        "term_run() { for t in \"${TERMINAL:-}\" xdg-terminal-exec kitty foot alacritty wezterm konsole; do " +
+        "[ -n \"$t\" ] && command -v \"$t\" >/dev/null 2>&1 || continue; " +
+        "case \"$t\" in xdg-terminal-exec) exec \"$t\" \"$@\";; wezterm) exec wezterm start -- \"$@\";; *) exec \"$t\" -e \"$@\";; esac; done; " +
+        "notify-send -a macmono -u critical 'No terminal found' 'Set $TERMINAL or install kitty, foot or alacritty'; }; "
+    function runInTerminal(args, hold) {
+        const cmd = hold
+            ? ["bash", "-c", "\"$@\"; echo; read -r -p 'Press Enter to close…' _", "bash"].concat(args)
+            : args;
+        Quickshell.execDetached(["sh", "-c", termScript + "term_run \"$@\"", "sh"].concat(cmd));
     }
 
     // =====================================================================
@@ -473,11 +552,18 @@ Singleton {
         } else {
             wifiConnectMayCreate = true;
             wifiConnectKnownUuids = wifiProfiles.map(p => p.uuid);
-            wifiConnectProc.command = ["nmcli", "device", "wifi", "connect", ssid];
-            if (password) wifiConnectProc.command = wifiConnectProc.command.concat(["password", password]);
+            // Password dikirim lewat stdin (--ask), bukan argumen: argv kebaca semua user lewat `ps`.
+            wifiPendingPassword = password || "";
+            wifiConnectProc.command = password
+                ? ["nmcli", "--ask", "device", "wifi", "connect", ssid]
+                : ["nmcli", "device", "wifi", "connect", ssid];
         }
         wifiConnectProc.running = true;
+        wifiConnectTimeout.restart();
     }
+    property string wifiPendingPassword: ""
+    // nmcli bisa nunggu input selamanya kalau password ditolak di tengah jalan
+    Timer { id: wifiConnectTimeout; interval: 45000; onTriggered: if (wifiConnectProc.running) wifiConnectProc.running = false }
     function disconnectWifi() {
         if (!wifiActiveUuid) {
             recheck.restart();
@@ -488,13 +574,20 @@ Singleton {
     }
     function openWifiSettings() {
         closeCCQuiet();
-        Quickshell.execDetached(["sh", "-c",
-            "kcmshell6 kcm_networkmanagement 2>/dev/null || nm-connection-editor 2>/dev/null || kitty -e nmtui-connect"]);
+        Quickshell.execDetached(["sh", "-c", termScript +
+            "kcmshell6 kcm_networkmanagement 2>/dev/null || nm-connection-editor 2>/dev/null || term_run nmtui-connect"]);
     }
     Process {
         id: wifiConnectProc
         environment: ({ LANG: "C", LC_ALL: "C" })
+        stdinEnabled: true
+        onStarted: {
+            if (root.wifiPendingPassword) wifiConnectProc.write(root.wifiPendingPassword + "\n");
+            root.wifiPendingPassword = "";
+        }
         onExited: (code) => {
+            wifiConnectTimeout.stop();
+            root.wifiPendingPassword = "";
             if (code !== 0) {
                 root.wifiError = root.wifiConnectRequestSsid;
                 // koneksi baru yang gagal (password salah, dll.) jangan ditinggal tersimpan
@@ -533,33 +626,39 @@ Singleton {
     }
     Process {
         id: wifiListGet
+        // Mode list `connection show` nggak menerima field 802-11-wireless.ssid, jadi SSID tiap profil
+        // diambil per UUID. Profil yang SSID-nya sudah di-cache (UUID dikirim sebagai argumen) dilewati,
+        // jadi cuma profil baru yang memanggil nmcli lagi. Output: "C<TAB>uuid" (cache) / "N<TAB>uuid<TAB>ssid".
         command: ["sh", "-c",
             "nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY device wifi list; " +
-            // Mode list `connection show` nggak menerima field 802-11-wireless.ssid, jadi SSID tiap profil
-            // wifi diambil satu-satu lewat UUID. Output per baris: "<uuid><TAB><ssid>".
-            "echo '@@profiles'; " +
+            "echo '@@profiles'; known=\" $* \"; " +
             "nmcli -t -f UUID,TYPE connection show | while IFS=: read -r u t; do " +
             "[ \"$t\" = 802-11-wireless ] || continue; " +
-            "printf '%s\\t%s\\n' \"$u\" \"$(nmcli -g 802-11-wireless.ssid connection show uuid \"$u\" 2>/dev/null)\"; " +
+            "case \"$known\" in *\" $u \"*) printf 'C\\t%s\\n' \"$u\"; continue;; esac; " +
+            "printf 'N\\t%s\\t%s\\n' \"$u\" \"$(nmcli -g 802-11-wireless.ssid connection show uuid \"$u\" 2>/dev/null)\"; " +
             "done; " +
-            "echo '@@active'; nmcli -t -f UUID,TYPE connection show --active"]
+            "echo '@@active'; nmcli -t -f UUID,TYPE connection show --active", "sh"].concat(root.wifiProfiles.map(p => p.uuid))
         environment: ({ LANG: "C", LC_ALL: "C" })
         stdout: StdioCollector {
             onStreamFinished: {
                 const best = ({});
                 let active = "";
+                let activeSignal = 0;
                 const sections = text.split("@@profiles");
                 const profileSections = (sections[1] || "").split("@@active");
                 const unescapeFields = line => line.replace(/\\:/g, "\u0001").split(":")
                     .map(field => field.replace(/\u0001/g, ":"));
+                const cached = ({});
+                for (const p of root.wifiProfiles) cached[p.uuid] = p.ssid;
                 root.wifiProfiles = (profileSections[0] || "").split("\n")
-                    .filter(line => line.indexOf("\t") > 0)
-                    .map(line => {
-                        const i = line.indexOf("\t");
-                        // nmcli terse meng-escape ":" dan "\" di dalam nilai
-                        return { uuid: line.slice(0, i).trim(), ssid: line.slice(i + 1).replace(/\\(.)/g, "$1") };
+                    .map(line => line.split("\t"))
+                    .map(f => {
+                        if (f[0] === "C" && f.length >= 2) return { uuid: f[1].trim(), ssid: cached[f[1].trim()] ?? "" };
+                        // nmcli -g meng-escape ":" dan "\" di dalam nilai
+                        if (f[0] === "N" && f.length >= 3) return { uuid: f[1].trim(), ssid: f.slice(2).join("\t").replace(/\\(.)/g, "$1") };
+                        return null;
                     })
-                    .filter(profile => profile.uuid && profile.ssid);
+                    .filter(profile => profile && profile.uuid && profile.ssid);
                 const activeUuids = (profileSections[1] || "").split("\n")
                     .filter(line => line.trim())
                     .map(unescapeFields)
@@ -571,14 +670,49 @@ Singleton {
                     const f = unescapeFields(line);
                     if (f.length < 4 || !f[1]) continue;
                     const e = { ssid: f[1], signal: parseInt(f[2]) || 0, secure: f[3] !== "" && f[3] !== "--", active: f[0] === "*", known: root.wifiKnown(f[1]) };
-                    if (e.active) active = e.ssid;
+                    if (e.active) { active = e.ssid; activeSignal = e.signal; }
                     if (!best[e.ssid] || best[e.ssid].signal < e.signal || e.active) best[e.ssid] = e;
                 }
                 root.wifiName = active;
+                root.wifiSignal = activeSignal;
                 root.wifiList = Object.values(best).sort((a, b) => (b.active - a.active) || (b.known - a.known) || (b.signal - a.signal)).slice(0, 8);
             }
         }
     }
+
+    // Status ringan buat ikon di menubar: radio + SSID + sinyal, tanpa rescan.
+    // Dipicu event `nmcli monitor` (debounce), plus polling 30 detik buat update kekuatan sinyal.
+    property int wifiSignal: 0
+    readonly property string wifiGlyph: !wifiOn ? "wifi-off"
+        : wifiName === "" ? "wifi-none"
+        : wifiSignal >= 67 ? "wifi" : wifiSignal >= 34 ? "wifi-2" : "wifi-1"
+    Process {
+        id: wifiStatusGet
+        command: ["sh", "-c", "nmcli radio wifi; nmcli -t -f IN-USE,SIGNAL,SSID device wifi list --rescan no | grep '^\\*:' | head -n1"]
+        environment: ({ LANG: "C", LC_ALL: "C" })
+        stdout: StdioCollector {
+            onStreamFinished: {
+                const lines = text.split("\n");
+                root.wifiOn = (lines[0] || "").trim() === "enabled";
+                const line = lines[1] || "";
+                if (!line.startsWith("*:")) { root.wifiName = ""; root.wifiSignal = 0; return; }
+                const rest = line.slice(2);
+                const i = rest.indexOf(":");
+                root.wifiSignal = parseInt(rest.slice(0, i)) || 0;
+                root.wifiName = rest.slice(i + 1).replace(/\\(.)/g, "$1");
+            }
+        }
+    }
+    Timer { id: wifiStatusDebounce; interval: 700; onTriggered: if (!wifiStatusGet.running) wifiStatusGet.running = true }
+    Timer { interval: 30000; running: true; repeat: true; onTriggered: wifiStatusDebounce.restart() }
+    Process {
+        id: nmMonitor
+        running: true
+        command: ["nmcli", "monitor"]
+        stdout: SplitParser { onRead: wifiStatusDebounce.restart() }
+        onExited: nmMonitorRestart.restart()
+    }
+    Timer { id: nmMonitorRestart; interval: 5000; onTriggered: nmMonitor.running = true }
 
     // =====================================================================
     //  Bluetooth
@@ -616,8 +750,8 @@ Singleton {
     }
     function openBtSettings() {
         closeCCQuiet();
-        Quickshell.execDetached(["sh", "-c",
-            "kcmshell6 kcm_bluetooth 2>/dev/null || blueman-manager 2>/dev/null || kitty -e bluetoothctl"]);
+        Quickshell.execDetached(["sh", "-c", termScript +
+            "kcmshell6 kcm_bluetooth 2>/dev/null || blueman-manager 2>/dev/null || term_run bluetoothctl"]);
     }
 
     // =====================================================================
@@ -679,21 +813,21 @@ Singleton {
         const geo = Math.round(w) + "x" + Math.round(h) + "+" + Math.round(x) + "+" + Math.round(y);
         const script = captureMode === "ocr"
             ? "set -o pipefail; input=$1; geometry=$2; trap 'rm -f \"$input\"' EXIT; " +
-              "M=$(command -v magick || command -v convert) || { notify-send -a Screenshot -u critical 'OCR gagal' 'ImageMagick tidak ditemukan'; exit 1; }; " +
-              "command -v tesseract >/dev/null && command -v wl-copy >/dev/null || { notify-send -a Screenshot -u critical 'OCR gagal' 'Tesseract atau wl-copy tidak ditemukan'; exit 1; }; " +
+              "M=$(command -v magick || command -v convert) || { notify-send -a Screenshot -u critical 'OCR failed' 'ImageMagick is not installed'; exit 1; }; " +
+              "command -v tesseract >/dev/null && command -v wl-copy >/dev/null || { notify-send -a Screenshot -u critical 'OCR failed' 'Tesseract or wl-copy is not installed'; exit 1; }; " +
               "langs=$(tesseract --list-langs 2>/dev/null | awk 'NR > 1 { print $1 }' | paste -sd+ -); " +
-              "[ -n \"$langs\" ] || { notify-send -a Screenshot -u critical 'OCR gagal' 'Bahasa OCR belum terpasang'; exit 1; }; " +
+              "[ -n \"$langs\" ] || { notify-send -a Screenshot -u critical 'OCR failed' 'No OCR language data installed'; exit 1; }; " +
               "if \"$M\" \"$input\" -crop \"$geometry\" +repage png:- | tesseract stdin stdout -l \"$langs\" | wl-copy; then " +
-              "notify-send -a Screenshot 'Teks disalin' 'Hasil OCR ada di clipboard'; " +
-              "else notify-send -a Screenshot -u critical 'OCR gagal' 'Gambar tidak dapat diproses atau teks tidak bisa disalin'; exit 1; fi"
+              "notify-send -a Screenshot 'Text copied' 'OCR result is on the clipboard'; " +
+              "else notify-send -a Screenshot -u critical 'OCR failed' 'The image could not be processed or the text could not be copied'; exit 1; fi"
             : "set -o pipefail; input=$1; geometry=$2; trap 'rm -f \"$input\"' EXIT; " +
-              "M=$(command -v magick || command -v convert) || { notify-send -a Screenshot -u critical 'Screenshot gagal' 'ImageMagick tidak ditemukan'; exit 1; }; " +
+              "M=$(command -v magick || command -v convert) || { notify-send -a Screenshot -u critical 'Screenshot failed' 'ImageMagick is not installed'; exit 1; }; " +
               "pictures=$(xdg-user-dir PICTURES 2>/dev/null); [ -n \"$pictures\" ] || pictures=\"$HOME/Pictures\"; " +
-              "d=\"$pictures/Screenshots\"; mkdir -p \"$d\" || { notify-send -a Screenshot -u critical 'Screenshot gagal' 'Folder tujuan tidak bisa dibuat'; exit 1; }; " +
+              "d=\"$pictures/Screenshots\"; mkdir -p \"$d\" || { notify-send -a Screenshot -u critical 'Screenshot failed' 'Could not create the Screenshots folder'; exit 1; }; " +
               "out=\"$d/Screenshot_$(date +%Y-%m-%d_%H.%M.%S).png\"; " +
-              "\"$M\" \"$input\" -crop \"$geometry\" +repage \"$out\" || { notify-send -a Screenshot -u critical 'Screenshot gagal' 'Gambar tidak dapat dipotong'; exit 1; }; " +
-              "if wl-copy < \"$out\"; then notify-send -a Screenshot -i \"$out\" 'Screenshot disalin' \"$out\"; " +
-              "else notify-send -a Screenshot -u critical 'Screenshot tersimpan' \"Tidak dapat menyalin ke clipboard: $out\"; fi"
+              "\"$M\" \"$input\" -crop \"$geometry\" +repage \"$out\" || { notify-send -a Screenshot -u critical 'Screenshot failed' 'Could not crop the image'; exit 1; }; " +
+              "if wl-copy < \"$out\"; then notify-send -a Screenshot -i \"$out\" 'Screenshot copied' \"$out\"; " +
+              "else notify-send -a Screenshot -u critical 'Screenshot saved' \"Could not copy to clipboard: $out\"; fi"
         Quickshell.execDetached(["bash", "-c", script, "bash", captureFile, geo]);
     }
     Timer { id: captureDelay; interval: 260; onTriggered: root.startCapture() }
@@ -807,13 +941,15 @@ Singleton {
 
     // =====================================================================
     function refresh() {
-        brightGet.running = true;
-        wifiGet.running = true;
-        wifiListGet.running = true;
+        if (!brightGet.running) brightGet.running = true;
+        if (!wifiGet.running) wifiGet.running = true;
+        if (!wifiListGet.running) wifiListGet.running = true;
     }
     Timer { id: recheck; interval: 1200; onTriggered: root.refresh() }
 
     Component.onCompleted: {
+        Quickshell.execDetached(["mkdir", "-p", Quickshell.env("HOME") + "/.local/state/macmono"]);
+        togglesRead.running = true;
         refresh();
         recStatusGeneration = recordingGeneration;
         recStatus.running = true;

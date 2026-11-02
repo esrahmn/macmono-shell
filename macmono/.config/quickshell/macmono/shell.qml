@@ -14,6 +14,7 @@ import "osd"
 import "calendar"
 import "media"
 import "cheatsheet"
+import "lock"
 
 // macmono: shell monochrome ala macOS
 // wallpaper + menubar + launcher/overview + clipboard + control center + notifikasi + screenshot
@@ -32,4 +33,5 @@ ShellRoot {
     Notifs {}
     RegionSelector {}
     Shortcuts {}
+    LockScreen {}
 }

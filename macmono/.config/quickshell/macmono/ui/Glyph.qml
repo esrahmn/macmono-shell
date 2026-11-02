@@ -32,14 +32,16 @@ Canvas {
         const PI = Math.PI;
         switch (root.name) {
         case "volume":
+        case "volume-low":
+        case "volume-zero":
         case "mute":
             ctx.beginPath();
             ctx.moveTo(3, 9); ctx.lineTo(7, 9); ctx.lineTo(12, 5); ctx.lineTo(12, 19); ctx.lineTo(7, 15); ctx.lineTo(3, 15);
             ctx.closePath();
             ctx.fill();
-            if (root.name === "volume") {
-                ctx.beginPath(); ctx.arc(12, 12, 5, -0.9, 0.9); ctx.stroke();
-                ctx.beginPath(); ctx.arc(12, 12, 9, -0.9, 0.9); ctx.stroke();
+            if (root.name !== "mute") {
+                if (root.name !== "volume-zero") { ctx.beginPath(); ctx.arc(12, 12, 5, -0.9, 0.9); ctx.stroke(); }
+                if (root.name === "volume") { ctx.beginPath(); ctx.arc(12, 12, 9, -0.9, 0.9); ctx.stroke(); }
             } else {
                 ctx.beginPath();
                 ctx.moveTo(16, 9); ctx.lineTo(21, 15);
@@ -58,11 +60,22 @@ Canvas {
             }
             break;
         case "wifi":
-            for (let r = 4; r <= 12; r += 4) {
-                ctx.beginPath(); ctx.arc(12, 19, r, -PI * 0.75, -PI * 0.25); ctx.stroke();
+        case "wifi-2":
+        case "wifi-1":
+        case "wifi-none":
+        case "wifi-off": {
+            // wifi-1/2 = sinyal lemah/sedang (busur sisanya tipis), wifi-none = nyala tapi belum konek
+            const lit = root.name === "wifi" ? 3 : root.name === "wifi-2" ? 2 : root.name === "wifi-1" ? 1 : 0;
+            for (let i = 1; i <= 3; i++) {
+                ctx.globalAlpha = i <= lit ? 1 : 0.3;
+                ctx.beginPath(); ctx.arc(12, 19, i * 4, -PI * 0.75, -PI * 0.25); ctx.stroke();
             }
+            ctx.globalAlpha = lit > 0 ? 1 : 0.3;
             ctx.beginPath(); ctx.arc(12, 19, 1.4, 0, 2 * PI); ctx.fill();
+            ctx.globalAlpha = 1;
+            if (root.name === "wifi-off") { ctx.beginPath(); ctx.moveTo(4, 4); ctx.lineTo(20, 20); ctx.stroke(); }
             break;
+        }
         case "bluetooth":
             ctx.beginPath();
             ctx.moveTo(7, 8); ctx.lineTo(17, 16); ctx.lineTo(12, 20); ctx.lineTo(12, 4); ctx.lineTo(17, 8); ctx.lineTo(7, 16);
@@ -250,6 +263,19 @@ Canvas {
             ctx.beginPath(); ctx.moveTo(10, 4.5); ctx.lineTo(5, 4.5); ctx.lineTo(5, 19.5); ctx.lineTo(10, 19.5); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(10.5, 12); ctx.lineTo(20, 12); ctx.moveTo(16.5, 8.5); ctx.lineTo(20, 12); ctx.lineTo(16.5, 15.5); ctx.stroke();
             break;
+        case "enso": {
+            // lingkaran zen kuas: tebal di awal, menipis ke ujung, ada celah di kanan atas
+            const start = -PI * 0.28, sweep = PI * 1.82, steps = 48;
+            for (let i = 0; i < steps; i++) {
+                const t = i / steps;
+                ctx.lineWidth = root.thickness * (1.9 - 1.3 * t);
+                ctx.beginPath();
+                ctx.arc(12, 12, 8, start + sweep * t, start + sweep * (t + 1 / steps) + 0.02);
+                ctx.stroke();
+            }
+            ctx.lineWidth = root.thickness;
+            break;
+        }
         case "action":
             ctx.beginPath(); ctx.moveTo(13.5, 3); ctx.lineTo(5, 13.5); ctx.lineTo(11, 13.5); ctx.lineTo(10.5, 21); ctx.lineTo(19, 10.5); ctx.lineTo(13, 10.5); ctx.closePath(); ctx.stroke();
             break;

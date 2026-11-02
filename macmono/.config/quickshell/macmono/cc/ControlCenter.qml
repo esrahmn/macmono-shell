@@ -49,11 +49,16 @@ Scope {
             }
             onVisibleChanged: if (!visible) expanded = ""
 
+            // Selama ngetik password / nyambung Wi-Fi, grab dilepas dulu: ganti keyboardFocus ke
+            // Exclusive bikin Hyprland refocus (grab ke-clear), dan nmcli bisa munculin dialog
+            // secret agent yang nyolong fokus. Dua-duanya dulu bikin CC langsung nutup.
+            readonly property bool holdOpen: wifiList.typing || Sys.wifiConnecting !== ""
+
             // Grab dimatiin selama screenshot, biar CC nggak nutup pas pemilih area muncul
             HyprlandFocusGrab {
                 windows: [win]
-                active: win.shown && !Sys.capturing
-                onCleared: if (!Sys.capturing && !win.active) Sys.closeCC()
+                active: win.shown && !Sys.capturing && !win.holdOpen
+                onCleared: if (!Sys.capturing && !win.holdOpen && !win.active) Sys.closeCC()
             }
 
             // Pemain yang sedang diputar dipilih dulu; tombol media dapat menggantinya.

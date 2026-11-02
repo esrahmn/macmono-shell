@@ -47,15 +47,19 @@ Scope {
                     anchors { left: parent.left; leftMargin: Theme.space16; verticalCenter: parent.verticalCenter }
                     spacing: Theme.space14
 
-                    Rectangle { // logo: cincin putih -> launcher
+                    Glyph { // logo: ensō -> launcher
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 14; height: 14; radius: Math.min(width, height) / 2
-                        color: Theme.transparent
-                        border.width: Theme.borderStrong
-                        border.color: Theme.text
+                        width: 17; height: 17
+                        name: "enso"
+                        color: Theme.text
+                        opacity: launcherArea.containsMouse ? 0.7 : 1
+                        Behavior on opacity { NumberAnimation { duration: 120 } }
                         MouseArea {
+                            id: launcherArea
                             anchors.fill: parent
-                            anchors.margins: -7
+                            anchors.margins: -6
+                            hoverEnabled: true
+                            cursorShape: Qt.PointingHandCursor
                             onClicked: Sys.toggleLauncher()
                         }
                     }
@@ -67,6 +71,9 @@ Scope {
                         height: 16
                         width: wsRow.width
                         readonly property bool open: wsArea.containsMouse
+                        // minimal 5 titik, nambah otomatis kalau workspace 6-10 dipakai
+                        readonly property int count: Math.min(10, Math.max(5, Hyprland.focusedWorkspace?.id ?? 0,
+                            ...Hyprland.workspaces.values.map(w => w.id).filter(id => id > 0 && id <= 10)))
 
                         MouseArea {
                             id: wsArea
@@ -84,7 +91,7 @@ Scope {
                             spacing: Theme.space0
 
                             Repeater {
-                                model: 5
+                                model: ws.count
                                 delegate: Item {
                                     id: cell
                                     required property int index
@@ -95,7 +102,7 @@ Scope {
                                     readonly property real gap: ws.open ? 8 : 0
 
                                     height: 16
-                                    width: dotW + (index < 4 ? gap : 0)
+                                    width: dotW + (index < ws.count - 1 ? gap : 0)
                                     clip: false
                                     Behavior on width { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
 
@@ -171,7 +178,7 @@ Scope {
 
                     Row { // tray (di-desaturate biar tetap monochrome)
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: Theme.space10
+                        spacing: Theme.space14
                         Repeater {
                             model: SystemTray.items
                             delegate: MouseArea {
@@ -283,28 +290,34 @@ Scope {
                             Glyph {
                                 visible: Sys.micMuted
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 17; height: 17
+                                width: 18; height: 18
                                 name: "mic-off"
                                 color: Theme.text
                             }
                             Glyph {
                                 visible: Sys.dnd
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 16; height: 16
+                                width: 18; height: 18
                                 name: "moon"
                                 color: Theme.text
                             }
                             Glyph {
                                 visible: Sys.keepAwake
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 17; height: 17
+                                width: 18; height: 18
                                 name: "coffee"
                                 color: Theme.text
                             }
                             Glyph {
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: 18; height: 18
-                                name: Sys.muted ? "mute" : "volume"
+                                name: Sys.wifiGlyph
+                                color: Sys.wifiOn ? Theme.text : Theme.dim
+                            }
+                            Glyph {
+                                anchors.verticalCenter: parent.verticalCenter
+                                width: 18; height: 18
+                                name: Sys.muted ? "mute" : Sys.volume <= 0.005 ? "volume-zero" : Sys.volume < 0.5 ? "volume-low" : "volume"
                                 color: Theme.text
                             }
 
