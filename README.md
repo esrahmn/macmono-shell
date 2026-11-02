@@ -10,6 +10,14 @@ Every color in this shell is pure gray (R=G=B), with no accent colors at all. Th
 ![macmono](assets/screenshot.png)
 -->
 
+## Preview
+
+|              Desktop              |                Control Center                 |
+| :-------------------------------: | :-------------------------------------------: |
+|  ![Desktop](preview/desktop.png)  | ![Control Center](preview/control-center.png) |
+|           **Launcher**            |                **Lock Screen**                |
+| ![Launcher](preview/launcher.png) |       ![Lock Screen](preview/lock.png)        |
+
 ## Repo layout
 
 ```
@@ -123,19 +131,19 @@ qs -c macmono
 
 ## Key bindings
 
-| Keybind | Action |
-| --- | --- |
-| `Super` (tap) | Toggle launcher |
-| `Super + Tab` | Workspace overview |
-| `Super + V` | Clipboard manager |
-| `Super + N` | Toggle right sidebar |
-| `Super + M` | Media controls |
-| `Super + /` | Keybind cheatsheet |
-| `Super + J` | Toggle bar |
-| `Super + L` | Lock screen |
-| `Super + Shift + S` | Area screenshot |
-| `Ctrl + Super + T` | Wallpaper picker |
-| `Ctrl + Super + R` | Reload shell |
+| Keybind               | Action               |
+| --------------------- | -------------------- |
+| `Super` (tap)         | Toggle launcher      |
+| `Super + Tab`         | Workspace overview   |
+| `Super + V`           | Clipboard manager    |
+| `Super + N`           | Toggle right sidebar |
+| `Super + M`           | Media controls       |
+| `Super + /`           | Keybind cheatsheet   |
+| `Super + J`           | Toggle bar           |
+| `Super + L`           | Lock screen          |
+| `Super + Shift + S`   | Area screenshot      |
+| `Ctrl + Super + T`    | Wallpaper picker     |
+| `Ctrl + Super + R`    | Reload shell         |
 | `Ctrl + Alt + Delete` | Session / power menu |
 
 The full list is in `hypr/hyprland/keybinds.lua`. Put personal keybinds in `hypr/custom/keybinds.lua`.
