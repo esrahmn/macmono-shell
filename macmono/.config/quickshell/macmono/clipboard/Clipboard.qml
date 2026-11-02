@@ -60,7 +60,10 @@ Scope {
 
     Connections {
         target: Sys
-        function onClipboardOpenChanged() { if (Sys.clipboardOpen) root.reload(); }
+        function onClipboardOpenChanged() {
+            if (Sys.clipboardOpen) root.reload();
+            else Quickshell.execDetached(["rm", "-rf", "--", Sys.runtimeDir + "/clip"]);   // gambar hasil decode jangan ditinggal
+        }
         function onClipboardUpdated() { if (Sys.clipboardOpen) root.reload(); }
     }
 
@@ -113,9 +116,9 @@ Scope {
                     win.detailImage = "";
                     if (e.type === "image") {
                         imgProc.exec(["bash", "-c",
-                            "d=/tmp/macmono-clip; mkdir -p \"$d\"; f=\"$d/$2.$3\"; " +
+                            "umask 077; d=\"$4\"; mkdir -p \"$d\"; f=\"$d/$2.$3\"; " +
                             "[ -s \"$f\" ] || printf '%s' \"$1\" | cliphist decode > \"$f\"; printf '%s' \"$f\"",
-                            "bash", e.line, e.id, e.ext]);
+                            "bash", e.line, e.id, e.ext, Sys.runtimeDir + "/clip"]);
                     } else {
                         textProc.exec(["bash", "-c", "printf '%s' \"$1\" | cliphist decode | head -c 20000", "bash", e.line]);
                     }

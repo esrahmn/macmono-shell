@@ -7,8 +7,11 @@ pidof hyprlock >/dev/null && exit 0
 here="$(cd "$(dirname "$0")" && pwd)"
 state="$HOME/.local/state/macmono"
 mkdir -p "$state"
-src="$1"
-mono="${2:-1}"
+# Tanpa argumen (mis. dipanggil hypridle) -> pakai wallpaper dan mode mono yang disimpan macmono.
+# Argumen kosong yang DIKIRIM eksplisit tetap dihormati (latar = screenshot).
+src="${1-$(cat "$state/wallpaper" 2>/dev/null)}"
+mono="${2-$(cat "$state/wallpaper_mono" 2>/dev/null)}"
+[ "$mono" = 0 ] || mono=1
 
 # ---------- latar: wallpaper (di-cache, cuma diproses ulang kalau wallpaper/mode berubah)
 bg=""

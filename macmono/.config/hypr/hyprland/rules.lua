@@ -68,7 +68,6 @@ hl.window_rule({match = {title = "^([Pp]icture[-\\s]?[Ii]n[-\\s]?[Pp]icture)(.*)
 hl.window_rule({match = {title = "^([Pp]icture[-\\s]?[Ii]n[-\\s]?[Pp]icture)(.*)$" }, keep_aspect_ratio = true})
 hl.window_rule({match = {title = "^([Pp]icture[-\\s]?[Ii]n[-\\s]?[Pp]icture)(.*)$" }, move = {"(monitor_w*0.73)", "(monitor_h*0.72)"} })
 hl.window_rule({match = {title = "^([Pp]icture[-\\s]?[Ii]n[-\\s]?[Pp]icture)(.*)$" }, size = {"(monitor_w*0.25)", "(monitor_h*0.25)"} })
-hl.window_rule({match = {title = "^([Pp]icture[-\\s]?[Ii]n[-\\s]?[Pp]icture)(.*)$" }, float = true})
 hl.window_rule({match = {title = "^([Pp]icture[-\\s]?[Ii]n[-\\s]?[Pp]icture)(.*)$" }, pin = true})
 
 -- Screen sharing
@@ -77,12 +76,9 @@ hl.window_rule({match = {title = ".*is sharing (a window|your screen).*" }, pin 
 hl.window_rule({match = {title = ".*is sharing (a window|your screen).*" }, move = {"(monitor_w*.5-window_w*.5)", "(monitor_h-window_h-12)"} })
 
 -- --- Tearing ---
-hl.window_rule({match = {title = ".*\\.exe" }, immediate = true})
-hl.window_rule({match = {title = ".*minecraft.*" }, immediate = true})
-hl.window_rule({match = {class = "^(steam_app).*" }, immediate = true})
 
 -- No shadow for tiled windows
-hl.window_rule({match = {float = 0 }, no_shadow = true})
+hl.window_rule({match = {float = false }, no_shadow = true})
 
 -- ######## Workspace rules ########
 hl.workspace_rule({ workspace = "special:special", gaps_out = 30 })
@@ -126,8 +122,6 @@ hl.layer_rule({ match = { namespace = "sideright[0-9]*" }, blur = true})
 hl.layer_rule({ match = { namespace = "sideright[0-9]*" }, ignore_alpha = 0.6})
 hl.layer_rule({ match = { namespace = "sideleft[0-9]*" }, blur = true})
 hl.layer_rule({ match = { namespace = "sideleft[0-9]*" }, ignore_alpha = 0.6})
-hl.layer_rule({ match = { namespace = "indicator.*" }, blur = true})
-hl.layer_rule({ match = { namespace = "indicator.*" }, ignore_alpha = 0.6})
 hl.layer_rule({ match = { namespace = "osk[0-9]*" }, blur = true})
 hl.layer_rule({ match = { namespace = "osk[0-9]*" }, ignore_alpha = 0.6})
 

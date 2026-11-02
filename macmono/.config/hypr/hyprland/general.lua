@@ -60,7 +60,6 @@ hl.config({
         resize_on_border = true,
 
         no_focus_fallback = true,
-        allow_tearing = true, -- This just allows the `immediate` window rule to work
         snap = {
             enabled = true,
             window_gap = 4,

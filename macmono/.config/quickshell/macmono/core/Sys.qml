@@ -12,6 +12,9 @@ import "../services"
 Singleton {
     id: root
 
+    // Folder pribadi (mode 0700) untuk file sementara: screenshot beku, gambar clipboard hasil decode.
+    // Jangan pakai /tmp: isinya bisa password atau data sensitif, dan /tmp bisa dibaca user lain.
+    readonly property string runtimeDir: (Quickshell.env("XDG_RUNTIME_DIR") || (Quickshell.env("HOME") + "/.cache")) + "/macmono"
 
     // =====================================================================
     //  State UI (panel yang lagi kebuka)
@@ -650,10 +653,11 @@ Singleton {
     }
     function startCapture() {
         captureScreen = focusedScreenName();
-        captureFile = "/tmp/macmono-shot-" + captureScreen + ".png";
+        captureFile = runtimeDir + "/shot-" + captureScreen + ".png";
         capturePending = true;
         targetsGet.running = true;
-        grimProc.exec(["grim", "-o", captureScreen, captureFile]);
+        // umask 077 -> folder 0700 dan file 0600
+        grimProc.exec(["sh", "-c", "umask 077; mkdir -p \"$1\" && exec grim -o \"$2\" \"$3\"", "sh", runtimeDir, captureScreen, captureFile]);
     }
     function cancelCapture() {
         capturing = false;
