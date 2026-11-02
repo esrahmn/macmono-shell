@@ -12,11 +12,11 @@ Every color in this shell is pure gray (R=G=B), with no accent colors at all. Th
 
 ## Preview
 
-|              Desktop              |                Control Center                |
-| :-------------------------------: | :------------------------------------------: |
-|  ![Desktop](preview/desktop.png)  | ![Control Center](preview/controlcenter.png) |
-|           **Launcher**            |               **Lock Screen**                |
-| ![Launcher](preview/launcher.png) |       ![Lock Screen](preview/lock.png)       |
+|              Desktop              |           Wallpaper Selector            |
+| :-------------------------------: | :-------------------------------------: |
+|  ![Desktop](preview/desktop.png)  | ![Wallpaper Selector](preview/wall.png) |
+|           **Launcher**            |             **Lock Screen**             |
+| ![Launcher](preview/launcher.png) |    ![Lock Screen](preview/lock.png)     |
 
 ## Repo layout
 
