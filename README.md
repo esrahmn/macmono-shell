@@ -6,10 +6,6 @@ Every color in this shell is pure gray (R=G=B), with no accent colors at all. Th
 
 > Used daily on **CachyOS**. Tested on **Hyprland 0.57** and **Quickshell 0.3.2**.
 
-<!-- Drop a screenshot here, for example:
-![macmono](assets/screenshot.png)
--->
-
 ## Preview
 
 |              Desktop              |           Wallpaper Selector            |
