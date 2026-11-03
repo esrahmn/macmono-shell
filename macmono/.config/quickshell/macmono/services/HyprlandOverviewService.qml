@@ -3,25 +3,32 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
 
-// Snapshot client + monitor Hyprland yang dipakai Launcher dan Overview.
-// `active` diatur dari Sys.qml (aktif selama launcher terbuka); UI tetap memakai Sys.hyprClients / Sys.hyprMonitors.
-// Pakai Scope (bukan QtObject) supaya boleh punya anak (Process, Timer, Connections).
+// Snapshot client + monitor Hyprland untuk Launcher / Overview.
+// Perbaikan vs versi lama:
+//  - Hanya refresh saat benar-benar dibutuhkan (active) atau event relevan
+//  - Debounce lebih ketat
+//  - Hindari double-spawn Process
+//  - Fallback aman kalau hyprctl gagal / JSON rusak
 Scope {
     id: root
 
     property bool active: false
     property var clients: []
     property var monitors: []
-    property bool refreshAgain: false
+    property bool pendingRefresh: false
+    property bool lastOk: true
 
-    readonly property var events: [
+    // Event yang memang mengubah daftar window / workspace / monitor
+    readonly property var relevantEvents: [
         "openwindow", "closewindow", "movewindowv2", "changefloatingmode",
-        "workspacev2", "fullscreen", "windowtitlev2", "focusedmonv2", "moveworkspacev2"
+        "workspacev2", "fullscreen", "windowtitlev2", "focusedmonv2",
+        "moveworkspacev2", "createworkspacev2", "destroyworkspacev2",
+        "monitoraddedv2", "monitorremovedv2"
     ]
 
     function refresh() {
         if (hyprGet.running) {
-            refreshAgain = true;
+            pendingRefresh = true;
             return;
         }
         hyprGet.running = true;
@@ -29,36 +36,51 @@ Scope {
 
     Process {
         id: hyprGet
-        command: ["bash", "-c", "printf '{\"clients\":%s,\"monitors\":%s}' \"$(hyprctl -j clients)\" \"$(hyprctl -j monitors)\""]
+        // Satu kali panggil, dua data. Lebih hemat daripada dua Process terpisah.
+        command: ["bash", "-c",
+            "printf '{\"clients\":%s,\"monitors\":%s}' \"$(hyprctl -j clients 2>/dev/null || echo '[]')\" \"$(hyprctl -j monitors 2>/dev/null || echo '[]')\""
+        ]
         stdout: StdioCollector {
             onStreamFinished: {
                 try {
                     const data = JSON.parse(text);
-                    root.clients = data.clients || [];
-                    root.monitors = data.monitors || [];
+                    root.clients = Array.isArray(data.clients) ? data.clients : [];
+                    root.monitors = Array.isArray(data.monitors) ? data.monitors : [];
+                    root.lastOk = true;
                 } catch (e) {
-                    // hyprctl ngasih JSON rusak: pertahankan snapshot terakhir yang valid.
+                    // Jangan timpa data bagus dengan yang rusak
+                    root.lastOk = false;
                 }
             }
         }
         onExited: {
-            if (root.refreshAgain) {
-                root.refreshAgain = false;
-                hyprDebounce.restart();
+            if (root.pendingRefresh) {
+                root.pendingRefresh = false;
+                // Debounce sedikit biar tidak spam saat banyak event beruntun
+                debounce.restart();
             }
         }
     }
 
     Timer {
-        id: hyprDebounce
-        interval: 60
+        id: debounce
+        interval: 80
         onTriggered: root.refresh()
     }
 
+    // Hanya dengarkan event saat overview/launcher aktif.
+    // Ini penghematan besar dibanding selalu reaktif.
     Connections {
         target: Hyprland
+        enabled: root.active
         function onRawEvent(event) {
-            if (root.active && root.events.includes(event.name)) hyprDebounce.restart();
+            if (root.relevantEvents.indexOf(event.name) !== -1)
+                debounce.restart();
         }
+    }
+
+    // Saat baru diaktifkan, ambil snapshot segar
+    onActiveChanged: {
+        if (active) refresh();
     }
 }

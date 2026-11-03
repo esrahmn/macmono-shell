@@ -21,7 +21,13 @@ Rectangle {
     onOpenChanged: if (!open) pwFor = ""
     Connections {   // password salah -> buka lagi kolom password-nya
         target: Sys
-        function onWifiErrorChanged() { if (Sys.wifiError !== "") { root.pwFor = Sys.wifiError; pw.text = ""; pw.forceActiveFocus(); } }
+        function onWifiErrorChanged() {
+            if (Sys.wifiError !== "" && Sys.wifiError !== Sys.wifiName) {
+                root.pwFor = Sys.wifiError;
+                pw.text = "";
+                pw.forceActiveFocus();
+            }
+        }
     }
 
     function pick(e) {
@@ -83,9 +89,11 @@ Rectangle {
                         Text {
                             width: parent.width; elide: Text.ElideRight
                             text: Sys.wifiConnecting === entry.modelData.ssid ? "Connecting…"
+                                : entry.modelData.active
+                                    ? ("Connected · " + (entry.modelData.secure ? "Secured · " : "Open · ") + entry.modelData.signal + "%")
                                 : Sys.wifiError === entry.modelData.ssid ? "Couldn't connect. Check the password."
-                                : (entry.modelData.active ? "Connected · " : (entry.modelData.known ? "Saved · " : ""))
-                                  + (entry.modelData.secure ? "Secured · " : "Open · ") + entry.modelData.signal + "%"
+                                : ((entry.modelData.known ? "Saved · " : "")
+                                  + (entry.modelData.secure ? "Secured · " : "Open · ") + entry.modelData.signal + "%")
                             color: Theme.dim
                             font.family: Theme.font; font.pixelSize: Theme.fontSmall
                         }

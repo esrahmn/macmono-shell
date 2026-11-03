@@ -12,6 +12,12 @@ import "../services"
 Singleton {
     id: root
 
+    // Subsystem services (hidup di dalam Sys supaya property binding tetap sederhana)
+    PrivacyService { id: privacy }
+    BrightnessService { id: brightnessSvc }
+    WifiService { id: wifiSvc }
+    WallpaperService { id: wallpaperSvc }
+
     // Folder pribadi (mode 0700) untuk file sementara: screenshot beku, gambar clipboard hasil decode.
     // Jangan pakai /tmp: isinya bisa password atau data sensitif, dan /tmp bisa dibaca user lain.
     readonly property string runtimeDir: (Quickshell.env("XDG_RUNTIME_DIR") || (Quickshell.env("HOME") + "/.cache")) + "/macmono"
@@ -48,56 +54,17 @@ Singleton {
             "[ -n \"$i\" ] && { echo \"$i\"; exit; }; elif [ -s \"$f\" ]; then echo \"$f\"; exit; fi; done"]
         stdout: StdioCollector { onStreamFinished: root.avatar = text.trim() }
     }
-    // ---------------- indikator privasi ----------------
-    // mic dipakai = ada stream capture audio dari app (selain peak-meter / efek audio)
-    readonly property bool micInUse: Pipewire.nodes.values.some(n => {
-        if (!n.isStream || n.isSink || !n.audio) return false;
-        const app = String(n.properties?.["application.name"] ?? n.properties?.["node.name"] ?? n.name ?? "").toLowerCase();
-        return !/easyeffects|pavucontrol|cava|quickshell|pipewire|wireplumber/.test(app);
-    })
-    property bool camInUse: false
-    property bool recordingProc: false     // wf-recorder / gpu-screen-recorder / wl-screenrec jalan
+    // ---------------- indikator privasi (delegasi ke PrivacyService) ----------------
+    // mic & screencast = reactive Pipewire; camera/recorder = poll hemat di PrivacyService
+    readonly property bool micInUse: privacy.micInUse
+    readonly property bool camInUse: privacy.camInUse
+    readonly property bool recordingProc: privacy.recordingProc
+    readonly property bool screencast: privacy.screencast
+    // recording = ada external recorder ATAU portal screencast (internal recActive di-handle terpisah)
+    readonly property bool recording: (privacy.recordingProc && !recActive) || privacy.screencast
+
+    // Generation counter untuk sinkronisasi state rekaman internal vs external process
     property int recordingGeneration: 0
-    property int privCheckGeneration: 0
-    // layar sedang di-capture lewat portal (OBS, share layar Discord/Meet, dll.) -> ada node video dari xdg-desktop-portal
-    readonly property bool screencast: Pipewire.nodes.values.some(n => {
-        const p = n.properties ?? {};
-        const mc = String(p["media.class"] ?? "");
-        const who = (String(n.name ?? "") + " " + String(p["application.name"] ?? "") + " " + String(p["node.name"] ?? "")).toLowerCase();
-        return mc === "Video/Source" && /xdp|portal|screencast/.test(who);
-    })
-    readonly property bool recording: (recordingProc && !recActive) || screencast
-    Process {
-        id: privProc
-        command: ["sh", "-c",
-            "c=0; for d in /dev/video*; do [ -e \"$d\" ] || continue; fuser -s \"$d\" 2>/dev/null && { c=1; break; }; done; " +
-            "r=0; pidof wf-recorder gpu-screen-recorder wl-screenrec >/dev/null 2>&1 && r=1; echo \"$c $r\""]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const f = text.trim().split(" ");
-                root.camInUse = f[0] === "1";
-                root.recordingProc = f[1] === "1";
-                const stable = root.privCheckGeneration === root.recordingGeneration;
-                if (root.recActive && !root.recordingProc && stable)
-                    root.recActive = false;
-                // perekam masih hidup padahal UI mengira berhenti (stop gagal / state telat) -> sinkron ke record.sh
-                else if (!root.recActive && root.recordingProc && stable && !root.recStartPending && !root.recStopping) {
-                    root.recStatusGeneration = root.recordingGeneration;
-                    recStatus.running = true;
-                }
-                if (!root.recordingProc) root.recStopping = false;
-            }
-        }
-    }
-    Timer {
-        interval: 3000; running: true; repeat: true; triggeredOnStart: true
-        onTriggered: {
-            if (!privProc.running) {
-                root.privCheckGeneration = root.recordingGeneration;
-                privProc.running = true;
-            }
-        }
-    }
 
     // ---------------- rekam layar (core/record.sh, wf-recorder) ----------------
     property bool recActive: false
@@ -316,19 +283,28 @@ Singleton {
         wallpaperOpen = true;
     }
 
-    // Tutup semua panel dulu, baru kirim dispatch ke Hyprland. Begitu launcher melepas
-    // keyboard, Hyprland balikin fokus ke window terakhir; dispatch yang dikirim sebelum itu
-    // bakal ketimpa (workspace "balik lagi"). Jadi dispatch-nya ditunda sebentar.
+    // Tutup semua panel dulu, baru kirim dispatch ke Hyprland.
+    // Race: begitu launcher melepas keyboard focus, Hyprland mengembalikan fokus ke window
+    // terakhir dan bisa menimpa dispatch workspace/window. Solusi: tutup panel dulu,
+    // baru dispatch setelah fokus sempat settle (docs Hyprland + pengalaman end-4/ii).
     property string pendingDispatch: ""
     function closeAndDispatch(cmd) {
+        if (!cmd) return;
         pendingDispatch = cmd;
         closeCCQuiet();
+        // Pastikan launcher benar-benar tertutup sebelum timer jalan
+        launcherOpen = false;
         dispatchDelay.restart();
     }
     Timer {
         id: dispatchDelay
-        interval: 90
-        onTriggered: { if (root.pendingDispatch) Hyprland.dispatch(root.pendingDispatch); root.pendingDispatch = ""; }
+        interval: 120
+        onTriggered: {
+            if (root.pendingDispatch) {
+                Hyprland.dispatch(root.pendingDispatch);
+                root.pendingDispatch = "";
+            }
+        }
     }
 
     function toggleClipboard() {
@@ -418,50 +394,12 @@ Singleton {
     }
 
     // =====================================================================
-    //  Brightness
+    //  Brightness (delegasi ke BrightnessService)
     // =====================================================================
-    // backlight laptop lewat brightnessctl; monitor eksternal (DDC/CI) lewat ddcutil kalau ada
-    property real brightness: 0.5
-    property bool brightnessOk: false
-    property string brightnessBackend: ""   // "backlight" | "ddc"
-    property int ddcMax: 100
-    function setBrightness(v) {
-        brightness = Math.max(0.01, Math.min(1, v));
-        if (brightnessBackend === "ddc") ddcSetDebounce.restart();   // ddcutil lambat (~0.5 dtk/panggilan)
-        else brightSet.exec(["brightnessctl", "--class", "backlight", "set", Math.round(brightness * 100) + "%", "-q"]);
-    }
-    Timer {
-        id: ddcSetDebounce
-        interval: 250
-        onTriggered: {
-            if (brightSet.running) { restart(); return; }
-            brightSet.exec(["ddcutil", "--noverify", "setvcp", "10", String(Math.round(root.brightness * root.ddcMax))]);
-        }
-    }
-    Process {
-        id: brightGet
-        command: ["sh", "-c",
-            "brightnessctl -m -c backlight 2>/dev/null | grep -q . && exec brightnessctl -m -c backlight; " +
-            "command -v ddcutil >/dev/null && ddcutil getvcp 10 --brief 2>/dev/null | awk '$1 == \"VCP\" { print \"ddc,\" $4 \",\" $5 }'"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const f = text.trim().split(",");
-                if (f[0] === "ddc" && f.length >= 3) {
-                    // format: ddc,current,max
-                    root.ddcMax = parseInt(f[2]) || 100;
-                    root.brightness = (parseInt(f[1]) || 0) / root.ddcMax;
-                    root.brightnessBackend = "ddc";
-                    root.brightnessOk = true;
-                } else if (f.length >= 4) {
-                    // format brightnessctl: device,class,current,percent%,max
-                    root.brightness = parseInt(f[3]) / 100;
-                    root.brightnessBackend = "backlight";
-                    root.brightnessOk = true;
-                }
-            }
-        }
-    }
-    Process { id: brightSet }
+    readonly property real brightness: brightnessSvc.brightness
+    readonly property bool brightnessOk: brightnessSvc.brightnessOk
+    readonly property string brightnessBackend: brightnessSvc.brightnessBackend
+    function setBrightness(v) { brightnessSvc.setBrightness(v); }
 
     // =====================================================================
     //  Toggle: Focus (DND), Keep Awake, Night Light
@@ -513,206 +451,33 @@ Singleton {
     }
 
     // =====================================================================
-    //  Wi-Fi
+    //  Wifi (delegasi ke WifiService)
     // =====================================================================
-    property bool wifiOn: false
-    property string wifiName: ""
-    property string wifiActiveUuid: ""
-    property var wifiList: []
-    function toggleWifi() {
-        wifiOn = !wifiOn;
-        Quickshell.execDetached(["nmcli", "radio", "wifi", wifiOn ? "on" : "off"]);
-        recheck.restart();
-    }
-    function scanWifi() {
-        Quickshell.execDetached(["nmcli", "device", "wifi", "rescan"]);
-        wifiListGet.running = true;
-        recheck.restart();      // hasil rescan baru ada beberapa detik kemudian
-    }
-    // connect: jaringan tersimpan -> "connection up"; jaringan baru -> "device wifi connect" (+ password kalau ada)
-    property string wifiConnecting: ""      // SSID yang lagi disambungkan
-    property string wifiError: ""           // SSID yang gagal (password salah, dll.)
-    property string wifiConnectRequestSsid: ""
-    property bool wifiConnectMayCreate: false   // perintah `device wifi connect` bisa bikin profil baru
-    property var wifiConnectKnownUuids: []      // profil yang sudah ada sebelum mencoba konek
-    property var wifiProfiles: []
-    function wifiProfile(ssid) {
-        const matching = wifiProfiles.filter(profile => profile.ssid === ssid);
-        return matching.find(profile => profile.uuid === wifiActiveUuid) ?? matching[0] ?? null;
-    }
-    function connectWifi(ssid, password) {
-        if (!ssid || wifiConnectProc.running || wifiConnecting !== "") return;
-        wifiError = "";
-        wifiConnecting = ssid;
-        wifiConnectRequestSsid = ssid;
-        const profile = wifiProfile(ssid);
-        wifiConnectMayCreate = false;
-        if (profile && !password) {
-            wifiConnectProc.command = ["nmcli", "connection", "up", "uuid", profile.uuid];
-        } else {
-            wifiConnectMayCreate = true;
-            wifiConnectKnownUuids = wifiProfiles.map(p => p.uuid);
-            // Password dikirim lewat stdin (--ask), bukan argumen: argv kebaca semua user lewat `ps`.
-            wifiPendingPassword = password || "";
-            wifiConnectProc.command = password
-                ? ["nmcli", "--ask", "device", "wifi", "connect", ssid]
-                : ["nmcli", "device", "wifi", "connect", ssid];
-        }
-        wifiConnectProc.running = true;
-        wifiConnectTimeout.restart();
-    }
-    property string wifiPendingPassword: ""
-    // nmcli bisa nunggu input selamanya kalau password ditolak di tengah jalan
-    Timer { id: wifiConnectTimeout; interval: 45000; onTriggered: if (wifiConnectProc.running) wifiConnectProc.running = false }
-    function disconnectWifi() {
-        if (!wifiActiveUuid) {
-            recheck.restart();
-            return;
-        }
-        Quickshell.execDetached(["nmcli", "connection", "down", "uuid", wifiActiveUuid]);
-        recheck.restart();
-    }
-    function openWifiSettings() {
-        closeCCQuiet();
-        Quickshell.execDetached(["sh", "-c", termScript +
-            "kcmshell6 kcm_networkmanagement 2>/dev/null || nm-connection-editor 2>/dev/null || term_run nmtui-connect"]);
-    }
-    Process {
-        id: wifiConnectProc
-        environment: ({ LANG: "C", LC_ALL: "C" })
-        stdinEnabled: true
-        onStarted: {
-            if (root.wifiPendingPassword) wifiConnectProc.write(root.wifiPendingPassword + "\n");
-            root.wifiPendingPassword = "";
-        }
-        onExited: (code) => {
-            wifiConnectTimeout.stop();
-            root.wifiPendingPassword = "";
-            if (code !== 0) {
-                root.wifiError = root.wifiConnectRequestSsid;
-                // koneksi baru yang gagal (password salah, dll.) jangan ditinggal tersimpan
-                if (root.wifiConnectMayCreate) root.cleanupFailedWifi(root.wifiConnectRequestSsid, root.wifiConnectKnownUuids);
-            }
-            root.wifiConnectMayCreate = false;
-            root.wifiConnecting = "";
-            root.wifiConnectRequestSsid = "";
-            recheck.restart();
-        }
-    }
-    // Hapus HANYA profil wifi ber-SSID ini yang belum ada sebelum percobaan konek (jadi profil lama aman).
-    function cleanupFailedWifi(ssid, knownUuids) {
-        if (!ssid || wifiCleanupProc.running) return;
-        wifiCleanupProc.command = ["sh", "-c",
-            "ssid=$(printf %s \"$1\" | tr -d '\\134'); shift; known=\" $* \"; " +
-            "nmcli -t -f UUID,TYPE connection show | while IFS=: read -r u t; do " +
-            "[ \"$t\" = 802-11-wireless ] || continue; " +
-            "case \"$known\" in *\" $u \"*) continue;; esac; " +
-            "s=$(nmcli -g 802-11-wireless.ssid connection show uuid \"$u\" 2>/dev/null | tr -d '\\134'); " +
-            "[ \"$s\" = \"$ssid\" ] && nmcli connection delete uuid \"$u\" >/dev/null 2>&1; " +
-            "done; true", "sh", ssid].concat(knownUuids);
-        wifiCleanupProc.running = true;
-    }
-    Process {
-        id: wifiCleanupProc
-        environment: ({ LANG: "C", LC_ALL: "C" })
-        onExited: recheck.restart()
-    }
-    function wifiKnown(ssid) { return wifiProfile(ssid) !== null; }
-    Process {
-        id: wifiGet
-        command: ["nmcli", "radio", "wifi"]
-        environment: ({ LANG: "C", LC_ALL: "C" })
-        stdout: StdioCollector { onStreamFinished: root.wifiOn = text.trim() === "enabled" }
-    }
-    Process {
-        id: wifiListGet
-        // Mode list `connection show` nggak menerima field 802-11-wireless.ssid, jadi SSID tiap profil
-        // diambil per UUID. Profil yang SSID-nya sudah di-cache (UUID dikirim sebagai argumen) dilewati,
-        // jadi cuma profil baru yang memanggil nmcli lagi. Output: "C<TAB>uuid" (cache) / "N<TAB>uuid<TAB>ssid".
-        command: ["sh", "-c",
-            "nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY device wifi list; " +
-            "echo '@@profiles'; known=\" $* \"; " +
-            "nmcli -t -f UUID,TYPE connection show | while IFS=: read -r u t; do " +
-            "[ \"$t\" = 802-11-wireless ] || continue; " +
-            "case \"$known\" in *\" $u \"*) printf 'C\\t%s\\n' \"$u\"; continue;; esac; " +
-            "printf 'N\\t%s\\t%s\\n' \"$u\" \"$(nmcli -g 802-11-wireless.ssid connection show uuid \"$u\" 2>/dev/null)\"; " +
-            "done; " +
-            "echo '@@active'; nmcli -t -f UUID,TYPE connection show --active", "sh"].concat(root.wifiProfiles.map(p => p.uuid))
-        environment: ({ LANG: "C", LC_ALL: "C" })
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const best = ({});
-                let active = "";
-                let activeSignal = 0;
-                const sections = text.split("@@profiles");
-                const profileSections = (sections[1] || "").split("@@active");
-                const unescapeFields = line => line.replace(/\\:/g, "\u0001").split(":")
-                    .map(field => field.replace(/\u0001/g, ":"));
-                const cached = ({});
-                for (const p of root.wifiProfiles) cached[p.uuid] = p.ssid;
-                root.wifiProfiles = (profileSections[0] || "").split("\n")
-                    .map(line => line.split("\t"))
-                    .map(f => {
-                        if (f[0] === "C" && f.length >= 2) return { uuid: f[1].trim(), ssid: cached[f[1].trim()] ?? "" };
-                        // nmcli -g meng-escape ":" dan "\" di dalam nilai
-                        if (f[0] === "N" && f.length >= 3) return { uuid: f[1].trim(), ssid: f.slice(2).join("\t").replace(/\\(.)/g, "$1") };
-                        return null;
-                    })
-                    .filter(profile => profile && profile.uuid && profile.ssid);
-                const activeUuids = (profileSections[1] || "").split("\n")
-                    .filter(line => line.trim())
-                    .map(unescapeFields)
-                    .filter(fields => fields.length >= 2 && /wireless/.test(fields[1]))
-                    .map(fields => fields[0]);
-                root.wifiActiveUuid = activeUuids.find(uuid => root.wifiProfiles.some(profile => profile.uuid === uuid)) ?? "";
-                for (const line of sections[0].split("\n")) {
-                    if (!line.trim()) continue;
-                    const f = unescapeFields(line);
-                    if (f.length < 4 || !f[1]) continue;
-                    const e = { ssid: f[1], signal: parseInt(f[2]) || 0, secure: f[3] !== "" && f[3] !== "--", active: f[0] === "*", known: root.wifiKnown(f[1]) };
-                    if (e.active) { active = e.ssid; activeSignal = e.signal; }
-                    if (!best[e.ssid] || best[e.ssid].signal < e.signal || e.active) best[e.ssid] = e;
-                }
-                root.wifiName = active;
-                root.wifiSignal = activeSignal;
-                root.wifiList = Object.values(best).sort((a, b) => (b.active - a.active) || (b.known - a.known) || (b.signal - a.signal)).slice(0, 8);
-            }
-        }
-    }
-
-    // Status ringan buat ikon di menubar: radio + SSID + sinyal, tanpa rescan.
-    // Dipicu event `nmcli monitor` (debounce), plus polling 30 detik buat update kekuatan sinyal.
-    property int wifiSignal: 0
+    readonly property bool wifiOn: wifiSvc.wifiOn
+    readonly property string wifiName: wifiSvc.wifiName
+    readonly property string wifiActiveUuid: wifiSvc.wifiActiveUuid
+    readonly property int wifiSignal: wifiSvc.wifiSignal
+    readonly property var wifiList: wifiSvc.wifiList
+    readonly property var wifiProfiles: wifiSvc.wifiProfiles
+    readonly property string wifiConnecting: wifiSvc.wifiConnecting
+    readonly property string wifiError: wifiSvc.wifiError
+    // Icon menubar: wifi-off / wifi-1 / wifi-2 / wifi
     readonly property string wifiGlyph: !wifiOn ? "wifi-off"
         : wifiName === "" ? "wifi-none"
         : wifiSignal >= 67 ? "wifi" : wifiSignal >= 34 ? "wifi-2" : "wifi-1"
-    Process {
-        id: wifiStatusGet
-        command: ["sh", "-c", "nmcli radio wifi; nmcli -t -f IN-USE,SIGNAL,SSID device wifi list --rescan no | grep '^\\*:' | head -n1"]
-        environment: ({ LANG: "C", LC_ALL: "C" })
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const lines = text.split("\n");
-                root.wifiOn = (lines[0] || "").trim() === "enabled";
-                const line = lines[1] || "";
-                if (!line.startsWith("*:")) { root.wifiName = ""; root.wifiSignal = 0; return; }
-                const rest = line.slice(2);
-                const i = rest.indexOf(":");
-                root.wifiSignal = parseInt(rest.slice(0, i)) || 0;
-                root.wifiName = rest.slice(i + 1).replace(/\\(.)/g, "$1");
-            }
-        }
+    function toggleWifi() { wifiSvc.toggleWifi(); }
+    function scanWifi() { wifiSvc.scanWifi(); }
+    function wifiProfile(ssid) { return wifiSvc.wifiProfile(ssid); }
+    function wifiKnown(ssid) { return wifiSvc.wifiKnown(ssid); }
+    function connectWifi(ssid, password) { wifiSvc.connectWifi(ssid, password); }
+    function disconnectWifi() { wifiSvc.disconnectWifi(); }
+    function openWifiSettings() {
+        closeCCQuiet();
+        Quickshell.execDetached(["sh", "-c",
+            "kcmshell6 kcm_networkmanagement 2>/dev/null || nm-connection-editor 2>/dev/null || " +
+            "(command -v kitty >/dev/null && kitty -e nmtui-connect) || " +
+            "(command -v alacritty >/dev/null && alacritty -e nmtui-connect) || true"]);
     }
-    Timer { id: wifiStatusDebounce; interval: 700; onTriggered: if (!wifiStatusGet.running) wifiStatusGet.running = true }
-    Timer { interval: 30000; running: true; repeat: true; onTriggered: wifiStatusDebounce.restart() }
-    Process {
-        id: nmMonitor
-        running: true
-        command: ["nmcli", "monitor"]
-        stdout: SplitParser { onRead: wifiStatusDebounce.restart() }
-        onExited: nmMonitorRestart.restart()
-    }
-    Timer { id: nmMonitorRestart; interval: 5000; onTriggered: nmMonitor.running = true }
 
     // =====================================================================
     //  Bluetooth
@@ -795,12 +560,21 @@ Singleton {
         }
     }
     function startCapture() {
-        captureScreen = focusedScreenName();
+        if (capturing || capturePending) return;
+        const screen = focusedScreenName();
+        if (!screen) {
+            Quickshell.execDetached(["notify-send", "-a", "Screenshot", "-u", "critical",
+                "Screenshot failed", "No focused screen"]);
+            return;
+        }
+        captureScreen = screen;
         captureFile = runtimeDir + "/shot-" + captureScreen + ".png";
         capturePending = true;
         targetsGet.running = true;
         // umask 077 -> folder 0700 dan file 0600
-        grimProc.exec(["sh", "-c", "umask 077; mkdir -p \"$1\" && exec grim -o \"$2\" \"$3\"", "sh", runtimeDir, captureScreen, captureFile]);
+        grimProc.exec(["sh", "-c",
+            "umask 077; mkdir -p \"$1\" && exec grim -o \"$2\" \"$3\"",
+            "sh", runtimeDir, captureScreen, captureFile]);
     }
     function cancelCapture() {
         capturing = false;
@@ -874,76 +648,56 @@ Singleton {
     }
 
     // =====================================================================
-    //  Wallpaper
+    //  Wallpaper (delegasi ke WallpaperService)
+    //  Wallpaper.qml menulis Sys.wallpaper langsung, jadi property harus writable
+    //  dan disinkronkan dua arah dengan service.
     // =====================================================================
-    property string wallpaper: ""
-    property bool wallpaperMono: true
-    property var wallpapers: []
-    property bool pendingRandom: false
-    property var wallpaperReadyScreens: []
-    property string wallpaperLoadError: ""
-    readonly property bool wallpaperReady: wallpaper !== "" && Quickshell.screens.length > 0
-        && Quickshell.screens.every(screen => wallpaperReadyScreens.includes(screen.name))
-    function markWallpaperReady(path, screenName) {
-        if (path !== wallpaper || !screenName || wallpaperReadyScreens.includes(screenName)) return;
-        wallpaperReadyScreens = wallpaperReadyScreens.concat([screenName]);
-    }
-    function markWallpaperLoadError(path) {
-        if (path === wallpaper) wallpaperLoadError = path;
-    }
+    property string wallpaper: wallpaperSvc.wallpaper
+    property bool wallpaperMono: wallpaperSvc.wallpaperMono
+    readonly property var wallpapers: wallpaperSvc.wallpapers
+    readonly property bool wallpaperReady: wallpaperSvc.wallpaperReady
+    readonly property var wallpaperReadyScreens: wallpaperSvc.wallpaperReadyScreens
+    readonly property string wallpaperLoadError: wallpaperSvc.wallpaperLoadError
+    readonly property string thumbDir: wallpaperSvc.thumbDir
+    readonly property int thumbsVersion: wallpaperSvc.thumbsVersion
     onWallpaperChanged: {
-        wallpaperReadyScreens = [];
-        wallpaperLoadError = "";
+        if (wallpaper !== wallpaperSvc.wallpaper)
+            wallpaperSvc.setWallpaper(wallpaper);
     }
-
+    onWallpaperMonoChanged: {
+        if (wallpaperMono !== wallpaperSvc.wallpaperMono)
+            wallpaperSvc.setWallpaperMono(wallpaperMono);
+    }
+    // service -> Sys (saat load dari disk / random)
+    Connections {
+        target: wallpaperSvc
+        function onWallpaperChanged() {
+            if (root.wallpaper !== wallpaperSvc.wallpaper)
+                root.wallpaper = wallpaperSvc.wallpaper;
+        }
+        function onWallpaperMonoChanged() {
+            if (root.wallpaperMono !== wallpaperSvc.wallpaperMono)
+                root.wallpaperMono = wallpaperSvc.wallpaperMono;
+        }
+    }
+    function markWallpaperReady(path, screenName) { wallpaperSvc.markWallpaperReady(path, screenName); }
+    function markWallpaperLoadError(path) { wallpaperSvc.markWallpaperLoadError(path); }
+    function setWallpaper(path) { wallpaperSvc.setWallpaper(path); }
+    function setWallpaperMono(v) { wallpaperSvc.setWallpaperMono(v); }
+    function loadWallpapers() { wallpaperSvc.loadWallpapers(); }
+    function randomWallpaper() { wallpaperSvc.randomWallpaper(); }
+    function thumbFor(path) { return wallpaperSvc.thumbFor(path); }
+    // saveState masih dipakai toggle DND/night light di Sys
     function saveState(name, value) {
         Quickshell.execDetached(["sh", "-c",
-            "mkdir -p \"$HOME/.local/state/macmono\" && printf '%s' \"$2\" > \"$HOME/.local/state/macmono/$1\"", "sh", name, String(value)]);
-    }
-    function setWallpaper(path) { wallpaper = path; saveState("wallpaper", path); }
-    function setWallpaperMono(v) { wallpaperMono = v; saveState("wallpaper_mono", v ? "1" : "0"); }
-    function loadWallpapers() { wallpaperFind.running = true; }
-    // thumbnail kecil di ~/.cache/macmono/thumbs (dibuat sekali di background), dipakai picker
-    readonly property string thumbDir: Quickshell.env("HOME") + "/.cache/macmono/thumbs/"
-    function thumbFor(path) { return thumbDir + Qt.md5(path) + ".jpg"; }
-    property int thumbsVersion: 0
-    Process { id: thumbProc; onExited: root.thumbsVersion++ }
-    function randomWallpaper() {
-        if (wallpapers.length === 0) { pendingRandom = true; loadWallpapers(); return; }
-        setWallpaper(wallpapers[Math.floor(Math.random() * wallpapers.length)]);
-    }
-
-    Process {
-        id: wallpaperRead
-        command: ["sh", "-c", "cat \"$HOME/.local/state/macmono/wallpaper\" 2>/dev/null; echo; cat \"$HOME/.local/state/macmono/wallpaper_mono\" 2>/dev/null"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                const lines = text.split("\n");
-                if (lines[0] && lines[0].trim()) root.wallpaper = lines[0].trim();
-                if (lines[1] && lines[1].trim() === "0") root.wallpaperMono = false;
-            }
-        }
-    }
-    Process {
-        id: wallpaperFind
-        command: ["sh", "-c",
-            "find \"$HOME/Pictures/Wallpapers\" \"$HOME/Pictures\" \"$HOME/Wallpapers\" \"$HOME/.local/share/backgrounds\" /usr/share/backgrounds /usr/share/wallpapers " +
-            "-maxdepth 2 -type f -not -path '*/Screenshots/*' \\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \\) 2>/dev/null | awk '!seen[$0]++' | head -120"]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                root.wallpapers = text.split("\n").filter(l => l.trim() !== "");
-                if (root.pendingRandom) { root.pendingRandom = false; root.randomWallpaper(); }
-                thumbProc.command = ["sh", Quickshell.shellDir + "/core/thumbs.sh"].concat(root.wallpapers);
-                thumbProc.running = true;
-            }
-        }
+            "mkdir -p \"$HOME/.local/state/macmono\" && printf '%s' \"$2\" > \"$HOME/.local/state/macmono/$1\"",
+            "sh", name, String(value)]);
     }
 
     // =====================================================================
     function refresh() {
-        if (!brightGet.running) brightGet.running = true;
-        if (!wifiGet.running) wifiGet.running = true;
-        if (!wifiListGet.running) wifiListGet.running = true;
+        brightnessSvc.refresh();
+        wifiSvc.refresh();
     }
     Timer { id: recheck; interval: 1200; onTriggered: root.refresh() }
 
@@ -953,6 +707,5 @@ Singleton {
         refresh();
         recStatusGeneration = recordingGeneration;
         recStatus.running = true;
-        wallpaperRead.running = true;
     }
 }

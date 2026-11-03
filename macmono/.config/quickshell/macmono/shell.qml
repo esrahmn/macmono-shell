@@ -2,6 +2,7 @@
 
 import Quickshell
 import "core"
+import "services"
 import "wallpaper"
 import "menubar"
 import "cc"
@@ -17,8 +18,15 @@ import "cheatsheet"
 import "lock"
 
 // macmono: shell monochrome ala macOS
-// wallpaper + menubar + launcher/overview + clipboard + control center + notifikasi + screenshot
+// Struktur diperbaiki:
+//  - services/ berisi subsystem (audio, hypr overview, privacy, ipc)
+//  - core/Sys.qml jadi fasad state + orchestrator, bukan tempat semua logic
+//  - IPC resmi lewat qs ipc call shell <fn>
 ShellRoot {
+    // Services (singleton-ish, hidup sepanjang shell)
+    Ipc {}
+
+    // Surfaces
     Wallpaper {}
     MenuBar {}
     TrayMenu {}

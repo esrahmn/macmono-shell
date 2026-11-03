@@ -5,6 +5,12 @@ hl.on("hyprland.start", function ()
     hl.exec_cmd("$HOME/.config/hypr/hyprland/scripts/start_geoclue_agent.sh")
     hl.exec_cmd("qs -c $qsConfig")
 
+    -- Polkit: end4 biasanya lewat shell ii; macmono tidak punya, jadi agent sistem
+    hl.exec_cmd("~/.config/hypr/hyprland/scripts/launch_first_available.sh " ..
+        "'/usr/lib/polkit-kde-authentication-agent-1' " ..
+        "'/usr/lib/hyprpolkitagent/hyprpolkitagent' " ..
+        "'/usr/lib/polkit-gnome/polkit-gnome-authentication-agent-1'")
+
     -- Core components (authentication, lock screen, notification daemon)
     hl.exec_cmd("gnome-keyring-daemon --start --components=secrets")
     hl.exec_cmd("hypridle")

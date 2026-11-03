@@ -1,2 +1,6 @@
-hl.bind("CTRL+SUPER+ALT+Slash", hl.dsp.exec_cmd("xdg-open ~/.config/hypr/custom/keybinds.lua"), {description = "Edit user keybinds"} )
-
+-- User overrides: keybinds tambahan
+-- Contoh:
+-- hl.bind("SUPER + SHIFT + X", hl.dsp.exec_cmd("notify-send hi"), { description = "Test" })
+--
+-- Panel macmono (launcher, CC, dll.) memakai GlobalShortcut di shell; tidak perlu diikat di sini
+-- kecuali kamu sengaja mau lewat IPC: qs -c macmono ipc call shell toggleCC

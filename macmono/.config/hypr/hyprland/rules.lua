@@ -166,3 +166,80 @@ hl.layer_rule({ match = { namespace = "quickshell:wTaskView" }, no_anim = true})
 
 -- Launchers need to be FAST
 hl.layer_rule({ match = { namespace = "gtk4-layer-shell" }, no_anim = true})
+
+-- ######## macmono (default shell) ########
+-- Preferensi blur/opacity + layer rule namespace macmono:*.
+-- Harus di bawah rule end4 (no_blur global & xray .*) supaya menimpa dengan benar.
+
+-- Blur global
+hl.config({
+    decoration = {
+        blur = {
+            enabled = true,
+            size = 4,
+            passes = 3,
+            new_optimizations = true,
+            xray = true,
+        },
+    },
+})
+
+-- Semua window: blur + sedikit transparan (menimpa "no_blur = true" di atas)
+hl.window_rule({
+    match = { class = ".*" },
+    no_blur = false,
+    opacity = "0.85 0.85",
+})
+
+-- Exception: browser & game tetap solid
+hl.window_rule({
+    match = { class = "^(google-chrome)$" },
+    no_blur = true,
+    opaque = true,
+    opacity = "1.0 1.0",
+})
+hl.window_rule({
+    match = { class = "^(steam)$" },
+    no_blur = true,
+    opaque = true,
+    opacity = "1.0 1.0",
+})
+hl.window_rule({
+    match = { class = "^(steam_app_.*)$" },
+    no_blur = true,
+    opaque = true,
+    opacity = "1.0 1.0",
+})
+hl.window_rule({
+    match = { class = "^(gamescope)$" },
+    no_blur = true,
+    opaque = true,
+    opacity = "1.0 1.0",
+})
+
+-- Layer shell macmono (namespace bukan quickshell:*)
+local mmAll   = "^macmono:.*$"
+local mmBlur  = "^macmono:(menubar|cc|notif|calendar|media|launcher|clipboard|power|traymenu|cheatsheet)$"
+local mmPanel = "^macmono:(menubar|cc|notif|calendar|media)$"
+local mmModal = "^macmono:(launcher|clipboard|power|traymenu|cheatsheet)$"
+
+-- Animasi panel diurus QML; matikan animasi layer Hyprland biar blur tidak "nyangkut"
+hl.layer_rule({ match = { namespace = mmAll },   no_anim = true })
+-- xray global (namespace ".*") cuma nampilin wallpaper; matikan untuk panel macmono
+hl.layer_rule({ match = { namespace = mmAll },   xray = false })
+
+hl.layer_rule({ match = { namespace = mmBlur },  blur = true })
+hl.layer_rule({ match = { namespace = "^macmono:menubar$" }, blur_popups = true, ignore_alpha = 0.2 })
+hl.layer_rule({ match = { namespace = mmPanel }, ignore_alpha = 0.2 })
+hl.layer_rule({ match = { namespace = mmModal }, ignore_alpha = 0.5 })
+hl.layer_rule({ match = { namespace = "^macmono:power$" }, ignore_alpha = 0.0 })
+hl.layer_rule({ match = { namespace = "^macmono:cheatsheet$" }, ignore_alpha = 0.0 })
+-- selector / wallpaper picker: full-screen preview, tanpa blur
+
+-- Floating window rata-rata di tengah (kecuali PiP)
+hl.window_rule({ match = { float = true }, center = true })
+hl.window_rule({ match = { title = "^(Picture-in-Picture)$" }, center = false })
+
+-- Overview: window di workspace lain tetap render (video/game tidak "pause" saat peek)
+hl.window_rule({ match = { class = ".*" }, render_unfocused = true })
+hl.config({ misc = { render_unfocused_fps = 24 } })

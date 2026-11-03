@@ -119,35 +119,5 @@ Scope {
     }
     // Super+Shift+R (regionRecord) sengaja nggak dipakai: rekam layar cukup dari Control Center (⋯ → Record).
 
-    // =====================================================================
-    //  IPC
-    // =====================================================================
-    // Alternatif lewat CLI: qs -c macmono ipc call launcher toggle
-    IpcHandler { target: "launcher";  function toggle(): void { Sys.toggleLauncher(); } }
-    IpcHandler {
-        target: "control"
-        function toggle(): void { Sys.toggleCC(Sys.focusedScreenName()); }
-        function recordingStarted(): void { Sys.recordingStarted(); }
-        function recordingCancelled(): void { Sys.recordingCancelled(); }
-    }
-    IpcHandler {
-        target: "lock"
-        function activate(): void { Sys.lock(); }
-        function focus(): void { Sys.lockRefocus(); }
-    }
-    IpcHandler {
-        target: "wallpaper"
-        function toggle(): void { Sys.toggleWallpaper(); }
-        function random(): void { Sys.randomWallpaper(); }
-    }
-
-    // Tombol brightness end4: "qs ipc call brightness increment || brightnessctl ..."
-    // Tanpa target ini, perintahnya tetap exit 0 (instance hidup) dan brightnessctl nggak pernah jalan.
-    IpcHandler {
-        target: "brightness"
-        function increment(): void { Sys.setBrightness(Sys.brightness + 0.05); }
-        function decrement(): void { Sys.setBrightness(Sys.brightness - 0.05); }
-    }
-    // Dipanggil watcher cliphist di execs.lua tiap ada salinan baru -> daftar clipboard di-refresh.
-    IpcHandler { target: "cliphistService"; function update(): void { Sys.clipboardUpdated(); } }
+    // IPC handlers dipindah ke services/Ipc.qml (hindari target dobel)
 }
