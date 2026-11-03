@@ -110,6 +110,15 @@ Canvas {
         case "play":
             ctx.beginPath(); ctx.moveTo(8, 5); ctx.lineTo(19, 12); ctx.lineTo(8, 19); ctx.closePath(); ctx.fill();
             break;
+        case "music":
+            ctx.beginPath();
+            ctx.moveTo(10, 5); ctx.lineTo(20, 3); ctx.lineTo(20, 15);
+            ctx.stroke();
+            ctx.beginPath();
+            ctx.arc(7, 17, 2.5, 0, 2 * PI);
+            ctx.arc(17, 15, 2.5, 0, 2 * PI);
+            ctx.fill();
+            break;
         case "pause":
             ctx.fillRect(6.5, 5, 4, 14);
             ctx.fillRect(13.5, 5, 4, 14);

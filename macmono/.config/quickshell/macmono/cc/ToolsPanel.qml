@@ -12,24 +12,23 @@ Rectangle {
     property string recAudio: "none"
 
     Layout.fillWidth: true
-    implicitHeight: open ? toolsCol.implicitHeight + 16 : 0
+    implicitHeight: open ? toolsCol.implicitHeight : 0
     Behavior on implicitHeight { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
     opacity: open ? 1 : 0
     Behavior on opacity { NumberAnimation { duration: Theme.animFade } }
     visible: implicitHeight > 0.5
-    radius: Theme.radiusLarge
-    color: Theme.tile
+    color: Theme.transparent
     clip: true
     onOpenChanged: if (!open) recOptions = false
 
     ColumnLayout {
         id: toolsCol
-        anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space8 }
+        anchors { left: parent.left; right: parent.right; top: parent.top }
         spacing: Theme.space8
 
         RowLayout {
             Layout.fillWidth: true
-            spacing: Theme.space8
+            spacing: Theme.space4
             ActionTile {
                 Layout.fillWidth: true; Layout.preferredWidth: 1
                 glyph: "camera"; label: "Screenshot"

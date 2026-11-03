@@ -7,6 +7,7 @@ import Quickshell.Hyprland
 import Quickshell.Bluetooth
 import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
+import Quickshell.Services.Mpris
 import "../services"
 
 Singleton {
@@ -17,6 +18,7 @@ Singleton {
     BrightnessService { id: brightnessSvc }
     WifiService { id: wifiSvc }
     WallpaperService { id: wallpaperSvc }
+    MediaVisualizerService { id: mediaVisualizer }
 
     // Folder pribadi (mode 0700) untuk file sementara: screenshot beku, gambar clipboard hasil decode.
     // Jangan pakai /tmp: isinya bisa password atau data sensitif, dan /tmp bisa dibaca user lain.
@@ -34,6 +36,8 @@ Singleton {
     property bool wallpaperOpen: false
     property string wallpaperScreen: ""
     property bool clipboardOpen: false
+    property bool emojiOpen: false
+    property string emojiScreen: ""
     property bool trayMenuOpen: false
     property var trayMenuItem: null
     property string trayMenuScreen: ""
@@ -193,12 +197,15 @@ Singleton {
     }
 
     // ---------------- popup media (Super+M) & cheatsheet (Super+/) ----------------
+    readonly property int mediaPopupWidth: 420
     property bool mediaOpen: false
     property string mediaScreen: ""
-    function toggleMedia() {
+    property real mediaPopupRightMargin: Theme.space16
+    function toggleMedia(screenName, rightMargin) {
         if (mediaOpen) { mediaOpen = false; return; }
         closeCCQuiet();
-        mediaScreen = focusedScreenName();
+        mediaScreen = screenName || focusedScreenName();
+        mediaPopupRightMargin = rightMargin ?? Theme.space16;
         mediaOpen = true;
     }
     property bool cheatOpen: false
@@ -313,6 +320,12 @@ Singleton {
         clipboardScreen = focusedScreenName();
         clipboardOpen = true;
     }
+    function toggleEmoji() {
+        if (emojiOpen) { emojiOpen = false; return; }
+        closeCCQuiet();
+        emojiScreen = focusedScreenName();
+        emojiOpen = true;
+    }
 
     // =====================================================================
     //  Data Hyprland buat overview (hyprctl -j clients & monitors).
@@ -345,6 +358,7 @@ Singleton {
     function toggleMic() { audioService.toggleMic(); }
     function nodeLabel(n) { return audioService.nodeLabel(n); }
     function setOutput(node) { audioService.setOutput(node); }
+    readonly property var mediaVisualizerLevels: mediaVisualizer.levels
 
     // Helper media (MPRIS), dipakai MediaCard / MediaPopup.
     function mediaPlayer(players, preferredIndex) {
@@ -624,7 +638,7 @@ Singleton {
         }
     }
 
-    function closeCCQuiet() { ccOpen = false; launcherOpen = false; wallpaperOpen = false; clipboardOpen = false; powerOpen = false; trayMenuOpen = false; calendarOpen = false; mediaOpen = false; cheatOpen = false; }
+    function closeCCQuiet() { ccOpen = false; launcherOpen = false; wallpaperOpen = false; clipboardOpen = false; emojiOpen = false; powerOpen = false; trayMenuOpen = false; calendarOpen = false; mediaOpen = false; cheatOpen = false; }
     // panel lain dibuka -> panel "kecil" (kalender, media, cheatsheet) ditutup
     onClipboardOpenChanged: if (clipboardOpen) { calendarOpen = false; mediaOpen = false; cheatOpen = false; }
     onWallpaperOpenChanged: if (wallpaperOpen) { calendarOpen = false; mediaOpen = false; cheatOpen = false; }

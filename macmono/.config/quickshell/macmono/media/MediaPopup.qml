@@ -6,7 +6,7 @@ import Quickshell.Services.Mpris
 import "../core"
 import "../ui"
 
-// Super+M: kartu kontrol media kecil di bawah jam (tanpa harus buka Control Center).
+// Popup media berisi kontrol playback dan lirik tersinkron.
 Scope {
     Variants {
         model: Quickshell.screens
@@ -22,9 +22,9 @@ Scope {
             onShownChanged: { if (shown) { openAnim.restart(); keys.forceActiveFocus(); } else { openAnim.stop(); anim = 0; } }
 
             visible: shown
-            anchors { top: true }
-            margins { top: Theme.barMargin + Theme.barHeight + 8 }
-            implicitWidth: 380
+            anchors { top: true; right: true }
+            margins { top: Theme.barMargin + Theme.barHeight + 8; right: Sys.mediaPopupRightMargin }
+            implicitWidth: Sys.mediaPopupWidth
             implicitHeight: card.height
             exclusionMode: ExclusionMode.Ignore
             color: Theme.transparent
@@ -56,7 +56,8 @@ Scope {
             Rectangle {
                 id: card
                 width: parent.width
-                height: (win.p ? content.implicitHeight : empty.implicitHeight) + 32
+                height: win.p ? content.implicitHeight + lyrics.height + Theme.space16 * 3
+                    : empty.implicitHeight + Theme.space16 * 2
                 radius: Theme.radiusPanel
                 color: Theme.panel
                 border.width: Theme.borderThin
@@ -84,6 +85,22 @@ Scope {
                     panelShown: win.shown
                     opacity: win.anim
                     onPlayerChangeRequested: index => win.playerIndex = index
+                }
+
+                LyricsView {
+                    id: lyrics
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                        top: content.bottom
+                        leftMargin: Theme.space16
+                        rightMargin: Theme.space16
+                        topMargin: Theme.space16
+                    }
+                    height: 208
+                    player: win.p
+                    active: win.shown
+                    visible: win.p !== null
                 }
             }
         }

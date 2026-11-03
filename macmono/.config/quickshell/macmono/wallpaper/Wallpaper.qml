@@ -30,7 +30,11 @@ Scope {
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 cache: false
-                sourceSize.width: bg.width
+                // Decode di resolusi fisik, bukan logis: pada fractional scaling
+                // (scale 1.2) sourceSize = lebar logis membuat wallpaper ikut di-upscale
+                // compositor sehingga terlihat sedikit lembut.
+                sourceSize.width: Math.round(bg.width * (bg.screen ? bg.screen.devicePixelRatio : 1))
+                sourceSize.height: Math.round(bg.height * (bg.screen ? bg.screen.devicePixelRatio : 1))
                 opacity: status === Image.Ready ? 1 : 0
                 Behavior on opacity { NumberAnimation { duration: Theme.animSlow } }
                 layer.enabled: Sys.wallpaperMono

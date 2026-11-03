@@ -9,7 +9,8 @@ local hyprScripts = "$HOME/.config/hypr/hyprland/scripts"
 local qsIpcCall = "qs -c $qsConfig ipc call"
 local qsIsAlive = qsIpcCall .. " TEST_ALIVE"
 
-hl.bind("SUPER + SUPER_L", hl.dsp.global("quickshell:searchToggleRelease"), { release = true, description = "Shell: Toggle search" })
+hl.bind("SUPER + SUPER_L", hl.dsp.global("quickshell:searchToggleRelease"),
+    { release = true, description = "Shell: Toggle search" })
 hl.bind("SUPER + SUPER_R", hl.dsp.global("quickshell:searchToggleRelease"), { release = true })
 hl.bind("SUPER + SUPER_L", hl.dsp.exec_cmd(qsIsAlive .. " || pkill fuzzel || fuzzel"), { release = true })
 hl.bind("SUPER + SUPER_R", hl.dsp.exec_cmd(qsIsAlive .. " || pkill fuzzel || fuzzel"), { release = true })
@@ -211,7 +212,8 @@ for i = 1, 2 do
     local keydirs = { "Up", "Down" }
     local prefix = { "r-", "r+" }
     local descdir = { "left", "right" }
-    hl.bind("SUPER + SHIFT + Page_" .. keydirs[i], hl.dsp.window.move({ workspace = prefix[i] .. "1" }), {description = "Window: Send to workspace " .. descdir[i]})
+    hl.bind("SUPER + SHIFT + Page_" .. keydirs[i], hl.dsp.window.move({ workspace = prefix[i] .. "1" }),
+        { description = "Window: Send to workspace " .. descdir[i] })
 end
 for i = 1, 4 do
     local key = { "SUPER + ALT + Page_", "CTRL + SUPER + SHIFT + " }
@@ -253,7 +255,8 @@ for i = 1, 2 do
     local keys = { "Left", "Right" }
     local prefix = { "r-", "r+" }
     local descdir = { "left", "right" }
-    hl.bind("CTRL + SUPER + " .. keys[i], hl.dsp.focus({ workspace = prefix[i] .. "1" }), {description = "Workspace: Focus " .. descdir[i]})
+    hl.bind("CTRL + SUPER + " .. keys[i], hl.dsp.focus({ workspace = prefix[i] .. "1" }),
+        { description = "Workspace: Focus " .. descdir[i] })
 end
 for i = 1, 2 do
     local keys = { "Left", "Right" }
@@ -328,6 +331,7 @@ hl.bind("SUPER + Return", hl.dsp.exec_cmd(terminal), { description = "App: Termi
 hl.bind("SUPER + T", hl.dsp.exec_cmd(terminal))
 hl.bind("CTRL + ALT + T", hl.dsp.exec_cmd(terminal))
 hl.bind("SUPER + E", hl.dsp.exec_cmd(fileManager), { description = "App: File manager" })
+---@diagnostic disable-next-line: undefined-global
 hl.bind("SUPER + W", hl.dsp.exec_cmd(browser), { description = "App: Browser" })
 hl.bind("SUPER + C", hl.dsp.exec_cmd(codeEditor), { description = "App: Code editor" })
 hl.bind("CTRL + SUPER + SHIFT + ALT + W", hl.dsp.exec_cmd(officeSoftware), { description = "App: Office software" })

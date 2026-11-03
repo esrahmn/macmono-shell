@@ -11,13 +11,12 @@ Rectangle {
     readonly property var labels: ({ logout: "log out", restart: "restart", shutdown: "shut down" })
 
     Layout.fillWidth: true
-    implicitHeight: open ? powerCol.implicitHeight + 16 : 0
+    implicitHeight: open ? powerCol.implicitHeight : 0
     Behavior on implicitHeight { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
     opacity: open ? 1 : 0
     Behavior on opacity { NumberAnimation { duration: Theme.animFade } }
     visible: implicitHeight > 0.5
-    radius: Theme.radiusLarge
-    color: Theme.tile
+    color: Theme.transparent
     clip: true
     onOpenChanged: armed = ""
 
@@ -25,13 +24,13 @@ Rectangle {
 
     ColumnLayout {
         id: powerCol
-        anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space8 }
-        spacing: Theme.space8
+        anchors { left: parent.left; right: parent.right; top: parent.top }
+        spacing: Theme.space4
 
         GridLayout {
             Layout.fillWidth: true
             columns: 6
-            columnSpacing: 8; rowSpacing: 8
+            columnSpacing: Theme.space4; rowSpacing: Theme.space4
             Repeater {
                 model: [
                     { act: "lock", label: "Lock", glyph: "lock", confirm: false, span: 2 },

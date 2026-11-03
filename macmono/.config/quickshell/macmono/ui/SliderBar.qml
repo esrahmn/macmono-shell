@@ -27,7 +27,7 @@ Rectangle {
         x: 9
         width: 16; height: 16
         name: root.icon
-        color: Theme.inverseText   // isian putih selalu menutupi ikon (lebar minimum = tinggi slider)
+        color: Theme.inverseText 
     }
 
     MouseArea {

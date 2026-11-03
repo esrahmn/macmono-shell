@@ -150,9 +150,7 @@ backup_existing() {
   local name target
   for name in "${CONFIG_DIRS[@]}"; do
     target="$CONFIG_DIR/$name"
-    if [[ -L "$target" ]]; then
-      rm "$target"
-    elif [[ -e "$target" ]]; then
+    if [[ -e "$target" || -L "$target" ]]; then
       mv "$target" "$target.bak-$TIMESTAMP"
       info "Backed up $target to $target.bak-$TIMESTAMP"
     fi
@@ -180,7 +178,8 @@ install_configs() {
     fi
   done
 
-  find "$CONFIG_DIR/quickshell/macmono" -type f -name '*.sh' -exec chmod +x {} + 2>/dev/null || true
+  find -L "$CONFIG_DIR/quickshell/macmono" "$CONFIG_DIR/hypr/hyprland/scripts" \
+    -type f -name '*.sh' -exec chmod +x {} +
 }
 
 finish() {

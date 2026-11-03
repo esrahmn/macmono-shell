@@ -10,6 +10,7 @@ import "launcher"
 import "notif"
 import "capture"
 import "clipboard"
+import "emoji"
 import "power"
 import "osd"
 import "calendar"
@@ -32,6 +33,7 @@ ShellRoot {
     TrayMenu {}
     Launcher {}
     Clipboard {}
+    EmojiPicker {}
     PowerMenu {}
     Osd {}
     Calendar {}

@@ -70,6 +70,18 @@ Scope {
         }
     }
 
+    // PAM bisa menggantung (modul pam lambat, home NFS mati, dsb). Tanpa timeout,
+    // busy tetap true sehingga input terkunci tanpa jalan keluar. Batalkan saja;
+    // abort() memicu completed(PamResult.Error) yang sudah menangani reset.
+    Timer {
+        interval: 10000
+        running: root.busy
+        onTriggered: {
+            pam.abort();
+            root.busy = false;
+        }
+    }
+
     // password yang diketik lalu ditinggal -> hapus otomatis
     Timer {
         interval: 30000

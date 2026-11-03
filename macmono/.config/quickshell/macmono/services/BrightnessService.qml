@@ -13,29 +13,38 @@ Scope {
     property bool brightnessOk: false
     property string brightnessBackend: ""   // "backlight" | "ddc"
     property int ddcMax: 100
+    property int brightnessRevision: 0
+    property int refreshRevision: 0
 
     function setBrightness(v) {
+        brightnessRevision++;
         brightness = Math.max(0.01, Math.min(1, v));
-        if (brightnessBackend === "ddc")
-            ddcSetDebounce.restart();
-        else
-            brightSet.exec(["brightnessctl", "--class", "backlight", "set", Math.round(brightness * 100) + "%", "-q"]);
+        brightSetDebounce.restart();
     }
 
     function refresh() {
-        if (!brightGet.running)
+        if (!brightGet.running && !brightSet.running && !brightSetDebounce.running) {
+            refreshRevision = brightnessRevision;
             brightGet.running = true;
+        }
     }
 
     Timer {
-        id: ddcSetDebounce
-        interval: 250
+        id: brightSetDebounce
+        interval: root.brightnessBackend === "ddc" ? 250 : 80
         onTriggered: {
             if (brightSet.running) { restart(); return; }
-            brightSet.exec([
-                "ddcutil", "--noverify", "setvcp", "10",
-                String(Math.round(root.brightness * root.ddcMax))
-            ]);
+            if (root.brightnessBackend === "ddc") {
+                brightSet.exec([
+                    "ddcutil", "--noverify", "setvcp", "10",
+                    String(Math.round(root.brightness * root.ddcMax))
+                ]);
+            } else {
+                brightSet.exec([
+                    "brightnessctl", "--class", "backlight", "set",
+                    Math.round(root.brightness * 100) + "%", "-q"
+                ]);
+            }
         }
     }
 
@@ -47,6 +56,8 @@ Scope {
         ]
         stdout: StdioCollector {
             onStreamFinished: {
+                if (root.refreshRevision !== root.brightnessRevision)
+                    return;
                 const f = text.trim().split(",");
                 if (f[0] === "ddc" && f.length >= 3) {
                     root.ddcMax = parseInt(f[2]) || 100;
@@ -62,7 +73,13 @@ Scope {
         }
     }
 
-    Process { id: brightSet }
+    Process {
+        id: brightSet
+        onExited: (code) => {
+            if (code !== 0)
+                console.error("Failed to set brightness (exit code " + code + ")");
+        }
+    }
 
     Component.onCompleted: refresh()
 }

@@ -94,13 +94,15 @@ Scope {
     Process {
         id: wifiStatusGet
         command: ["sh", "-c",
-            "nmcli radio wifi; nmcli -t -f IN-USE,SIGNAL,SSID device wifi list --rescan no 2>/dev/null | grep '^\\*:' | head -n1"
+            "nmcli radio wifi; nmcli -t -f IN-USE,SIGNAL,SSID device wifi list --rescan no 2>/dev/null | grep '^\\*:' | head -n1; " +
+            "nmcli -t -f UUID,TYPE connection show --active 2>/dev/null | awk -F: '$2 ~ /wireless|wifi/ { print $1; exit }'"
         ]
         environment: ({ LANG: "C", LC_ALL: "C" })
         stdout: StdioCollector {
             onStreamFinished: {
                 const lines = text.split("\n");
                 root.wifiOn = (lines[0] || "").trim() === "enabled";
+                root.wifiActiveUuid = (lines[2] || "").trim();
                 const line = lines[1] || "";
                 if (!line.startsWith("*:")) {
                     root.wifiName = "";

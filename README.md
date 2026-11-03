@@ -35,6 +35,7 @@ macmono/
             ├── notif/        # notifications
             ├── osd/          # volume / brightness OSD
             ├── clipboard/    # clipboard manager (cliphist)
+            ├── emoji/        # searchable emoji picker
             ├── calendar/     # calendar
             ├── media/        # media popup
             ├── capture/      # area screenshot
@@ -53,6 +54,7 @@ macmono/
 - **Control Center**: WiFi, Bluetooth, battery, media controls, power actions, and a tools panel
 - **Notifications** and **OSD** (volume / brightness)
 - **Clipboard manager** powered by `cliphist`
+- **Emoji picker** with search and clipboard copy
 - **Area screenshot** and **screen recording** (`wf-recorder`)
 - **Calendar**, **media popup**, keybind **cheatsheet**, and **power menu**
 - **Lock screen** (`hyprlock`) plus idle auto-lock (`hypridle`)
@@ -61,8 +63,6 @@ macmono/
 ## Base config
 
 macmono runs on top of the [end-4 / dots-hyprland](https://github.com/end-4/dots-hyprland) config. Shortcut names and keybinds are intentionally kept identical, so `Super`, `Super+N`, `Super+L`, `Ctrl+Super+T`, `Super+Shift+S`, idle auto-lock, and the rest plug straight into macmono.
-
-The active shell is selected with the `qsConfig` variable in `hypr/custom/variables.lua`:
 
 ## Dependencies
 
@@ -73,6 +73,7 @@ Required:
 - `pipewire` (audio), `networkmanager` (`nmcli`), `bluez` (Bluetooth), `upower` (battery)
 - `brightnessctl`
 - `libnotify` (`notify-send`)
+- `jq` (JSON parsing in shell utilities)
 - A polkit agent (any one): `polkit-kde-agent`, `hyprpolkitagent`, or `polkit-gnome`
 
 For specific features:
@@ -87,7 +88,7 @@ Install on Arch / CachyOS:
 ```bash
 sudo pacman -S hyprland hyprlock hypridle quickshell \
   networkmanager bluez bluez-utils upower brightnessctl libnotify \
-  grim imagemagick wl-clipboard cliphist wf-recorder
+  jq grim imagemagick wl-clipboard cliphist wf-recorder
 ```
 
 ## Installation
@@ -153,6 +154,7 @@ qs -c macmono
 | `Super` (tap)         | Toggle launcher       |
 | `Super + Tab`         | Workspace overview    |
 | `Super + V`           | Clipboard manager     |
+| `Super + .`           | Emoji picker          |
 | `Super + N`           | Toggle control center |
 | `Super + M`           | Media controls        |
 | `Super + /`           | Keybind cheatsheet    |

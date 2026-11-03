@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import Quickshell.Widgets
+import Quickshell.Services.Mpris
 import Quickshell.Services.SystemTray
 import "../core"
 import "../ui"
@@ -146,14 +147,7 @@ Scope {
                     anchors.centerIn: parent
                     width: clockText.implicitWidth + 28
                     height: bar.height
-                    hoverEnabled: true
                     onClicked: Sys.toggleCalendar(bar.screen.name)
-                    Rectangle {
-                        anchors.centerIn: parent
-                        width: parent.width; height: parent.height - 10; radius: height / 2
-                        color: Sys.calendarOpen && Sys.calendarScreen === bar.screen.name ? Theme.tileHover
-                             : (clockArea.containsMouse ? Theme.tile : Theme.transparent)
-                    }
                     Text {
                         id: clockText
                         anchors.centerIn: parent
@@ -173,8 +167,84 @@ Scope {
 
                 // ============ kanan: tray, status ============
                 Row {
+                    id: rightContent
                     anchors { right: parent.right; rightMargin: Theme.space16; verticalCenter: parent.verticalCenter }
                     spacing: Theme.space14
+
+                    MouseArea {
+                        id: miniMediaArea
+                        readonly property var player: Sys.mediaPlayer(Mpris.players.values, -1)
+                        visible: player !== null
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Math.max(miniMediaRow.implicitWidth + Theme.space12, Sys.mediaPopupWidth)
+                        height: bar.height - 4
+                        hoverEnabled: true
+                        cursorShape: Qt.PointingHandCursor
+                        onClicked: Sys.toggleMedia(bar.screen.name,
+                            Theme.barMargin + Theme.space16 + rightContent.width - x - width)
+
+                        Row {
+                            anchors.fill: parent
+                            spacing: 0
+                            opacity: miniMediaArea.player?.isPlaying ? 0.16 : 0
+                            visible: opacity > 0
+
+                            Repeater {
+                                model: Sys.mediaVisualizerLevels.length
+                                delegate: Item {
+                                    required property int index
+                                    width: miniMediaArea.width / Sys.mediaVisualizerLevels.length
+                                    height: miniMediaArea.height
+
+                                    Rectangle {
+                                        anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
+                                        height: Math.max(1, (parent.height - 4) * Sys.mediaVisualizerLevels[index] / 1000)
+                                        color: Theme.text
+                                    }
+                                }
+                            }
+                        }
+
+                        Row {
+                            id: miniMediaRow
+                            anchors.centerIn: parent
+                            spacing: Theme.space6
+
+                            Item {
+                                width: 18
+                                height: 18
+                                Glyph {
+                                    anchors.centerIn: parent
+                                    width: 15
+                                    height: 15
+                                    name: "music"
+                                    color: Theme.textSoft
+                                }
+                            }
+
+                            Column {
+                                anchors.verticalCenter: parent.verticalCenter
+                                spacing: Theme.space1
+                                Text {
+                                    width: 124
+                                    elide: Text.ElideRight
+                                    text: miniMediaArea.player?.trackTitle || "Media"
+                                    color: Theme.text
+                                    font.family: Theme.font
+                                    font.pixelSize: Theme.fontSmall
+                                    font.weight: Font.DemiBold
+                                }
+                                Text {
+                                    width: 124
+                                    elide: Text.ElideRight
+                                    text: miniMediaArea.player?.trackArtist || miniMediaArea.player?.identity || ""
+                                    color: Theme.dim
+                                    font.family: Theme.font
+                                    font.pixelSize: Theme.fontCaption
+                                }
+                            }
+                        }
+                    }
 
                     Row { // tray (di-desaturate biar tetap monochrome)
                         anchors.verticalCenter: parent.verticalCenter

@@ -94,8 +94,8 @@ Scope {
     }
     GlobalShortcut {
         name: "overviewEmojiToggle"       // Super+.
-        description: "macmono: emoji picker (fuzzel)"
-        onPressed: root.sh("pkill fuzzel || \"$HOME/.config/hypr/hyprland/scripts/fuzzel-emoji.sh\" copy")
+        description: "macmono: emoji picker"
+        onPressed: Sys.toggleEmoji()
     }
     GlobalShortcut {
         name: "overviewWorkspacesToggle"  // Super+Tab & gesture 4 jari atas/bawah
@@ -110,7 +110,7 @@ Scope {
     GlobalShortcut {
         name: "regionSearch"              // Super+Shift+A
         description: "macmono: Google Lens dari area layar"
-        onPressed: root.sh("pidof slurp || \"$HOME/.config/hypr/hyprland/scripts/snip_to_search.sh\"")
+        onPressed: root.sh("pidof slurp || \"${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland/scripts/snip_to_search.sh\"")
     }
     GlobalShortcut {
         name: "regionOcr"                 // Super+Shift+X
