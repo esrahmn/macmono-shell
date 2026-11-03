@@ -23,8 +23,8 @@ macmono/
     │   ├── hyprland.lua
     │   ├── hypridle.conf
     │   ├── hyprlock.conf
-    │   ├── hyprland/         # base config (based on end-4's dots)
-    │   └── custom/           # my personal overrides (env, execs, keybinds, rules, variables)
+    │   ├── hyprland/         # base config
+    │   └── custom/           # ur personal overrides
     └── quickshell/
         └── macmono/          # the shell itself
             ├── shell.qml     # entry point
@@ -63,10 +63,6 @@ macmono/
 macmono runs on top of the [end-4 / dots-hyprland](https://github.com/end-4/dots-hyprland) config. Shortcut names and keybinds are intentionally kept identical, so `Super`, `Super+N`, `Super+L`, `Ctrl+Super+T`, `Super+Shift+S`, idle auto-lock, and the rest plug straight into macmono.
 
 The active shell is selected with the `qsConfig` variable in `hypr/custom/variables.lua`:
-
-```lua
-hl.env("qsConfig", "macmono")  -- change to "ii" to go back to end-4's shell
-```
 
 ## Dependencies
 
