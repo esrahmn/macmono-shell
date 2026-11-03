@@ -13,6 +13,8 @@ Item {
     property int activeLine: -1
     property string requestedTrack: ""
     property int requestGeneration: 0
+    property string requestStage: ""
+    property bool retryAvailable: false
 
     readonly property string trackKey: player
         ? [player.trackTitle || "", player.trackArtist || "", player.trackAlbum || "", player.length || 0].join("\u001f")
@@ -22,6 +24,8 @@ Item {
         if (!active || !player || !player.trackTitle || !player.trackArtist) {
             lines = [];
             loading = false;
+            retryAvailable = false;
+            requestedTrack = "";
             status = "Lyrics unavailable";
             return;
         }
@@ -33,14 +37,18 @@ Item {
         lines = [];
         activeLine = -1;
         loading = true;
+        retryAvailable = false;
         status = "Searching LRCLIB…";
-        requestTimeout.restart();
+        requestExactMatch();
+    }
 
+    function requestExactMatch() {
+        requestStage = "exact";
         const args = [
-            "curl", "--fail", "--silent", "--show-error", "--get",
+            "curl", "--silent", "--show-error", "--get",
             "--connect-timeout", "4", "--max-time", "10",
             "--user-agent", "macmono-shell/1.0 (Quickshell lyrics widget)",
-            "--write-out", "\n__MACMONO_REQUEST__" + requestGeneration,
+            "--write-out", "\n__MACMONO_REQUEST__" + requestGeneration + ":%{http_code}",
             "--data-urlencode", "artist_name=" + player.trackArtist,
             "--data-urlencode", "track_name=" + player.trackTitle,
             "--data-urlencode", "album_name=" + (player.trackAlbum || ""),
@@ -49,6 +57,25 @@ Item {
             args.push("--data-urlencode", "duration=" + Math.round(player.length));
         args.push("https://lrclib.net/api/get");
 
+        startRequest(args);
+    }
+
+    function requestSearch() {
+        requestStage = "search";
+        const args = [
+            "curl", "--silent", "--show-error", "--get",
+            "--connect-timeout", "4", "--max-time", "10",
+            "--user-agent", "macmono-shell/1.0 (Quickshell lyrics widget)",
+            "--write-out", "\n__MACMONO_REQUEST__" + requestGeneration + ":%{http_code}",
+            "--data-urlencode", "artist_name=" + player.trackArtist,
+            "--data-urlencode", "track_name=" + player.trackTitle,
+        ];
+        args.push("https://lrclib.net/api/search");
+        startRequest(args);
+    }
+
+    function startRequest(args) {
+        requestTimeout.restart();
         lyricsProcess.running = false;
         lyricsProcess.command = args;
         lyricsProcess.running = true;
@@ -57,22 +84,83 @@ Item {
     function parseLyrics(response) {
         const marker = "\n__MACMONO_REQUEST__";
         const markerIndex = response.lastIndexOf(marker);
-        const responseGeneration = Number(response.slice(markerIndex + marker.length).trim());
-        if (markerIndex < 0 || responseGeneration !== requestGeneration || requestedTrack !== trackKey)
+        if (markerIndex < 0)
             return;
+        const requestInfo = response.slice(markerIndex + marker.length).trim().split(":");
+        const responseGeneration = Number(requestInfo[0]);
+        const httpStatus = requestInfo[1] || "000";
+        if (responseGeneration !== requestGeneration || requestedTrack !== trackKey)
+            return;
+
         requestTimeout.stop();
         response = response.slice(0, markerIndex);
 
         let result;
-        try {
-            result = JSON.parse(response);
-        } catch (error) {
-            lines = [];
-            loading = false;
-            status = "Lyrics not found";
+        if (httpStatus === "404" && requestStage === "exact") {
+            requestSearch();
+            return;
+        }
+        if (httpStatus !== "200") {
+            if (httpStatus === "404" && requestStage === "search") {
+                loading = false;
+                retryAvailable = true;
+                status = "Lyrics not found · Tap to retry";
+                return;
+            }
+            finishLookupError();
+            return;
+        }
+        try { result = JSON.parse(response); }
+        catch (error) {
+            finishLookupError();
             return;
         }
 
+        if (requestStage === "exact") {
+            if (!result || typeof result !== "object" || Array.isArray(result)) {
+                finishLookupError();
+                return;
+            }
+            if (applyLyrics(result))
+                return;
+            requestSearch();
+            return;
+        }
+
+        if (!Array.isArray(result)) {
+            finishLookupError();
+            return;
+        }
+        const expectedTitle = normalizeTitle(player.trackTitle);
+        const expectedArtist = normalizeText(player.trackArtist);
+        const match = result.find(candidate => {
+            const titleMatches = normalizeTitle(candidate.trackName || "") === expectedTitle;
+            const candidateArtist = normalizeText(candidate.artistName || "");
+            const artistMatches = candidateArtist === expectedArtist
+                || candidateArtist.startsWith(expectedArtist + " ")
+                || candidateArtist.endsWith(" " + expectedArtist)
+                || candidateArtist.includes(" " + expectedArtist + " ");
+            return titleMatches && artistMatches && (candidate.syncedLyrics || candidate.plainLyrics);
+        });
+        if (!match) {
+            loading = false;
+            retryAvailable = true;
+            status = "Lyrics not found · Tap to retry";
+            return;
+        }
+        applyLyrics(match);
+    }
+
+    function normalizeText(value) {
+        return String(value || "").normalize("NFD").replace(/[\u0300-\u036f]/g, "")
+            .toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
+    }
+
+    function normalizeTitle(value) {
+        return normalizeText(String(value || "").replace(/\s*[\[(](?:feat|ft)\.?.*?[\])]/ig, ""));
+    }
+
+    function applyLyrics(result) {
         const parsed = [];
         const synced = result.syncedLyrics || "";
         for (const line of synced.split("\n")) {
@@ -96,11 +184,27 @@ Item {
             lines = result.plainLyrics.split("\n").map(text => ({ time: -1, text: text }));
             status = "Lyrics";
         } else {
-            lines = [];
-            status = "Lyrics not found";
+            return false;
         }
         loading = false;
+        retryAvailable = false;
         updateActiveLine();
+        return true;
+    }
+
+    function finishLookupError() {
+        lines = [];
+        loading = false;
+        retryAvailable = true;
+        status = "Lookup failed · Tap to retry";
+    }
+
+    function retryLookup() {
+        if (!retryAvailable || loading)
+            return;
+        requestedTrack = "";
+        retryAvailable = false;
+        loadLyrics();
     }
 
     function updateActiveLine() {
@@ -130,7 +234,15 @@ Item {
             loadLyrics();
         }
     }
-    onActiveChanged: if (active) loadLyrics()
+    onActiveChanged: {
+        if (!active)
+            return;
+        if (retryAvailable) {
+            requestedTrack = "";
+            retryAvailable = false;
+        }
+        loadLyrics();
+    }
     Process {
         id: lyricsProcess
         stdout: StdioCollector {
@@ -145,7 +257,8 @@ Item {
             if (root.loading) {
                 root.loading = false;
                 root.requestedTrack = "";
-                root.status = "Lyrics unavailable";
+                root.retryAvailable = true;
+                root.status = "Lookup timed out · Tap to retry";
             }
         }
     }
@@ -233,6 +346,13 @@ Item {
             color: Theme.dim
             font.family: Theme.font
             font.pixelSize: Theme.fontBody
+            font.underline: root.retryAvailable
+            MouseArea {
+                anchors.fill: parent
+                enabled: root.retryAvailable
+                cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
+                onClicked: root.retryLookup()
+            }
         }
     }
 }
