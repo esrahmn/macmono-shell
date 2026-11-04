@@ -183,65 +183,32 @@ Scope {
                         onClicked: Sys.toggleMedia(bar.screen.name,
                             Theme.barMargin + Theme.space16 + rightContent.width - x - width)
 
-                        Row {
+                        CavaWave {
+                            id: miniMediaVisualizer
                             anchors.fill: parent
-                            spacing: 0
-                            opacity: miniMediaArea.player?.isPlaying ? 0.16 : 0
+                            opacity: miniMediaArea.player?.isPlaying ? 1 : 0
                             visible: opacity > 0
-
-                            Repeater {
-                                model: Sys.mediaVisualizerLevels.length
-                                delegate: Item {
-                                    required property int index
-                                    width: miniMediaArea.width / Sys.mediaVisualizerLevels.length
-                                    height: miniMediaArea.height
-
-                                    Rectangle {
-                                        anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                                        height: Math.max(1, (parent.height - 4) * Sys.mediaVisualizerLevels[index] / 1000)
-                                        color: Theme.text
-                                    }
-                                }
-                            }
+                            levels: Sys.mediaVisualizerLevels
+                            fillOpacity: 0.10
+                            cornerRadius: height / 2
                         }
 
                         Row {
                             id: miniMediaRow
                             anchors.centerIn: parent
-                            spacing: Theme.space6
-
-                            Item {
-                                width: 18
-                                height: 18
-                                Glyph {
-                                    anchors.centerIn: parent
-                                    width: 15
-                                    height: 15
-                                    name: "music"
-                                    color: Theme.textSoft
+                            Text {
+                                width: 300
+                                elide: Text.ElideRight
+                                horizontalAlignment: Text.AlignHCenter
+                                text: {
+                                    const title = miniMediaArea.player?.trackTitle || "Media";
+                                    const artist = miniMediaArea.player?.trackArtist || miniMediaArea.player?.identity || "";
+                                    return artist ? title + " - " + artist : title;
                                 }
-                            }
-
-                            Column {
-                                anchors.verticalCenter: parent.verticalCenter
-                                spacing: Theme.space1
-                                Text {
-                                    width: 124
-                                    elide: Text.ElideRight
-                                    text: miniMediaArea.player?.trackTitle || "Media"
-                                    color: Theme.text
-                                    font.family: Theme.font
-                                    font.pixelSize: Theme.fontSmall
-                                    font.weight: Font.DemiBold
-                                }
-                                Text {
-                                    width: 124
-                                    elide: Text.ElideRight
-                                    text: miniMediaArea.player?.trackArtist || miniMediaArea.player?.identity || ""
-                                    color: Theme.dim
-                                    font.family: Theme.font
-                                    font.pixelSize: Theme.fontCaption
-                                }
+                                color: Theme.text
+                                font.family: Theme.font
+                                font.pixelSize: Theme.fontSmall
+                                font.weight: Font.DemiBold
                             }
                         }
                     }

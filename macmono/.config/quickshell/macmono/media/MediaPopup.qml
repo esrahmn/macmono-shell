@@ -66,6 +66,21 @@ Scope {
                 scale: 0.96 + 0.04 * win.anim
                 opacity: Theme.openFromPanel + (1 - Theme.openFromPanel) * win.anim
 
+                // cava: area gunung di dasar kartu, di belakang konten
+                CavaWave {
+                    anchors {
+                        left: parent.left
+                        right: parent.right
+                        bottom: parent.bottom
+                        margins: Theme.borderThin
+                    }
+                    height: Math.min(card.height * 0.4, 150)
+                    visible: win.p !== null
+                    opacity: win.anim
+                    levels: Sys.mediaVisualizerLevels
+                    cornerRadius: Theme.radiusPanel - Theme.borderThin
+                }
+
                 Text {
                     id: empty
                     visible: !win.p

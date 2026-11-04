@@ -25,14 +25,20 @@ Rectangle {
         return Math.floor(s / 60) + ":" + String(s % 60).padStart(2, "0");
     }
 
+    MediaClock {
+        id: clock
+        player: root.player
+        active: root.visible && Sys.locked
+        onPolled: root.pos = clock.sample()
+    }
+
     Timer {
         interval: 1000
         repeat: true
         triggeredOnStart: true
         running: root.visible && root.player !== null && Sys.locked
         onTriggered: {
-            root.player.positionChanged();
-            root.pos = root.player.position;
+            root.pos = clock.sample();
         }
     }
 

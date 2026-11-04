@@ -30,6 +30,13 @@ ColumnLayout {
 
     spacing: roomy ? Theme.space12 : Theme.space10
 
+    MediaClock {
+        id: clock
+        player: root.player
+        active: root.panelShown
+        onPolled: root.pos = clock.sample()
+    }
+
     Timer {
         interval: 1000
         repeat: true
@@ -37,7 +44,7 @@ ColumnLayout {
         running: root.panelShown && root.player !== null
         onTriggered: {
             root.player.positionChanged();
-            root.pos = root.player.position;
+            root.pos = clock.sample();
         }
     }
 
@@ -143,8 +150,9 @@ ColumnLayout {
                 enabled: root.player?.canSeek ?? false
                 cursorShape: enabled ? Qt.PointingHandCursor : Qt.ArrowCursor
                 onClicked: (mouse) => {
-                    root.player.position = root.len * Math.max(0, Math.min(1, mouse.x / width));
-                    root.pos = root.player.position;
+                    const target = root.len * Math.max(0, Math.min(1, mouse.x / width));
+                    clock.seekTo(target);
+                    root.pos = target;
                 }
             }
         }

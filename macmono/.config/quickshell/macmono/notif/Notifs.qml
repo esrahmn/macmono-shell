@@ -70,12 +70,18 @@ Scope {
                     readonly property var defaultAction: (modelData.actions ?? []).find(a => a.identifier === "default") ?? null
                     readonly property string img: modelData.image || ""
 
+                    // tutup kartu sedikit setelah aksi dikirim, biar app sempat nerima aksinya dulu
+                    Timer { id: dismissLater; interval: 300; onTriggered: { try { card.modelData.dismiss(); } catch (e) {} } }
+
                     // klik kartu = aksi utama app (mis. buka chat), kalau nggak ada ya tutup
                     MouseArea {
                         anchors.fill: parent
                         onClicked: {
-                            if (card.defaultAction) card.defaultAction.invoke();
-                            else card.modelData.dismiss();
+                            if (card.defaultAction) {
+                                console.log("[notif] default action | app:", card.modelData.appName);
+                                card.defaultAction.invoke();
+                                dismissLater.restart();
+                            } else card.modelData.dismiss();
                         }
                     }
 
@@ -176,7 +182,11 @@ Scope {
                                     required property var modelData
                                     width: actText.implicitWidth + 24; height: 32
                                     hoverEnabled: true
-                                    onClicked: { act.modelData.invoke(); try { card.modelData.dismiss(); } catch (e) {} }
+                                    onClicked: {
+                                        console.log("[notif] action:", act.modelData.identifier, "|", act.modelData.text, "| app:", card.modelData.appName);
+                                        act.modelData.invoke();
+                                        dismissLater.restart();
+                                    }
                                     Rectangle { anchors.fill: parent; radius: Theme.radiusCard; color: act.containsMouse ? Theme.tileHover : Theme.tile }
                                     Text {
                                         id: actText

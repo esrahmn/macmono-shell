@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell.Io
 import "../core"
+import "../ui"
 
 Item {
     id: root
@@ -15,6 +16,8 @@ Item {
     property int requestGeneration: 0
     property string requestStage: ""
     property bool retryAvailable: false
+
+    MediaClock { id: clock; player: root.player; active: root.active }
 
     readonly property string trackKey: player
         ? [player.trackTitle || "", player.trackArtist || "", player.trackAlbum || "", player.length || 0].join("\u001f")
@@ -212,7 +215,7 @@ Item {
             activeLine = -1;
             return;
         }
-        const position = player.position || 0;
+        const position = clock.sample();
         let low = 0;
         let high = lines.length - 1;
         let match = -1;
@@ -228,6 +231,35 @@ Item {
         activeLine = match;
     }
 
+    // Baris aktif ditaruh di tengah, tapi nggak pernah scroll lewat batas atas/bawah daftar,
+    // jadi baris-baris awal tetap nempel di atas (nggak ada ruang kosong di atas lirik).
+    function scrollToActive(animate) {
+        if (lines.length === 0)
+            return;
+        lyricList.forceLayout();
+        const minY = lyricList.originY;
+        let target = minY;
+        if (activeLine >= 0) {
+            const item = lyricList.itemAtIndex(activeLine);
+            if (!item) {
+                lyricList.positionViewAtIndex(activeLine, ListView.Center);
+                return;
+            }
+            target = item.y + item.height / 2 - lyricList.height / 2;
+        }
+        const maxY = Math.max(minY, minY + lyricList.contentHeight - lyricList.height);
+        target = Math.max(minY, Math.min(maxY, target));
+        scrollAnim.stop();
+        if (animate) {
+            scrollAnim.to = target;
+            scrollAnim.start();
+        } else {
+            lyricList.contentY = target;
+        }
+    }
+    onActiveLineChanged: scrollToActive(true)
+    onLinesChanged: Qt.callLater(() => scrollToActive(false))
+
     onTrackKeyChanged: {
         if (active) {
             requestedTrack = "";
@@ -242,6 +274,7 @@ Item {
             retryAvailable = false;
         }
         loadLyrics();
+        Qt.callLater(() => scrollToActive(false));
     }
     Process {
         id: lyricsProcess
@@ -313,13 +346,10 @@ Item {
             model: root.lines
             boundsBehavior: Flickable.StopAtBounds
             visible: root.lines.length > 0
-            currentIndex: root.activeLine
-            highlightFollowsCurrentItem: true
-            highlightMoveDuration: 360
-            highlightRangeMode: ListView.StrictlyEnforceRange
-            preferredHighlightBegin: height / 2
-            preferredHighlightEnd: height / 2
-            highlight: Item {}
+            // Scroll diatur manual (scrollToActive), bukan pakai highlight range bawaan ListView,
+            // karena itu yang bikin lirik tiba-tiba turun ke tengah.
+            highlightRangeMode: ListView.NoHighlightRange
+            NumberAnimation { id: scrollAnim; target: lyricList; property: "contentY"; duration: 360; easing.type: Easing.OutCubic }
             delegate: Text {
                 required property var modelData
                 required property int index
