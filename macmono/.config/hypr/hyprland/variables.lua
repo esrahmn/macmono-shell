@@ -1,11 +1,9 @@
--- Default variables
--- Copy these to ~/.config/hypr/custom/variables.lua to make changes in a dotfiles-update-friendly manner
+-- Variabel & aplikasi default. Override di ~/.config/hypr/custom/variables.lua
 
 -- The folder within ~/.config/quickshell containing the config
 hl.env("qsConfig", "macmono")  -- shell default: ~/.config/quickshell/macmono
 
 -- Apps
--- PULL REQUESTS ADDING MORE WILL NOT BE ACCEPTED, CONFIG FOR YOURSELF
 terminal = "~/.config/hypr/hyprland/scripts/launch_first_available.sh 'foot' 'kitty -1' 'alacritty' 'wezterm' 'konsole' 'kgx' 'uxterm' 'xterm'"
 fileManager = "~/.config/hypr/hyprland/scripts/launch_first_available.sh 'dolphin' 'nautilus' 'nemo' 'thunar' 'kitty -1 fish -c yazi'"
 browser = "~/.config/hypr/hyprland/scripts/launch_first_available.sh 'google-chrome-stable' 'zen-browser' 'firefox' 'brave' 'chromium' 'microsoft-edge-stable' 'opera' 'librewolf'"

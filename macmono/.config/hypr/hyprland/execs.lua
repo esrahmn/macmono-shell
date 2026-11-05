@@ -1,11 +1,10 @@
--- put former exec-once commands inside the func and former exec commands outside
 hl.on("hyprland.start", function ()
 
-    -- Bar, wallpaper
+    -- Shell (macmono)
     hl.exec_cmd("$HOME/.config/hypr/hyprland/scripts/start_geoclue_agent.sh")
     hl.exec_cmd("qs -c $qsConfig")
 
-    -- Polkit: end4 biasanya lewat shell ii; macmono tidak punya, jadi agent sistem
+    -- Polkit: macmono tidak punya agent sendiri, pakai agent sistem
     hl.exec_cmd("~/.config/hypr/hyprland/scripts/launch_first_available.sh " ..
         "'/usr/lib/polkit-kde-authentication-agent-1' " ..
         "'/usr/lib/hyprpolkitagent/hyprpolkitagent' " ..
@@ -21,7 +20,6 @@ hl.on("hyprland.start", function ()
     hl.exec_cmd("easyeffects --hide-window --service-mode")
 
     -- Clipboard: history
-    --hl.exec_cmd("wl-paste --watch cliphist store")
     hl.exec_cmd("wl-paste --type text --watch bash -c 'cliphist store && qs -c $qsConfig ipc call cliphistService update'")
     hl.exec_cmd("wl-paste --type image --watch bash -c 'cliphist store && qs -c $qsConfig ipc call cliphistService update'")
 

@@ -1,9 +1,8 @@
--- This file sources other files in `hyprland` and `custom` folders
--- You wanna add your stuff in files in `custom`
+-- Entry point config Hyprland (macmono).
+-- Default ada di folder `hyprland/`. Tambahan pribadi taruh di `custom/` (opsional).
 
--- Internal stuff --
+-- Internal --
 require("hyprland.lib")
-require("hyprland.services")
 
 -- Environment variables --
 require("hyprland.env")
@@ -31,17 +30,6 @@ end
 if is_file_exists(HOME .. "/.config/hypr/custom/keybinds.lua") then
     require("custom.keybinds")
 end
-
--- nwg-displays support --
-if is_file_exists(HOME .. "/.config/hypr/workspaces.lua") then
-    require("workspaces")
-end
-if is_file_exists(HOME .. "/.config/hypr/monitors.lua") then
-    require("monitors")
-end
-
--- Shell overrides --
-require("hyprland.shellOverrides.main")
 
 -- HyprMod managed settings
 require("hyprland-gui")

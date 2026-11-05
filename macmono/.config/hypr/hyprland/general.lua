@@ -47,7 +47,7 @@ hl.config({
     },
     general = {
         gaps_in = 4,
-        gaps_out = 15,
+        gaps_out = 10,
         border_size = 2,
         resize_on_border = true,
 
@@ -60,7 +60,7 @@ hl.config({
         }
     },
     decoration = {
-        rounding       = 10,
+        rounding       = 11,
         rounding_power = 2,
 
         active_opacity   = 1,
@@ -74,15 +74,12 @@ hl.config({
         },
 
         blur = {
-            enabled  = true,
-            size     = 3,
-            passes   = 1,
-            vibrancy = 0.1696,
-        },
-        shadow = {
-            range = 4,
-            render_power = 3,
-            color = "rgba(1a1a1aee)",
+            enabled           = true,
+            size              = 2,
+            passes            = 1,
+            vibrancy          = 0.1696,
+            new_optimizations = true,
+            xray              = false,
         },
     },
     animations = {
@@ -92,13 +89,6 @@ hl.config({
         preserve_split = true,
     },
 })
-
-hl.config({
-    animations = {
-        enabled = true,
-    },
-})
-
 
 --animations--
 hl.curve("wind",         { type = "bezier", points = { {0.05, 0.9},  {0.1,  1.05} } })
@@ -138,7 +128,6 @@ hl.config({
         vrr = 2,
         mouse_move_enables_dpms = true,
         key_press_enables_dpms = true,
-        animate_manual_resizes = false,
         animate_mouse_windowdragging = false,
         enable_swallow = false,
         swallow_regex = "(foot|kitty|allacritty|Alacritty)",
@@ -146,7 +135,8 @@ hl.config({
         allow_session_lock_restore = true,
         session_lock_xray = false,
         initial_workspace_tracking = false,
-        focus_on_activate = true
+        focus_on_activate = true,
+        render_unfocused_fps = 24
     },
 
     binds = {
