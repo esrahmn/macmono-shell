@@ -39,6 +39,7 @@ Singleton {
     readonly property int fontDisplayMd: 22
     readonly property int fontHero: 26
     readonly property int fontClock: 84
+    readonly property int fontEmoji: 24  // glyph emoji di picker (bukan teks UI)
 
     // --------------------------------------------------------------- spacing
     // Skala jarak layout (px). Gunakan token ini untuk Row/Column/Layout.spacing.
@@ -59,9 +60,10 @@ Singleton {
     readonly property int space30: 30
 
     // ---------------------------------------------------------- permukaan
-    readonly property color bar: Qt.rgba(0, 0, 0, 0.50)            // menubar
-    readonly property color panel: Qt.rgba(0.08, 0.08, 0.08, 0.85) // kartu/panel utama
-    readonly property color popup: Qt.rgba(0.07, 0.07, 0.07, 0.93) // popup kecil: tray menu, OSD
+    // bar, panel, dan popup SATU warna, keburamannya dari Settings.panelOpacity (biar nyatu dengan top bar).
+    readonly property color bar: Qt.rgba(0, 0, 0, Math.max(0.25, Math.min(1, Settings.panelOpacity)))   // menubar
+    readonly property color panel: bar                             // kartu/panel utama (CC, launcher, clipboard, kalender, dll.)
+    readonly property color popup: bar                             // popup kecil: tray menu, OSD
     readonly property color raised: Qt.rgba(0.16, 0.16, 0.16, 0.95) // kartu yang "terangkat" (mis. kartu window di overview)
     readonly property color canvas: "#0b0b0b"                      // dasar wallpaper
     readonly property color black: "#000000"                       // hitam murni (latar jendela screenshot)
@@ -109,6 +111,7 @@ Singleton {
     readonly property int animBase: 200    // buka/tutup panel, expand/collapse, slide, rotasi
     readonly property int animSlow: 300    // transisi lambat (fade wallpaper)
     readonly property int animPulse: 600   // denyut berulang (titik rekam)
+    readonly property int animScroll: 360  // scroll programatik (lirik, daftar panjang)
     readonly property real buttonPressedScale: 0.97   // tombol mengecil sedikit saat ditekan
 
     // ------------------------------------------------------------- opasitas
@@ -125,7 +128,7 @@ Singleton {
     readonly property real springStiff: 4.8          // makin besar makin cepat/kaku
     readonly property real springDamp: 0.4           // makin kecil makin memantul (1 = tanpa pantulan)
     // Panel "laci" yang keluar dari bar (control center, kalender, media, tray menu, launcher,
-    // clipboard, emoji) dianimasikan oleh ui/Reveal.qml: pegas fisik redaman kritis (tanpa pantulan).
+    // clipboard, emoji) dianimasikan oleh components/Reveal.qml: pegas fisik redaman kritis (tanpa pantulan).
     // Kekakuan = kecepatan. Buka sengaja lebih lembut dari tutup. Perkiraan waktu sampai 90% jalan:
     //   revealOpenStiff 240  ->  ~255 ms   (naikkan = lebih cepat, turunkan = lebih santai)
     //   revealCloseStiff 420 ->  ~200 ms

@@ -4,7 +4,7 @@ import Quickshell.Io
 
 // Wi‑Fi subsystem (NetworkManager via nmcli).
 // - Status menubar: ringan, event-driven lewat nmcli monitor
-// - Scan/list: on-demand
+// - Scan/list: on-demand + ikut refresh setelah status berubah
 // - Connect: password lewat stdin (bukan argv)
 Scope {
     id: root
@@ -30,9 +30,41 @@ Scope {
         return wifiProfile(ssid) !== null;
     }
 
+    // Samakan flag active di cache list dengan SSID yang lagi aktif (tanpa nunggu rescan).
+    function syncListActive() {
+        if (!wifiList || wifiList.length === 0)
+            return;
+        const name = wifiName;
+        let changed = false;
+        const next = wifiList.map(e => {
+            const active = name !== "" && e.ssid === name;
+            if (e.active !== active)
+                changed = true;
+            return active === e.active ? e : {
+                ssid: e.ssid,
+                signal: e.signal,
+                security: e.security,
+                secure: e.secure,
+                known: e.known,
+                active: active
+            };
+        });
+        if (changed)
+            wifiList = next;
+    }
+
     function toggleWifi() {
         Quickshell.execDetached(["nmcli", "radio", "wifi", wifiOn ? "off" : "on"]);
+        // Optimistic: radio off → anggap putus
+        if (wifiOn) {
+            wifiOn = false;
+            wifiName = "";
+            wifiSignal = 0;
+            wifiActiveUuid = "";
+            syncListActive();
+        }
         statusDebounce.restart();
+        listDebounce.restart();
     }
 
     function scanWifi() {
@@ -55,31 +87,35 @@ Scope {
             wifiConnectKnownUuids = wifiProfiles.map(p => p.uuid);
             wifiPendingPassword = password || "";
             wifiConnectProc.command = password
-                ? ["nmcli", "--ask", "device", "wifi", "connect", ssid]
-                : ["nmcli", "device", "wifi", "connect", ssid];
+            ? ["nmcli", "--ask", "device", "wifi", "connect", ssid]
+            : ["nmcli", "device", "wifi", "connect", ssid];
         }
         wifiConnectProc.running = true;
         wifiConnectTimeout.restart();
     }
 
     function disconnectWifi() {
-        if (!wifiActiveUuid) {
-            statusDebounce.restart();
-            return;
-        }
-        Quickshell.execDetached(["nmcli", "connection", "down", "uuid", wifiActiveUuid]);
+        const uuid = wifiActiveUuid;
+        // Optimistic UI: jangan nunggu nmcli selesai
+        wifiName = "";
+        wifiSignal = 0;
+        wifiActiveUuid = "";
+        syncListActive();
+        if (uuid)
+            Quickshell.execDetached(["nmcli", "connection", "down", "uuid", uuid]);
         statusDebounce.restart();
+        listDebounce.restart();
     }
 
     function cleanupFailedWifi(ssid, knownUuids) {
         const known = (knownUuids || []).join(" ");
         const safeSsid = String(ssid || "").replace(/'/g, "'\\''");
         Quickshell.execDetached(["sh", "-c",
-            "known='" + known + "'; ssid='" + safeSsid + "'; " +
-            "nmcli -t -f UUID,NAME connection show 2>/dev/null | while IFS=: read -r uuid name; do " +
-            "  case \" $known \" in *\" $uuid \"*) continue ;; esac; " +
-            "  [ \"$name\" = \"$ssid\" ] && nmcli connection delete uuid \"$uuid\" >/dev/null 2>&1; " +
-            "done"
+                                "known='" + known + "'; ssid='" + safeSsid + "'; " +
+                                "nmcli -t -f UUID,NAME connection show 2>/dev/null | while IFS=: read -r uuid name; do " +
+                                "  case \" $known \" in *\" $uuid \"*) continue ;; esac; " +
+                                "  [ \"$name\" = \"$ssid\" ] && nmcli connection delete uuid \"$uuid\" >/dev/null 2>&1; " +
+                                "done"
         ]);
     }
 
@@ -90,39 +126,66 @@ Scope {
             wifiListGet.running = true;
     }
 
-    // ---- status ringan (ikon menubar) ----
+    // ---- status ringan (sumber kebenaran = koneksi aktif, bukan IN-USE stale) ----
+    // Format stdout:
+    //   line0: enabled|disabled
+    //   line1: NAME\tUUID   (kosong kalau nggak nyambung)
+    //   line2: SIGNAL       (opsional, dari AP bertanda *)
     Process {
         id: wifiStatusGet
         command: ["sh", "-c",
-            "nmcli radio wifi; nmcli -t -f IN-USE,SIGNAL,SSID device wifi list --rescan no 2>/dev/null | grep '^\\*:' | head -n1; " +
-            "nmcli -t -f UUID,TYPE connection show --active 2>/dev/null | awk -F: '$2 ~ /wireless|wifi/ { print $1; exit }'"
+        "nmcli radio wifi; " +
+        "nmcli -t -f NAME,UUID,TYPE connection show --active 2>/dev/null | " +
+        "awk -F: '$3 ~ /wireless|802-11-wireless|wifi/ { print $1 \"\\t\" $2; exit }'; " +
+        "nmcli -t -f IN-USE,SIGNAL device wifi list --rescan no 2>/dev/null | " +
+        "awk -F: '$1 == \"*\" { print $2; exit }'"
         ]
         environment: ({ LANG: "C", LC_ALL: "C" })
         stdout: StdioCollector {
             onStreamFinished: {
                 const lines = text.split("\n");
+                const prevName = root.wifiName;
                 root.wifiOn = (lines[0] || "").trim() === "enabled";
-                root.wifiActiveUuid = (lines[2] || "").trim();
-                const line = lines[1] || "";
-                if (!line.startsWith("*:")) {
+
+                const active = (lines[1] || "").trim();
+                if (!active) {
                     root.wifiName = "";
+                    root.wifiActiveUuid = "";
                     root.wifiSignal = 0;
-                    return;
+                } else {
+                    const tab = active.indexOf("\t");
+                    if (tab >= 0) {
+                        root.wifiName = active.slice(0, tab).replace(/\\:/g, ":");
+                        root.wifiActiveUuid = active.slice(tab + 1);
+                    } else {
+                        root.wifiName = active.replace(/\\:/g, ":");
+                        root.wifiActiveUuid = "";
+                    }
+                    const sig = parseInt((lines[2] || "").trim());
+                    root.wifiSignal = isNaN(sig) ? root.wifiSignal : sig;
                 }
-                const rest = line.slice(2);
-                const i = rest.indexOf(":");
-                root.wifiSignal = parseInt(rest.slice(0, i)) || 0;
-                root.wifiName = rest.slice(i + 1).replace(/\\(.)/g, "$1");
+
                 if (root.wifiError !== "" && root.wifiError === root.wifiName)
                     root.wifiError = "";
+
+                root.syncListActive();
+                // Kalau SSID berubah (connect/disconnect), refresh list biar section Connected ikut
+                if (root.wifiName !== prevName)
+                    listDebounce.restart();
             }
         }
     }
 
     Timer {
         id: statusDebounce
-        interval: 700
+        interval: 400
         onTriggered: if (!wifiStatusGet.running) wifiStatusGet.running = true
+    }
+
+    Timer {
+        id: listDebounce
+        interval: 600
+        onTriggered: if (!wifiListGet.running) wifiListGet.running = true
     }
 
     // Fallback pelan + update kekuatan sinyal
@@ -137,7 +200,12 @@ Scope {
         id: nmMonitor
         running: true
         command: ["nmcli", "monitor"]
-        stdout: SplitParser { onRead: statusDebounce.restart() }
+        stdout: SplitParser {
+            onRead: {
+                statusDebounce.restart();
+                listDebounce.restart();
+            }
+        }
         onExited: nmMonitorRestart.restart()
     }
 
@@ -151,8 +219,8 @@ Scope {
     Process {
         id: wifiListGet
         command: ["sh", "-c",
-            "nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY device wifi list 2>/dev/null; echo '---'; " +
-            "nmcli -t -f NAME,UUID,TYPE connection show 2>/dev/null | awk -F: '$3 ~ /wireless|802-11-wireless|wifi/ {print $1\"\\t\"$2}'"
+        "nmcli -t -f IN-USE,SSID,SIGNAL,SECURITY device wifi list 2>/dev/null; echo '---'; " +
+        "nmcli -t -f NAME,UUID,TYPE connection show 2>/dev/null | awk -F: '$3 ~ /wireless|802-11-wireless|wifi/ {print $1\"\\t\"$2}'"
         ]
         environment: ({ LANG: "C", LC_ALL: "C" })
         stdout: StdioCollector {
@@ -178,6 +246,7 @@ Scope {
                 const list = [];
                 const seen = ({});
                 const lines = (chunks[0] || "").split("\n");
+                const activeName = root.wifiName;
                 for (let i = 0; i < lines.length; i++) {
                     const line = lines[i].trim();
                     if (!line)
@@ -195,7 +264,8 @@ Scope {
                     seen[ssid] = true;
                     const sec = String(security || "").toLowerCase();
                     const secure = !(sec === "" || sec === "--" || sec === "none" || sec.indexOf("open") !== -1);
-                    const active = inUse === "*";
+                    // Utamakan SSID aktif dari status; IN-USE cuma fallback
+                    const active = activeName !== "" ? (ssid === activeName) : (inUse === "*");
                     list.push({
                         ssid: ssid,
                         signal: signal,
@@ -234,8 +304,7 @@ Scope {
             root.wifiConnectMayCreate = false;
             root.wifiConnecting = "";
             statusDebounce.restart();
-            if (!wifiListGet.running)
-                wifiListGet.running = true;
+            listDebounce.restart();
         }
     }
 

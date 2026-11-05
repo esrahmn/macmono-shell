@@ -2,27 +2,19 @@
 
 import Quickshell
 import "core"
+import "components"
+import "modules"
 import "services"
-import "wallpaper"
-import "menubar"
-import "cc"
-import "launcher"
-import "notif"
-import "capture"
-import "clipboard"
-import "emoji"
-import "power"
-import "osd"
-import "calendar"
-import "media"
-import "cheatsheet"
 import "lock"
 
 // macmono: shell monochrome ala macOS
-// Struktur diperbaiki:
-//  - services/ berisi subsystem (audio, hypr overview, privacy, ipc)
-//  - core/Sys.qml jadi fasad state + orchestrator, bukan tempat semua logic
-//  - IPC resmi lewat qs ipc call shell <fn>
+// Layout:
+//  - modules/ contains top-level shell surfaces and feature panels
+//  - components/ contains reusable visual components
+//  - core/ contains shared state, settings, theme, and shortcuts
+//  - services/ contains system integrations and background services
+//  - scripts/, config/, and data/ keep non-QML resources separate
+//  - IPC is exposed through `qs ipc call shell <fn>`
 ShellRoot {
     // Services (singleton-ish, hidup sepanjang shell)
     Ipc {}

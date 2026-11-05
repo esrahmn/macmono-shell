@@ -4,8 +4,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import Quickshell.Hyprland
-import Quickshell.Bluetooth
-import Quickshell.Services.Pipewire
 import Quickshell.Services.UPower
 import Quickshell.Services.Mpris
 import "../services"
@@ -17,8 +15,9 @@ Singleton {
     PrivacyService { id: privacy }
     BrightnessService { id: brightnessSvc }
     WifiService { id: wifiSvc }
-    WallpaperService { id: wallpaperSvc }
+    WallpaperService { id: wallpaperSvc; stateStore: stateStore }
     MediaVisualizerService { id: mediaVisualizer }
+    StateStore { id: stateStore }
 
     // Folder pribadi (mode 0700) untuk file sementara: screenshot beku, gambar clipboard hasil decode.
     // Jangan pakai /tmp: isinya bisa password atau data sensitif, dan /tmp bisa dibaca user lain.
@@ -76,7 +75,7 @@ Singleton {
     // Generation counter untuk sinkronisasi state rekaman internal vs external process
     property int recordingGeneration: 0
 
-    // ---------------- rekam layar (core/record.sh, wf-recorder) ----------------
+    // ---------------- rekam layar (scripts/record.sh, wf-recorder) ----------------
     property bool recActive: false
     property bool recStartPending: false
     property bool recStopping: false         // lagi menunggu wf-recorder berhenti (jangan dikira masih rekam)
@@ -111,7 +110,7 @@ Singleton {
         recActive = false;
         recStopping = true;
         recStopGrace.restart();
-        Quickshell.execDetached(["bash", Quickshell.shellDir + "/core/record.sh", "stop"]);
+        Quickshell.execDetached(["bash", Quickshell.shellDir + "/scripts/record.sh", "stop"]);
     }
     function recordingStarted() {
         recordingGeneration++;
@@ -143,12 +142,12 @@ Singleton {
         id: recordStartDelay
         interval: 380   // tunggu panel selesai menutup (ui/Reveal.qml), supaya nggak ikut terekam
         onTriggered: {
-            Quickshell.execDetached(["bash", Quickshell.shellDir + "/core/record.sh", "start", root.recStartMode, root.recStartAudio]);
+            Quickshell.execDetached(["bash", Quickshell.shellDir + "/scripts/record.sh", "start", root.recStartMode, root.recStartAudio]);
         }
     }
     Process {
         id: recStatus
-        command: ["bash", Quickshell.shellDir + "/core/record.sh", "status"]
+        command: ["bash", Quickshell.shellDir + "/scripts/record.sh", "status"]
         stdout: StdioCollector {
             onStreamFinished: {
                 const on = text.trim().startsWith("1");
@@ -504,39 +503,20 @@ Singleton {
     }
 
     // =====================================================================
-    //  Bluetooth
+    //  Bluetooth (data, scan, pairing ada di BluetoothService)
+    //  Buka settings tetap di sini karena butuh termScript + closeCCQuiet().
     // =====================================================================
-    readonly property bool btAvailable: Bluetooth.adapters.values.length > 0
-    readonly property bool btOn: Bluetooth.defaultAdapter?.enabled ?? false
-    readonly property var btDevices: (Bluetooth.defaultAdapter?.devices.values ?? [])
-        .filter(d => d.paired || d.connected)
-        .sort((a, b) => (b.connected - a.connected) || a.name.localeCompare(b.name))
-    // perangkat baru yang ketemu saat scan (punya nama, belum di-pair)
-    readonly property var btNew: (Bluetooth.defaultAdapter?.devices.values ?? [])
-        .filter(d => !d.paired && !d.connected && d.deviceName !== "" && d.name !== d.address.replace(/:/g, "-"))
-        .sort((a, b) => a.name.localeCompare(b.name))
-    readonly property var btConnected: btDevices.find(d => d.connected) ?? null
-    readonly property bool btScanning: Bluetooth.defaultAdapter?.discovering ?? false
-    function toggleBt() { if (Bluetooth.defaultAdapter) Bluetooth.defaultAdapter.enabled = !Bluetooth.defaultAdapter.enabled; }
-    function setBtScan(on) { if (Bluetooth.defaultAdapter && Bluetooth.defaultAdapter.enabled) Bluetooth.defaultAdapter.discovering = on; }
-    // pair perangkat baru -> setelah ter-pair: trust + connect otomatis
-    property var btPairing: null
-    property int btPairTicks: 0
-    function pairBt(d) {
-        btPairing = d; btPairTicks = 0;
-        d.trusted = true;
-        d.pair();
-    }
-    Timer {
-        interval: 1000; repeat: true
-        running: root.btPairing !== null
-        onTriggered: {
-            const d = root.btPairing;
-            if (!d) return;
-            if (d.paired) { d.trusted = true; d.connect(); root.btPairing = null; return; }
-            if (++root.btPairTicks > 30) { d.cancelPair(); root.btPairing = null; }
-        }
-    }
+    BluetoothService { id: btSvc }
+    readonly property bool btAvailable: btSvc.btAvailable
+    readonly property bool btOn: btSvc.btOn
+    readonly property var btDevices: btSvc.btDevices
+    readonly property var btNew: btSvc.btNew
+    readonly property var btConnected: btSvc.btConnected
+    readonly property bool btScanning: btSvc.btScanning
+    readonly property var btPairing: btSvc.pairing
+    function toggleBt() { btSvc.toggle(); }
+    function setBtScan(on) { btSvc.setScan(on); }
+    function pairBt(d) { btSvc.pair(d); }
     function openBtSettings() {
         closeCCQuiet();
         Quickshell.execDetached(["sh", "-c", termScript +
@@ -564,88 +544,37 @@ Singleton {
     // =====================================================================
     //  Screenshot ala end4: layar dibekukan dulu pakai grim (panel yang lagi
     //  kebuka ikut kerekam), lalu area dipilih di RegionSelector, crop pakai magick.
+    //  Implementasinya ada di CaptureService; UI tetap pakai Sys.capturing /
+    //  Sys.captureTargets / Sys.captureMode / Sys.finishCapture(), dst.
     // =====================================================================
-    property bool capturing: false      // RegionSelector lagi tampil
-    property bool capturePending: false // grim lagi jalan
-    property string captureScreen: ""
-    property string captureMode: "copy" // "copy" | "ocr"
-    property string captureFile: ""
-    property var captureTargets: ({})   // hasil hyprctl: { clients, monitors, layers }
+    CaptureService {
+        id: captureSvc
+        runtimeDir: root.runtimeDir
+    }
+    property alias capturing: captureSvc.capturing
+    property alias capturePending: captureSvc.capturePending
+    property alias captureScreen: captureSvc.captureScreen
+    property alias captureMode: captureSvc.captureMode
+    property alias captureFile: captureSvc.captureFile
+    property alias captureTargets: captureSvc.captureTargets
 
     // closeFirst = true kalau dipanggil dari tombol di launcher/CC (panelnya ditutup dulu)
     function screenshot(mode, closeFirst) {
-        if (capturing || capturePending) return;
-        captureMode = mode || "copy";
+        if (captureSvc.capturing || captureSvc.capturePending) return;
+        captureSvc.captureMode = mode || "copy";
         if (closeFirst) {
             closeCCQuiet();
-            captureDelay.restart();   // tunggu panel benar-benar hilang dari layar
+            captureSvc.scheduleStart();   // tunggu panel benar-benar hilang dari layar
         } else {
             startCapture();
         }
     }
-    function startCapture() {
-        if (capturing || capturePending) return;
-        const screen = focusedScreenName();
-        if (!screen) {
-            Quickshell.execDetached(["notify-send", "-a", "Screenshot", "-u", "critical",
-                "Screenshot failed", "No focused screen"]);
-            return;
-        }
-        captureScreen = screen;
-        captureFile = runtimeDir + "/shot-" + captureScreen + ".png";
-        capturePending = true;
-        targetsGet.running = true;
-        // umask 077 -> folder 0700 dan file 0600
-        grimProc.exec(["sh", "-c",
-            "umask 077; mkdir -p \"$1\" && exec grim -o \"$2\" \"$3\"",
-            "sh", runtimeDir, captureScreen, captureFile]);
-    }
-    function cancelCapture() {
-        capturing = false;
-        Quickshell.execDetached(["rm", "-f", captureFile]);
-    }
-    // x, y, w, h dalam piksel fisik (sudah dikali scale monitor)
-    function finishCapture(x, y, w, h) {
-        capturing = false;
-        if (w < 2 || h < 2) { cancelCapture(); return; }
-        const geo = Math.round(w) + "x" + Math.round(h) + "+" + Math.round(x) + "+" + Math.round(y);
-        const script = captureMode === "ocr"
-            ? "set -o pipefail; input=$1; geometry=$2; trap 'rm -f \"$input\"' EXIT; " +
-              "M=$(command -v magick || command -v convert) || { notify-send -a Screenshot -u critical 'OCR failed' 'ImageMagick is not installed'; exit 1; }; " +
-              "command -v tesseract >/dev/null && command -v wl-copy >/dev/null || { notify-send -a Screenshot -u critical 'OCR failed' 'Tesseract or wl-copy is not installed'; exit 1; }; " +
-              "langs=$(tesseract --list-langs 2>/dev/null | awk 'NR > 1 { print $1 }' | paste -sd+ -); " +
-              "[ -n \"$langs\" ] || { notify-send -a Screenshot -u critical 'OCR failed' 'No OCR language data installed'; exit 1; }; " +
-              "if \"$M\" \"$input\" -crop \"$geometry\" +repage png:- | tesseract stdin stdout -l \"$langs\" | wl-copy; then " +
-              "notify-send -a Screenshot 'Text copied' 'OCR result is on the clipboard'; " +
-              "else notify-send -a Screenshot -u critical 'OCR failed' 'The image could not be processed or the text could not be copied'; exit 1; fi"
-            : "set -o pipefail; input=$1; geometry=$2; trap 'rm -f \"$input\"' EXIT; " +
-              "M=$(command -v magick || command -v convert) || { notify-send -a Screenshot -u critical 'Screenshot failed' 'ImageMagick is not installed'; exit 1; }; " +
-              "pictures=$(xdg-user-dir PICTURES 2>/dev/null); [ -n \"$pictures\" ] || pictures=\"$HOME/Pictures\"; " +
-              "d=\"$pictures/Screenshots\"; mkdir -p \"$d\" || { notify-send -a Screenshot -u critical 'Screenshot failed' 'Could not create the Screenshots folder'; exit 1; }; " +
-              "out=\"$d/Screenshot_$(date +%Y-%m-%d_%H.%M.%S).png\"; " +
-              "\"$M\" \"$input\" -crop \"$geometry\" +repage \"$out\" || { notify-send -a Screenshot -u critical 'Screenshot failed' 'Could not crop the image'; exit 1; }; " +
-              "if wl-copy < \"$out\"; then notify-send -a Screenshot -i \"$out\" 'Screenshot copied' \"$out\"; " +
-              "else notify-send -a Screenshot -u critical 'Screenshot saved' \"Could not copy to clipboard: $out\"; fi"
-        Quickshell.execDetached(["bash", "-c", script, "bash", captureFile, geo]);
-    }
-    Timer { id: captureDelay; interval: 380; onTriggered: root.startCapture() }   // tunggu panel selesai menutup (ui/Reveal.qml)
-    Process {
-        id: grimProc
-        onExited: (code) => {
-            root.capturePending = false;
-            if (code === 0) root.capturing = true;
-            else Quickshell.execDetached(["notify-send", "-a", "Screenshot", "Screenshot failed", "grim could not capture the screen"]);
-        }
-    }
-    Process {
-        id: targetsGet
-        command: ["bash", "-c", "printf '{\"clients\":%s,\"monitors\":%s,\"layers\":%s}' \"$(hyprctl -j clients)\" \"$(hyprctl -j monitors)\" \"$(hyprctl -j layers)\""]
-        stdout: StdioCollector {
-            onStreamFinished: {
-                try { root.captureTargets = JSON.parse(text); }
-                catch (e) { root.captureTargets = ({}); }
-            }
-        }
+    function startCapture() { captureSvc.startCapture(focusedScreenName()); }
+    function cancelCapture() { captureSvc.cancelCapture(); }
+    function finishCapture(x, y, w, h) { captureSvc.finishCapture(x, y, w, h); }
+    Connections {
+        target: captureSvc
+        function onStartRequested() { root.startCapture(); }
     }
 
     function closeCCQuiet() { ccOpen = false; launcherOpen = false; wallpaperOpen = false; clipboardOpen = false; emojiOpen = false; powerOpen = false; trayMenuOpen = false; calendarOpen = false; mediaOpen = false; cheatOpen = false; }
@@ -663,7 +592,7 @@ Singleton {
     function power(act) {
         closeCCQuiet();
         switch (act) {
-        case "logout":   Quickshell.execDetached(["sh", Quickshell.shellDir + "/core/session.sh"]); break;
+        case "logout":   Quickshell.execDetached(["sh", Quickshell.shellDir + "/scripts/session.sh"]); break;
         case "sleep":    Quickshell.execDetached(["sh", "-c", "systemctl suspend"]); break;
         case "restart":  Quickshell.execDetached(["sh", "-c", "systemctl reboot"]); break;
         case "shutdown": Quickshell.execDetached(["sh", "-c", "systemctl poweroff"]); break;
@@ -711,19 +640,15 @@ Singleton {
     function loadWallpapers() { wallpaperSvc.loadWallpapers(); }
     function randomWallpaper() { wallpaperSvc.randomWallpaper(); }
     function thumbFor(path) { return wallpaperSvc.thumbFor(path); }
-    // saveState masih dipakai toggle DND/night light di Sys
-    function saveState(name, value) {
-        Quickshell.execDetached(["sh", "-c",
-            "mkdir -p \"$HOME/.local/state/macmono\" && printf '%s' \"$2\" > \"$HOME/.local/state/macmono/$1\"",
-            "sh", name, String(value)]);
-    }
+    // Penyimpanan state kecil (~/.local/state/macmono) ada di StateStore;
+    // dulu perintah shell-nya diduplikasi di sini dan di WallpaperService.
+    function saveState(name, value) { stateStore.save(name, value); }
 
     // =====================================================================
     function refresh() {
         brightnessSvc.refresh();
         wifiSvc.refresh();
     }
-    Timer { id: recheck; interval: 1200; onTriggered: root.refresh() }
 
     Component.onCompleted: {
         Quickshell.execDetached(["mkdir", "-p", Quickshell.env("HOME") + "/.local/state/macmono"]);

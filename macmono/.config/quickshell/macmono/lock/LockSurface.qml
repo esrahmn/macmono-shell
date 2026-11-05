@@ -5,7 +5,7 @@ import QtQuick.Layouts
 import Quickshell
 import Quickshell.Services.Mpris
 import "../core"
-import "../ui"
+import "../components"
 
 // Tampilan satu monitor: wallpaper blur, jam, media card, kartu login.
 Item {

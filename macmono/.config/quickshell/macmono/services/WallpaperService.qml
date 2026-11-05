@@ -7,6 +7,9 @@ import Quickshell.Io
 Scope {
     id: root
 
+    // Dipasang Sys; lihat services/StateStore.qml
+    property var stateStore: null
+
     property string wallpaper: ""
     property bool wallpaperMono: true
     property var wallpapers: []
@@ -40,11 +43,7 @@ Scope {
         wallpaperLoadError = "";
     }
 
-    function saveState(name, value) {
-        Quickshell.execDetached(["sh", "-c",
-            "mkdir -p \"$HOME/.local/state/macmono\" && printf '%s' \"$2\" > \"$HOME/.local/state/macmono/$1\"",
-            "sh", name, String(value)]);
-    }
+    function saveState(name, value) { if (root.stateStore) root.stateStore.save(name, value); }
 
     function setWallpaper(path) {
         wallpaper = path;
@@ -104,7 +103,7 @@ Scope {
                     root.randomWallpaper();
                 }
                 if (root.wallpapers.length > 0) {
-                    thumbProc.command = ["sh", Quickshell.shellDir + "/core/thumbs.sh"].concat(root.wallpapers);
+                    thumbProc.command = ["sh", Quickshell.shellDir + "/scripts/thumbs.sh"].concat(root.wallpapers);
                     thumbProc.running = true;
                 }
             }

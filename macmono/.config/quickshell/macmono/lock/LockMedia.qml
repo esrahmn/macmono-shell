@@ -3,7 +3,7 @@ import QtQuick
 import QtQuick.Effects
 import QtQuick.Layouts
 import "../core"
-import "../ui"
+import "../components"
 
 // Kartu media di lock screen. Data langsung dari Mpris (D-Bus) yang sudah
 // dipantau shell, jadi nggak ada playerctl/polling script sama sekali.

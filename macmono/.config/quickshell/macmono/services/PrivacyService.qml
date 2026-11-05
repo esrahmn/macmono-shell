@@ -29,10 +29,6 @@ Scope {
     // ---- camera & external recorders (polled, tapi lebih hemat) ----
     property bool camInUse: false
     property bool recordingProc: false
-    property int generation: 0
-
-    // Gabungan: ada rekaman internal ATAU eksternal ATAU portal screencast
-    readonly property bool recording: recordingProc || screencast
 
     Process {
         id: checkProc
@@ -57,18 +53,9 @@ Scope {
         interval: 3500
         running: true
         repeat: true
-        onTriggered: {
-            if (!checkProc.running) {
-                root.generation++;
-                checkProc.running = true;
-            }
-        }
+        onTriggered: if (!checkProc.running) checkProc.running = true
     }
 
     // Paksa cek sekali saat startup
     Component.onCompleted: checkProc.running = true
-
-    function forceCheck() {
-        if (!checkProc.running) checkProc.running = true;
-    }
 }

@@ -20,7 +20,7 @@ Item {
     Process {
         id: cava
         running: root.active
-        command: ["cava", "-p", Quickshell.shellDir + "/media/cava-mini.conf"]
+        command: ["cava", "-p", Quickshell.shellDir + "/config/cava-mini.conf"]
         stdout: SplitParser {
             onRead: line => root.updateLevels(line)
         }
