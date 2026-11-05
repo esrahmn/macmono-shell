@@ -76,13 +76,16 @@ Scope {
             screen: modelData
 
             readonly property bool shown: Sys.clipboardOpen && Sys.clipboardScreen === modelData.name
-            property real anim: 0
-            NumberAnimation { id: openAnim; target: win; property: "anim"; from: 0; to: 1; duration: Theme.animBase; easing.type: Theme.easeOut }
+            Reveal { id: reveal; open: win.shown }
+            readonly property real anim: reveal.progress
+            readonly property bool present: reveal.present
 
-            // Buka: animasi di QML. Tutup: langsung hilang (bersih, tanpa sisa blur),
-            // sama seperti overview end4. Animasi layer Hyprland dimatiin lewat no_anim.
-            visible: shown
+            // Buka & tutup: animasi di QML (ui/Reveal.qml), laci dari bawah bar seperti control center.
+            // Animasi layer Hyprland dimatiin lewat no_anim.
+            visible: present
             anchors { top: true; bottom: true; left: true; right: true }
+            // window mulai di tepi bawah bar: panel keluar dari balik bar (bagian di atasnya terpotong)
+            margins { top: Theme.barMargin + Theme.barHeight }
             exclusionMode: ExclusionMode.Ignore
             color: Theme.transparent
             WlrLayershell.namespace: "macmono:clipboard"
@@ -141,8 +144,7 @@ Scope {
             }
 
             onShownChanged: {
-                if (!shown) { openAnim.stop(); anim = 0; return; }
-                openAnim.restart();
+                if (!shown) return;
                 {
                     search.text = "";
                     current = 0;
@@ -154,17 +156,17 @@ Scope {
             MouseArea { anchors.fill: parent; enabled: win.shown; onClicked: Sys.clipboardOpen = false }
 
             Rectangle {
+                id: panel
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: Theme.barMargin + Theme.barHeight + 10 - 10 * (1 - win.anim)
+                y: Theme.drawerGap
                 width: Math.min(860, parent.width - 40)
                 height: Math.min(500, parent.height - y - 40)
                 radius: Theme.radiusPanel
                 color: Theme.panel
                 border.width: Theme.borderThin
                 border.color: Theme.line
-                opacity: Theme.openFromModal + (1 - Theme.openFromModal) * win.anim
-                scale: 0.96 + 0.04 * win.anim
-                transformOrigin: Item.Top
+                // laci: panel keluar dari tepi bawah bar; isi di-fade lewat opacity di dalamnya
+                transform: Translate { y: -(panel.height + Theme.drawerGap) * (1 - win.anim) }
 
                 MouseArea { anchors.fill: parent }
 

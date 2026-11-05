@@ -61,6 +61,8 @@ Scope {
                 border.color: Theme.lineStrong
                 opacity: (root.shown && root.screenName === win.modelData.name) ? 1 : 0
                 Behavior on opacity { NumberAnimation { duration: Theme.animFade; easing.type: Theme.easeOut } }
+                scale: (root.shown && root.screenName === win.modelData.name) ? 1 : Theme.openScaleFrom
+                Behavior on scale { SpringAnimation { spring: Theme.springStiff; damping: Theme.springDamp; epsilon: 0.001 } }
 
                 Glyph {
                     id: ic

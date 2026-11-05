@@ -249,27 +249,6 @@ Rectangle {
                         }
                     }
                 }
-
-                // judul window pas di-hover
-                Rectangle {
-                    visible: area.containsMouse && !w.held
-                    z: 10
-                    anchors { horizontalCenter: parent.horizontalCenter; top: parent.bottom; topMargin: Theme.space6 }
-                    width: Math.min(titleText.implicitWidth + 16, 280)
-                    height: 22
-                    radius: Math.min(width, height) / 2
-                    color: Theme.badge
-                    Text {
-                        id: titleText
-                        anchors.centerIn: parent
-                        width: parent.width - 16
-                        horizontalAlignment: Text.AlignHCenter
-                        elide: Text.ElideRight
-                        text: w.c?.title || w.c?.class || ""
-                        color: Theme.text
-                        font.family: Theme.font; font.pixelSize: Theme.fontSmall
-                    }
-                }
             }
         }
 

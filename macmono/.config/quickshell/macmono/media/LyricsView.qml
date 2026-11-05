@@ -16,6 +16,10 @@ Item {
     property int requestGeneration: 0
     property string requestStage: ""
     property bool retryAvailable: false
+    // SISTEM AUTO-RETRY OTOMATIS
+    property int retryCount: 0
+    readonly property int maxRetries: 3 // Batas maksimal paksa cari ulang
+
 
     MediaClock { id: clock; player: root.player; active: root.active }
 
@@ -29,7 +33,7 @@ Item {
             loading = false;
             retryAvailable = false;
             requestedTrack = "";
-            status = "Lyrics unavailable";
+            status = "Hell nah cuh";
             return;
         }
         if (requestedTrack === trackKey)
@@ -41,7 +45,7 @@ Item {
         activeLine = -1;
         loading = true;
         retryAvailable = false;
-        status = "Searching LRCLIB…";
+        status = retryCount > 0 ? "Retrying (" + retryCount + "/" + maxRetries + ")…" : "Wait";
         requestExactMatch();
     }
 
@@ -84,6 +88,18 @@ Item {
         lyricsProcess.running = true;
     }
 
+    // Fungsi baru untuk menangani kegagalan jaringan & memicu auto-retry
+    function handleNetworkFailure() {
+        requestTimeout.stop();
+        if (retryCount < maxRetries) {
+            retryCount++;
+            status = "Connection failed. Retrying in 3s (" + retryCount + "/" + maxRetries + ")…";
+            autoRetryTimer.start(); // Jeda 3 detik sebelum nembak API lagi agar tidak rate-limit
+        } else {
+            finishLookupError();;
+        }
+    }
+
     function parseLyrics(response) {
         const marker = "\n__MACMONO_REQUEST__";
         const markerIndex = response.lastIndexOf(marker);
@@ -110,18 +126,18 @@ Item {
                 status = "Lyrics not found · Tap to retry";
                 return;
             }
-            finishLookupError();
+            handleNetworkFailure();
             return;
         }
         try { result = JSON.parse(response); }
         catch (error) {
-            finishLookupError();
+            handleNetworkFailure();
             return;
         }
 
         if (requestStage === "exact") {
             if (!result || typeof result !== "object" || Array.isArray(result)) {
-                finishLookupError();
+                handleNetworkFailure();
                 return;
             }
             if (applyLyrics(result))
@@ -131,7 +147,7 @@ Item {
         }
 
         if (!Array.isArray(result)) {
-            finishLookupError();
+            handleNetworkFailure();
             return;
         }
         const expectedTitle = normalizeTitle(player.trackTitle);
@@ -148,7 +164,7 @@ Item {
         if (!match) {
             loading = false;
             retryAvailable = true;
-            status = "Lyrics not found · Tap to retry";
+            status = "Retry";
             return;
         }
         applyLyrics(match);
@@ -191,6 +207,7 @@ Item {
         }
         loading = false;
         retryAvailable = false;
+        retryCount = 0;
         updateActiveLine();
         return true;
     }
@@ -199,7 +216,7 @@ Item {
         lines = [];
         loading = false;
         retryAvailable = true;
-        status = "Lookup failed · Tap to retry";
+        status = "Retry";
     }
 
     function retryLookup() {
@@ -215,7 +232,8 @@ Item {
             activeLine = -1;
             return;
         }
-        const position = clock.sample();
+        // Ditambahkan offset tipis (0.15 detik) untuk kompensasi latensi D-Bus Mpris
+        const position = clock.sample() + 0.15;
         let low = 0;
         let high = lines.length - 1;
         let match = -1;
@@ -230,6 +248,7 @@ Item {
         }
         activeLine = match;
     }
+
 
     // Baris aktif ditaruh di tengah, tapi nggak pernah scroll lewat batas atas/bawah daftar,
     // jadi baris-baris awal tetap nempel di atas (nggak ada ruang kosong di atas lirik).
@@ -296,17 +315,28 @@ Item {
         }
     }
 
+    // Timer jeda untuk Auto-Retry agar tidak rate-limit API
     Timer {
-        interval: 80
+        id: autoRetryTimer
+        interval: 3000
+        repeat: false
+        onTriggered: {
+            root.requestedTrack = ""; // Paksa reset trackKey state agar mau hit ulang
+            root.loadLyrics();
+        }
+    }
+
+
+    // Timer Sinkronisasi Lirik: Dipercepat dari 80ms ke 30ms untuk responsivitas instan
+    Timer {
+        interval: 30
         repeat: true
         running: root.active && root.player !== null && root.lines.length > 0 && root.lines[0].time >= 0
         onTriggered: {
-            if (!root.player)
-                return;
-            root.player.positionChanged();
             root.updateActiveLine();
         }
     }
+
 
     Component.onCompleted: loadLyrics()
 

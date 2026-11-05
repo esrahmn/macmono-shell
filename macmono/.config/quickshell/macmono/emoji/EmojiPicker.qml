@@ -89,16 +89,9 @@ Scope {
             screen: modelData
 
             readonly property bool shown: Sys.emojiOpen && Sys.emojiScreen === modelData.name
-            property real anim: 0
-            NumberAnimation {
-                id: openAnim
-                target: win
-                property: "anim"
-                from: 0
-                to: 1
-                duration: Theme.animBase
-                easing.type: Theme.easeOut
-            }
+            Reveal { id: reveal; open: win.shown }
+            readonly property real anim: reveal.progress
+            readonly property bool present: reveal.present
             readonly property var filtered: {
                 const query = search.text.trim().toLowerCase();
                 if (query)
@@ -119,8 +112,11 @@ Scope {
                 grid.positionViewAtIndex(grid.currentIndex, GridView.Contain);
             }
 
-            visible: shown
+            // Buka & tutup: animasi di QML (ui/Reveal.qml), laci dari bawah bar seperti control center.
+            visible: present
             anchors { top: true; bottom: true; left: true; right: true }
+            // window mulai di tepi bawah bar: panel keluar dari balik bar (bagian di atasnya terpotong)
+            margins { top: Theme.barMargin + Theme.barHeight }
             exclusionMode: ExclusionMode.Ignore
             color: Theme.transparent
             WlrLayershell.namespace: "macmono:emoji"
@@ -128,12 +124,8 @@ Scope {
             WlrLayershell.keyboardFocus: shown ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
             onShownChanged: {
-                if (!shown) {
-                    openAnim.stop();
-                    anim = 0;
+                if (!shown)
                     return;
-                }
-                openAnim.restart();
                 search.text = "";
                 grid.currentIndex = 0;
                 grid.contentY = 0;
@@ -155,9 +147,8 @@ Scope {
                 color: Theme.panel
                 border.width: Theme.borderThin
                 border.color: Theme.line
-                opacity: Theme.openFromModal + (1 - Theme.openFromModal) * win.anim
-                scale: 0.96 + 0.04 * win.anim
-                transformOrigin: Item.Center
+                // laci: panel keluar dari tepi bawah bar (tetap berakhir di tengah); isi di-fade di dalamnya
+                transform: Translate { y: -(panel.y + panel.height) * (1 - win.anim) }
 
                 MouseArea { anchors.fill: parent }
 
@@ -165,6 +156,7 @@ Scope {
                     anchors.fill: parent
                     anchors.margins: Theme.space16
                     spacing: Theme.space10
+                    opacity: win.anim
 
                     Row {
                         id: title

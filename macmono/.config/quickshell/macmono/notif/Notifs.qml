@@ -53,13 +53,13 @@ Scope {
                     transform: Translate { id: slide; x: 0 }
                     ParallelAnimation {
                         running: true
-                        NumberAnimation { target: slide; property: "x"; from: 48; to: 0; duration: Theme.animBase; easing.type: Theme.easeOut }
+                        NumberAnimation { target: slide; property: "x"; from: 72; to: 0; duration: Theme.animOpen; easing.type: Theme.easeOpen; easing.overshoot: Theme.openOvershoot }
                         NumberAnimation { target: card; property: "opacity"; from: 0.4; to: 1; duration: Theme.animBase; easing.type: Theme.easeOut }
                     }
 
                     HoverHandler { id: cardHover }   // kursor di atas kartu = jangan hilang dulu
-                    // lama tampil: pakai timeout dari app (notify-send -t), default 6 detik; 0 = sampai ditutup
-                    readonly property real timeoutMs: (card.modelData.expireTimeout ?? -1) > 0 ? card.modelData.expireTimeout : 6000   // nilainya milidetik (spesifikasi D-Bus)
+                    // lama tampil: pakai timeout dari app (notify-send -t), default 5 detik; 0 = sampai ditutup
+                    readonly property real timeoutMs: (card.modelData.expireTimeout ?? -1) > 0 ? card.modelData.expireTimeout : 5000   // nilainya milidetik (spesifikasi D-Bus)
                     Timer {
                         interval: card.timeoutMs
                         running: card.modelData.urgency !== NotificationUrgency.Critical && card.modelData.expireTimeout !== 0 && !cardHover.hovered
@@ -79,8 +79,8 @@ Scope {
                         onClicked: {
                             if (card.defaultAction) {
                                 console.log("[notif] default action | app:", card.modelData.appName);
+                                dismissLater.restart();   // dulu sebelum invoke(), lihat catatan di tombol aksi
                                 card.defaultAction.invoke();
-                                dismissLater.restart();
                             } else card.modelData.dismiss();
                         }
                     }
@@ -172,26 +172,30 @@ Scope {
 
                         // tombol aksi dari app (Reply, Mark as read, dll.)
                         Row {
-                            visible: card.actionList.length > 0
+                            id: actionRow
+                            visible: card.actionList && card.actionList.length > 0
                             topPadding: 6
                             spacing: Theme.space6
                             Repeater {
-                                model: card.actionList.slice(0, 3)
+                                model: card.actionList ? card.actionList.slice(0, 3) : []
                                 delegate: MouseArea {
                                     id: act
                                     required property var modelData
-                                    width: actText.implicitWidth + 24; height: 32
+                                    width: (actText.text ? actText.implicitWidth : 0) + 24; height: 32
                                     hoverEnabled: true
+                                    visible: actText.text !== ""
                                     onClicked: {
-                                        console.log("[notif] action:", act.modelData.identifier, "|", act.modelData.text, "| app:", card.modelData.appName);
-                                        act.modelData.invoke();
-                                        dismissLater.restart();
+                                        if (act.modelData) {
+                                            console.log("[notif] action:", act.modelData.identifier, "| app:", card.modelData.appName);
+                                            dismissLater.restart();   // dulu sebelum invoke(): invoke menutup notif & menghancurkan kartu ini
+                                            act.modelData.invoke();
+                                        }
                                     }
                                     Rectangle { anchors.fill: parent; radius: Theme.radiusCard; color: act.containsMouse ? Theme.tileHover : Theme.tile }
                                     Text {
                                         id: actText
                                         anchors.centerIn: parent
-                                        text: act.modelData.text
+                                        text: act.modelData && act.modelData.text ? act.modelData.text : ""
                                         color: Theme.text
                                         font.family: Theme.font; font.pixelSize: Theme.fontBody; font.weight: Font.Medium
                                     }

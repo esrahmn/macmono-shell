@@ -17,15 +17,16 @@ Scope {
             screen: modelData
 
             readonly property bool shown: Sys.mediaOpen && Sys.mediaScreen === modelData.name
-            property real anim: 0
-            NumberAnimation { id: openAnim; target: win; property: "anim"; from: 0; to: 1; duration: Theme.animBase; easing.type: Theme.easeOut }
-            onShownChanged: { if (shown) { openAnim.restart(); keys.forceActiveFocus(); } else { openAnim.stop(); anim = 0; } }
+            Reveal { id: reveal; open: win.shown }
+            readonly property real anim: reveal.progress
+            readonly property bool present: reveal.present
+            onShownChanged: { if (shown) keys.forceActiveFocus(); }
 
-            visible: shown
+            visible: present
             anchors { top: true; right: true }
-            margins { top: Theme.barMargin + Theme.barHeight + 8; right: Sys.mediaPopupRightMargin }
+            margins { top: Theme.barMargin + Theme.barHeight; right: Sys.mediaPopupRightMargin }
             implicitWidth: Sys.mediaPopupWidth
-            implicitHeight: card.height
+            implicitHeight: card.height + Theme.drawerGap * 2
             exclusionMode: ExclusionMode.Ignore
             color: Theme.transparent
             WlrLayershell.namespace: "macmono:media"
@@ -55,6 +56,7 @@ Scope {
 
             Rectangle {
                 id: card
+                y: Theme.drawerGap
                 width: parent.width
                 height: win.p ? content.implicitHeight + lyrics.height + Theme.space16 * 3
                     : empty.implicitHeight + Theme.space16 * 2
@@ -62,9 +64,8 @@ Scope {
                 color: Theme.panel
                 border.width: Theme.borderThin
                 border.color: Theme.line
-                transformOrigin: Item.Top
-                scale: 0.96 + 0.04 * win.anim
-                opacity: Theme.openFromPanel + (1 - Theme.openFromPanel) * win.anim
+                // laci: kartu keluar dari tepi bawah bar
+                transform: Translate { y: -(card.height + Theme.drawerGap) * (1 - Math.min(1, win.anim)) }
 
                 // cava: area gunung di dasar kartu, di belakang konten
                 CavaWave {

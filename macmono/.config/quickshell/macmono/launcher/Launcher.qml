@@ -153,13 +153,17 @@ Scope {
             required property var modelData
             screen: modelData
 
-            // Animasi buka di QML; tutup langsung hilang (bersih, tanpa sisa blur). Animasi layer Hyprland dimatiin (no_anim).
+            // Buka & tutup: animasi di QML (ui/Reveal.qml), laci dari bawah bar seperti control center.
+            // Animasi layer Hyprland dimatiin (no_anim).
             readonly property bool shown: Sys.launcherOpen && Sys.launcherScreen === modelData.name
-            property real anim: 0
-            NumberAnimation { id: openAnim; target: win; property: "anim"; from: 0; to: 1; duration: Theme.animBase; easing.type: Theme.easeOut }
+            Reveal { id: reveal; open: win.shown }
+            readonly property real anim: reveal.progress
+            readonly property bool present: reveal.present
 
-            visible: shown
+            visible: present
             anchors { top: true; bottom: true; left: true; right: true }
+            // window mulai di tepi bawah bar: panel keluar dari balik bar (bagian di atasnya terpotong)
+            margins { top: Theme.barMargin + Theme.barHeight }
             exclusionMode: ExclusionMode.Ignore
             color: Theme.transparent
             WlrLayershell.namespace: "macmono:launcher"
@@ -202,8 +206,7 @@ Scope {
             }
 
             onShownChanged: {
-                if (!shown) { openAnim.stop(); anim = 0; return; }
-                openAnim.restart();
+                if (!shown) return;
                 input.text = "";
                 refresh();
                 input.forceActiveFocus();
@@ -221,17 +224,15 @@ Scope {
             Rectangle {
                 id: panel
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: Theme.barMargin + Theme.barHeight + 10 - 10 * (1 - win.anim)
+                y: Theme.drawerGap
                 width: Math.max(1000, ovv.implicitWidth + 32)
                 height: col.implicitHeight + 32
                 radius: Theme.radiusXl
                 color: Theme.panel
                 border.width: Theme.borderThin
                 border.color: Theme.line
-                // Panel berakhir di opacity penuh; transparansi permukaan diatur Theme.panel.
-                opacity: Theme.openFromModal + (1 - Theme.openFromModal) * win.anim
-                scale: 0.97 + 0.03 * win.anim
-                transformOrigin: Item.Top
+                // laci: panel keluar dari tepi bawah bar; isi di-fade lewat opacity di dalamnya
+                transform: Translate { y: -(panel.height + Theme.drawerGap) * (1 - win.anim) }
 
                 MouseArea { anchors.fill: parent; onClicked: input.forceActiveFocus() }   // klik di panel jangan nutup
 

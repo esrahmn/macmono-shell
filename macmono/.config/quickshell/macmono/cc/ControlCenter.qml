@@ -19,20 +19,22 @@ Scope {
             screen: modelData
 
             readonly property bool shown: Sys.ccOpen && Sys.ccScreen === modelData.name
-            property real anim: 0
-            NumberAnimation { id: openAnim; target: win; property: "anim"; from: 0; to: 1; duration: Theme.animSlow; easing.type: Theme.easeOut }
-            onShownChanged: { if (shown) openAnim.restart(); else { openAnim.stop(); anim = 0; } }
+            Reveal { id: reveal; open: win.shown }
+            readonly property real anim: reveal.progress
+            readonly property bool present: reveal.present
 
-            // Buka: animasi di QML. Tutup: langsung hilang (bersih, tanpa sisa blur),
-            // sama seperti overview end4. Animasi layer Hyprland dimatiin lewat no_anim.
-            visible: shown
-            anchors { top: true; right: true }
-            margins { top: Theme.barMargin + Theme.barHeight + 8; right: Theme.space8 }
-            implicitWidth: 500
-            // Tinggi window TETAP (nggak di-resize tiap frame, itu yang bikin animasi patah-patah).
-            // Yang berubah tingginya cuma kartu di dalamnya; area transparan di luar kartu tembus klik.
-            implicitHeight: modelData.height - (Theme.barMargin + Theme.barHeight + 8) - 8
-            mask: Region { item: card }
+            // Buka & tutup: animasi di QML (ui/Reveal.qml), sama untuk semua panel laci.
+            // Animasi layer Hyprland dimatiin lewat no_anim.
+            visible: present
+            // Window TETAP seukuran layar di bawah bar (nggak di-resize tiap frame, itu yang bikin animasi
+            // patah-patah); yang berubah cuma kartu di dalamnya. Saat terbuka, seluruh window menangkap klik:
+            // klik di luar kartu = tutup (pola yang sama dengan launcher/clipboard). Nggak pakai
+            // HyprlandFocusGrab lagi: grab itu kadang ke-clear sendiri oleh compositor, dan CC ikut nutup
+            // padahal nggak ada klik di luar. Saat menutup, cuma area kartu yang menangkap klik.
+            anchors { top: true; bottom: true; left: true; right: true }
+            margins { top: Theme.barMargin + Theme.barHeight }
+            mask: win.shown ? null : cardMask
+            Region { id: cardMask; item: card }
             exclusionMode: ExclusionMode.Ignore
             color: Theme.transparent
             WlrLayershell.namespace: "macmono:cc"
@@ -49,16 +51,17 @@ Scope {
             }
             onVisibleChanged: if (!visible) expanded = ""
 
-            // Selama ngetik password / nyambung Wi-Fi, grab dilepas dulu: ganti keyboardFocus ke
-            // Exclusive bikin Hyprland refocus (grab ke-clear), dan nmcli bisa munculin dialog
-            // secret agent yang nyolong fokus. Dua-duanya dulu bikin CC langsung nutup.
+            // Selama ngetik password / nyambung Wi-Fi, klik di luar kartu nggak nutup CC (nmcli bisa
+            // munculin dialog secret agent yang nyolong fokus).
             readonly property bool holdOpen: wifiList.typing || Sys.wifiConnecting !== ""
 
-            // Grab dimatiin selama screenshot, biar CC nggak nutup pas pemilih area muncul
-            HyprlandFocusGrab {
-                windows: [win]
-                active: win.shown && !Sys.capturing && !win.holdOpen
-                onCleared: if (!Sys.capturing && !win.holdOpen && !win.active) Sys.closeCC()
+            // Klik di luar kartu = tutup. Dimatiin selama screenshot (pemilih area) dan saat ngetik
+            // password / nyambung Wi-Fi, biar CC nggak nutup di tengah proses.
+            MouseArea {
+                anchors.fill: parent
+                acceptedButtons: Qt.AllButtons
+                enabled: win.shown && !Sys.capturing && !win.holdOpen
+                onPressed: Sys.closeCC()
             }
 
             // Pemain yang sedang diputar dipilih dulu; tombol media dapat menggantinya.
@@ -69,17 +72,16 @@ Scope {
             // (alpha minimal ~0.25 > ignore_alpha 0.2), jadi blur Hyprland nggak ketinggalan.
             Item {
                 id: body
-                anchors { top: parent.top; left: parent.left; right: parent.right }
+                anchors { top: parent.top; right: parent.right; topMargin: Theme.drawerGap; rightMargin: Theme.space8 }
+                width: 500
                 height: card.height
-                transformOrigin: Item.TopRight
-                scale: 0.95 + 0.05 * win.anim
-                opacity: Theme.openFromPanel + (1 - Theme.openFromPanel) * win.anim
-                transform: Translate { y: -8 * (1 - win.anim) }
+                // laci: kartu keluar dari tepi bawah bar (bagian di atas window terpotong otomatis)
+                transform: Translate { y: -(body.height + Theme.drawerGap) * (1 - Math.min(1, win.anim)) }
 
             Rectangle {
                 id: card
                 anchors { top: parent.top; left: parent.left; right: parent.right }
-                height: Math.min(col.implicitHeight + 32, win.height)
+                height: Math.min(col.implicitHeight + 32, win.height - 8)
                 Behavior on height {
                     NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut }
                 }
@@ -87,6 +89,8 @@ Scope {
                 color: Theme.panel
                 border.width: Theme.borderThin
                 border.color: Theme.line
+                // klik di bagian kartu yang kosong (padding, border) jangan tembus ke penangkap klik di bawahnya
+                MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons }
             }
 
             Flickable {

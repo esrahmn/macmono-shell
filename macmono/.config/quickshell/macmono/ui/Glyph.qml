@@ -8,8 +8,13 @@ Canvas {
     property color color: Theme.text
     property real thickness: 1.8
 
-    implicitWidth: 18
-    implicitHeight: 18
+    // Memuat gambar ke memori sejak awal komponen selesai dibuat
+    Component.onCompleted: {
+        root.loadImage("image://theme/custom") || root.loadImage("./assets/custom.png") || root.loadImage("../assets/custom.png")
+    }
+
+    implicitWidth: 20
+    implicitHeight: 20
 
     onNameChanged: requestPaint()
     onColorChanged: requestPaint()
@@ -272,19 +277,18 @@ Canvas {
             ctx.beginPath(); ctx.moveTo(10, 4.5); ctx.lineTo(5, 4.5); ctx.lineTo(5, 19.5); ctx.lineTo(10, 19.5); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(10.5, 12); ctx.lineTo(20, 12); ctx.moveTo(16.5, 8.5); ctx.lineTo(20, 12); ctx.lineTo(16.5, 15.5); ctx.stroke();
             break;
-        case "enso": {
-            // lingkaran zen kuas: tebal di awal, menipis ke ujung, ada celah di kanan atas
-            const start = -PI * 0.28, sweep = PI * 1.82, steps = 48;
-            for (let i = 0; i < steps; i++) {
-                const t = i / steps;
-                ctx.lineWidth = root.thickness * (1.9 - 1.3 * t);
-                ctx.beginPath();
-                ctx.arc(12, 12, 8, start + sweep * t, start + sweep * (t + 1 / steps) + 0.02);
-                ctx.stroke();
-            }
-            ctx.lineWidth = root.thickness;
+
+        case "enso":
+            ctx.save();
+            ctx.resetTransform();
+            // Memberikan nilai negatif agar gambar dipaksa melebar keluar batas (lebih besar)
+            // -1 artinya digeser ke kiri/atas sejauh 1 piksel, lalu ukurannya ditambah 2 piksel
+            ctx.drawImage("../assets/custom.png", -1, -1, width + 3, height + 3);
+            ctx.restore();
             break;
-        }
+
+
+
         case "action":
             ctx.beginPath(); ctx.moveTo(13.5, 3); ctx.lineTo(5, 13.5); ctx.lineTo(11, 13.5); ctx.lineTo(10.5, 21); ctx.lineTo(19, 10.5); ctx.lineTo(13, 10.5); ctx.closePath(); ctx.stroke();
             break;

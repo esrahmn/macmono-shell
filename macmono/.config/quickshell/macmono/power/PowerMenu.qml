@@ -18,9 +18,10 @@ Scope {
             readonly property bool shown: Sys.powerOpen && Sys.powerScreen === modelData.name
             property real anim: 0
             property int sel: 2
-            NumberAnimation { id: openAnim; target: win; property: "anim"; from: 0; to: 1; duration: Theme.animBase; easing.type: Theme.easeOut }
+            Behavior on anim { SpringAnimation { spring: Theme.springStiff; damping: Theme.springDamp; epsilon: 0.001 } }
+            readonly property bool present: shown || anim > 0.002
 
-            visible: shown
+            visible: present
             anchors { top: true; bottom: true; left: true; right: true }
             exclusionMode: ExclusionMode.Ignore
             color: Theme.transparent
@@ -39,8 +40,8 @@ Scope {
             function run(act) { Sys.powerOpen = false; Sys.power(act); }
 
             onShownChanged: {
-                if (!shown) { openAnim.stop(); anim = 0; return; }
-                openAnim.restart();
+                if (!shown) { anim = 0; return; }
+                anim = 1;
                 sel = 2;
                 keys.forceActiveFocus();
             }
@@ -70,7 +71,8 @@ Scope {
                 anchors.centerIn: parent
                 spacing: Theme.space30
                 opacity: win.anim
-                scale: 0.96 + 0.04 * win.anim
+                scale: Theme.openScaleFromModal + (1 - Theme.openScaleFromModal) * win.anim
+                transform: Translate { y: -Theme.openDrop * (1 - win.anim) }
 
                 Column {
                     anchors.horizontalCenter: parent.horizontalCenter

@@ -43,10 +43,11 @@ Scope {
 
             readonly property bool shown: Sys.cheatOpen && Sys.cheatScreen === modelData.name
             property real anim: 0
-            NumberAnimation { id: openAnim; target: win; property: "anim"; from: 0; to: 1; duration: Theme.animBase; easing.type: Theme.easeOut }
-            onShownChanged: { if (shown) { openAnim.restart(); keys.forceActiveFocus(); } else { openAnim.stop(); anim = 0; } }
+            Behavior on anim { SpringAnimation { spring: Theme.springStiff; damping: Theme.springDamp; epsilon: 0.001 } }
+            readonly property bool present: shown || anim > 0.002
+            onShownChanged: { if (shown) { anim = 1; keys.forceActiveFocus(); } else { anim = 0; } }
 
-            visible: shown
+            visible: present
             anchors { top: true; bottom: true; left: true; right: true }
             exclusionMode: ExclusionMode.Ignore
             color: Theme.transparent
@@ -83,7 +84,8 @@ Scope {
                 anchors.centerIn: parent
                 spacing: Theme.space22
                 opacity: win.anim
-                scale: 0.97 + 0.03 * win.anim
+                scale: Theme.openScaleFromModal + (1 - Theme.openScaleFromModal) * win.anim
+                transform: Translate { y: -Theme.openDrop * (1 - win.anim) }
 
                 Text {
                     anchors.horizontalCenter: parent.horizontalCenter

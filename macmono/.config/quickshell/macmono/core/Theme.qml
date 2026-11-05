@@ -121,8 +121,30 @@ Singleton {
     readonly property int easeOut: Easing.OutCubic   // masuk / buka
     readonly property int easeIn: Easing.InCubic     // keluar / tutup
 
+    // Animasi pegas (diambil dari token spatialDefault Iridium: kaku 380, redam 0.8)
+    readonly property real springStiff: 4.8          // makin besar makin cepat/kaku
+    readonly property real springDamp: 0.4           // makin kecil makin memantul (1 = tanpa pantulan)
+    // Panel "laci" yang keluar dari bar (control center, kalender, media, tray menu, launcher,
+    // clipboard, emoji) dianimasikan oleh ui/Reveal.qml: pegas fisik redaman kritis (tanpa pantulan).
+    // Kekakuan = kecepatan. Buka sengaja lebih lembut dari tutup. Perkiraan waktu sampai 90% jalan:
+    //   revealOpenStiff 240  ->  ~255 ms   (naikkan = lebih cepat, turunkan = lebih santai)
+    //   revealCloseStiff 420 ->  ~200 ms
+    // revealDamp 1.0 = mulus tanpa pantulan; di bawah 1 mulai memantul (0.8 = sedikit mental).
+    readonly property real revealOpenStiff: 240
+    readonly property real revealCloseStiff: 420
+    readonly property real revealDamp: 1.0
+    readonly property real drawerGap: 8              // jarak akhir kartu dari bar (px)
+
+    // Animasi buka panel: turun dari bar + sedikit memantul di akhir
+    readonly property int animOpen: 280              // durasi buka panel
+    readonly property int easeOpen: Easing.OutBack   // kurva buka (memantul)
+    readonly property real openOvershoot: 1.2        // kuat pantulan (1.0 halus, 1.7 default Qt)
+    readonly property real openDrop: 24              // px panel turun dari atas
+    readonly property real openScaleFrom: 0.9        // skala awal panel kecil
+    readonly property real openScaleFromModal: 0.94  // skala awal panel modal
+
     // ---------------------------------------------------------------- ukuran
-    readonly property int barHeight: 34
+    readonly property int barHeight: 39
     readonly property int barMargin: 5
 
     // Skala radius (px) untuk kartu, panel, dan tombol bersegi.

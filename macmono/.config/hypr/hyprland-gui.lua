@@ -2,11 +2,6 @@
 
 -- Settings
 hl.config({
-    decoration = {
-        shadow = {
-            enabled = true,
-        },
-    },
     dwindle = {
         smart_resizing = true,
     },
@@ -15,20 +10,6 @@ hl.config({
         gaps_in = 4,
     },
     input = {
-        numlock_by_default = false,
         sensitivity = 0.05,
     },
-    misc = {
-        vrr = 2,
-    },
-})
-
--- Monitors
-hl.monitor({
-    output = "desc:KDB 0x0924",
-    disabled = false,
-    mode = "1920x1080@60.00Hz",
-    position = "0x0",
-    scale = 1.2,
-    cm = "srgb",
 })

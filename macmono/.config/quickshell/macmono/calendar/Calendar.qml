@@ -17,33 +17,36 @@ Scope {
             screen: modelData
 
             readonly property bool shown: Sys.calendarOpen && Sys.calendarScreen === modelData.name
-            property real anim: 0
+            Reveal { id: reveal; open: win.shown }
+            readonly property real anim: reveal.progress
+            readonly property bool present: reveal.present
             property var selectedDate: new Date()
-            NumberAnimation { id: openAnim; target: win; property: "anim"; from: 0; to: 1; duration: Theme.animBase; easing.type: Theme.easeOut }
             onShownChanged: {
-                if (!shown) { openAnim.stop(); anim = 0; return; }
-                openAnim.restart();
+                if (!shown) return;
                 const d = new Date();
                 viewYear = d.getFullYear(); viewMonth = d.getMonth();
                 selectedDate = d;
             }
 
             // tinggi window tetap, kartu di dalamnya yang berubah; area kosong tembus klik
-            visible: shown
+            visible: present
             anchors { top: true }
-            margins { top: Theme.barMargin + Theme.barHeight + 8 }
+            margins { top: Theme.barMargin + Theme.barHeight }
             implicitWidth: 420
-            implicitHeight: modelData.height - (Theme.barMargin + Theme.barHeight + 8) - 8
+            implicitHeight: modelData.height - (Theme.barMargin + Theme.barHeight) - 8
             exclusionMode: ExclusionMode.Ignore
             color: Theme.transparent
-            mask: Region { item: card }
+            // Mask JANGAN pakai item: card. Region(item) nggak ngikutin transform/Translate,
+            // jadi pas anim=0 kartu ada di atas layar -> mask kosong -> semua klik tembus ->
+            // HyprlandFocusGrab ke-clear -> kalender nutup. Pakai posisi akhir (statis).
+            mask: Region { x: 0; y: Theme.drawerGap; width: win.width; height: card.height }
             WlrLayershell.namespace: "macmono:calendar"
             WlrLayershell.layer: WlrLayer.Overlay
 
             HyprlandFocusGrab {
                 windows: [win]
                 active: win.shown && !Sys.capturing
-                onCleared: if (!Sys.capturing) Sys.calendarOpen = false
+                onCleared: if (!Sys.capturing && !win.active) Sys.calendarOpen = false
             }
 
             // ---------------- data kalender ----------------
@@ -89,12 +92,10 @@ Scope {
 
             Item {
                 id: body
-                anchors { top: parent.top; left: parent.left; right: parent.right }
+                anchors { top: parent.top; left: parent.left; right: parent.right; topMargin: Theme.drawerGap }
                 height: card.height
-                transformOrigin: Item.Top
-                scale: 0.96 + 0.04 * win.anim
-                opacity: Theme.openFromPanel + (1 - Theme.openFromPanel) * win.anim
-                transform: Translate { y: -8 * (1 - win.anim) }
+                // laci: kartu keluar dari tepi bawah bar (bagian di atas window terpotong otomatis)
+                transform: Translate { y: -(body.height + Theme.drawerGap) * (1 - Math.min(1, win.anim)) }
 
                 Rectangle {
                     id: card

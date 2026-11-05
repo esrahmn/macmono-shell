@@ -286,7 +286,7 @@ Scope {
                 id: pill
                 visible: picker.selPath !== ""
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: 52 - 12 * (1 - picker.anim)
+                y: 52 - Theme.openDrop * (1 - picker.anim)
                 width: pillRow.implicitWidth + 22
                 height: 40
                 radius: Math.min(width, height) / 2

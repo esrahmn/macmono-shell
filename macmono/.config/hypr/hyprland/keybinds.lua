@@ -9,6 +9,12 @@ local hyprScripts = "$HOME/.config/hypr/hyprland/scripts"
 local qsIpcCall = "qs -c $qsConfig ipc call"
 local qsIsAlive = qsIpcCall .. " TEST_ALIVE"
 
+--picture in picture mode
+hl.bind("SUPER + P", function()
+hl.dispatch(hl.dsp.window.float({ action = "toggle" }))
+hl.dispatch(hl.dsp.window.pin({ action = "toggle" }))
+end)
+
 hl.bind("SUPER + SUPER_L", hl.dsp.global("quickshell:searchToggleRelease"),
     { release = true, description = "Shell: Toggle search" })
 hl.bind("SUPER + SUPER_R", hl.dsp.global("quickshell:searchToggleRelease"), { release = true })

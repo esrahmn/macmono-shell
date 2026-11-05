@@ -53,11 +53,17 @@ Singleton {
     property string avatar: ""
     Process {
         running: true
-        command: ["sh", "-c", "for f in \"$HOME/.face\" \"$HOME/.face.icon\" \"/var/lib/AccountsService/icons/$USER\"; do " +
-            "if [ -d \"$f\" ]; then i=$(find \"$f\" -maxdepth 1 -type f \\( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \\) | sort | head -n1); " +
-            "[ -n \"$i\" ] && { echo \"$i\"; exit; }; elif [ -s \"$f\" ]; then echo \"$f\"; exit; fi; done"]
-        stdout: StdioCollector { onStreamFinished: root.avatar = text.trim() }
+        command: ["bash", "-c", "for f in \"$HOME/.face\" \"$HOME/.face.icon\" \"/var/lib/AccountsService/icons/$USER\"; do " +
+        "[ -s \"$f\" ] && [ ! -d \"$f\" ] && { echo \"$f\"; exit 0; }; " +
+        "[ -d \"$f\" ] && i=$(find \"$f\" -maxdepth 1 -type f \\( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \\) | sort | head -n1) && " +
+        "[ -n \"$i\" ] && { echo \"$i\"; exit 0; }; done"]
+        stdout: StdioCollector {
+            // Menggunakan sintaks penugasan langsung Quickshell yang benar
+            onStreamFinished: root.avatar = this.text.trim()
+        }
     }
+
+
     // ---------------- indikator privasi (delegasi ke PrivacyService) ----------------
     // mic & screencast = reactive Pipewire; camera/recorder = poll hemat di PrivacyService
     readonly property bool micInUse: privacy.micInUse
@@ -135,7 +141,7 @@ Singleton {
     Timer { id: recStopGrace; interval: 8000; onTriggered: root.recStopping = false }
     Timer {
         id: recordStartDelay
-        interval: 260
+        interval: 380   // tunggu panel selesai menutup (ui/Reveal.qml), supaya nggak ikut terekam
         onTriggered: {
             Quickshell.execDetached(["bash", Quickshell.shellDir + "/core/record.sh", "start", root.recStartMode, root.recStartAudio]);
         }
@@ -290,10 +296,12 @@ Singleton {
         wallpaperOpen = true;
     }
 
+    // =====================================================================
     // Tutup semua panel dulu, baru kirim dispatch ke Hyprland.
     // Race: begitu launcher melepas keyboard focus, Hyprland mengembalikan fokus ke window
     // terakhir dan bisa menimpa dispatch workspace/window. Solusi: tutup panel dulu,
     // baru dispatch setelah fokus sempat settle (docs Hyprland + pengalaman end-4/ii).
+    // =====================================================================
     property string pendingDispatch: ""
     function closeAndDispatch(cmd) {
         if (!cmd) return;
@@ -313,6 +321,8 @@ Singleton {
             }
         }
     }
+
+
 
     function toggleClipboard() {
         if (clipboardOpen) { clipboardOpen = false; return; }
@@ -618,7 +628,7 @@ Singleton {
               "else notify-send -a Screenshot -u critical 'Screenshot saved' \"Could not copy to clipboard: $out\"; fi"
         Quickshell.execDetached(["bash", "-c", script, "bash", captureFile, geo]);
     }
-    Timer { id: captureDelay; interval: 260; onTriggered: root.startCapture() }
+    Timer { id: captureDelay; interval: 380; onTriggered: root.startCapture() }   // tunggu panel selesai menutup (ui/Reveal.qml)
     Process {
         id: grimProc
         onExited: (code) => {

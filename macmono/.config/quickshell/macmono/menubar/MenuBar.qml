@@ -176,7 +176,7 @@ Scope {
                         readonly property var player: Sys.mediaPlayer(Mpris.players.values, -1)
                         visible: player !== null
                         anchors.verticalCenter: parent.verticalCenter
-                        width: Math.max(miniMediaRow.implicitWidth + Theme.space12, Sys.mediaPopupWidth)
+                        width: Sys.mediaPopupWidth
                         height: bar.height - 4
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
@@ -191,25 +191,6 @@ Scope {
                             levels: Sys.mediaVisualizerLevels
                             fillOpacity: 0.10
                             cornerRadius: height / 2
-                        }
-
-                        Row {
-                            id: miniMediaRow
-                            anchors.centerIn: parent
-                            Text {
-                                width: 300
-                                elide: Text.ElideRight
-                                horizontalAlignment: Text.AlignHCenter
-                                text: {
-                                    const title = miniMediaArea.player?.trackTitle || "Media";
-                                    const artist = miniMediaArea.player?.trackArtist || miniMediaArea.player?.identity || "";
-                                    return artist ? title + " - " + artist : title;
-                                }
-                                color: Theme.text
-                                font.family: Theme.font
-                                font.pixelSize: Theme.fontSmall
-                                font.weight: Font.DemiBold
-                            }
                         }
                     }
 
@@ -378,13 +359,6 @@ Scope {
                                     name: "bolt"
                                     color: Theme.text
                                 }
-                            }
-
-                            Glyph {
-                                anchors.verticalCenter: parent.verticalCenter
-                                width: 18; height: 18
-                                name: "sliders"
-                                color: Theme.text
                             }
                         }
                     }

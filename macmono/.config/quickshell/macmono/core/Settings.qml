@@ -12,9 +12,9 @@ Singleton {
     readonly property bool overviewLivePreview: true  // false = cuma ikon app (lebih ringan)
 
     // ---- launcher ----
-    readonly property int launcherMaxResults: 8   // maks. app di daftar hasil (Windows, Actions, dan Top Hit nggak dibatasi)
+    readonly property int launcherMaxResults: 9   // maks. app di daftar hasil (Windows, Actions, dan Top Hit nggak dibatasi)
     // app di baris "Pinned" launcher: nama file .desktop tanpa ".desktop" (atau nama app, ditebak otomatis)
-    readonly property var pinnedApps: ["kitty", "google-chrome", "spotify", "org.kde.dolphin", "discord", "steam", "code", "com.obsproject.Studio"]
+    readonly property var pinnedApps: ["kitty", "google-chrome", "spotify", "org.kde.dolphin", "discord", "steam", "com.microsoft.VSCode", "com.obsproject.Studio"]
 
     // ---- clipboard ----
     readonly property int clipboardMaxItems: 200
