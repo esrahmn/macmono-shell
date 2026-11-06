@@ -30,9 +30,9 @@ PACKAGES=(
   # services
   pipewire networkmanager bluez bluez-utils upower
   # utilities
-  brightnessctl libnotify
+  brightnessctl libnotify jq cava playerctl bc
   # screenshot, clipboard, recording
-  grim imagemagick wl-clipboard cliphist wf-recorder
+  grim slurp imagemagick wl-clipboard cliphist wf-recorder
 )
 POLKIT_AGENTS=(polkit-kde-agent hyprpolkitagent polkit-gnome)
 
@@ -47,7 +47,7 @@ warn() { printf '%s==> warning:%s %s\n' "$YELLOW$BOLD" "$RESET" "$*" >&2; }
 fail() { printf '%s==> error:%s %s\n' "$RED$BOLD" "$RESET" "$*" >&2; exit 1; }
 
 usage() {
-  sed -n '2,15p' "${BASH_SOURCE[0]:-$0}" | sed 's/^# \{0,1\}//'
+  sed -n '2,14p' "${BASH_SOURCE[0]:-$0}" | sed 's/^# \{0,1\}//'
 }
 
 confirm() {

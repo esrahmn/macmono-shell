@@ -19,32 +19,24 @@ Every color in this shell is pure gray (R=G=B), with no accent colors at all. Th
 ```
 macmono/
 └── .config/
-    ├── hypr/                 # Hyprland config (Lua) + hypridle + hyprlock
+    ├── hypr/
     │   ├── hyprland.lua
+    │   ├── hyprland-gui.lua
     │   ├── hypridle.conf
-    │   ├── hyprlock.conf
-    │   ├── hyprland/         # base config
-    │   └── custom/           # ur personal overrides
+    │   ├── hyprland/       # base config, library, and scripts
+    │   └── custom/         # personal overrides
     └── quickshell/
-        └── macmono/          # the shell itself
-            ├── shell.qml     # entry point
-            ├── core/         # Theme, Settings, Shortcuts, Sys + scripts (record, session, thumbs)
-            ├── menubar/      # menu bar + system tray
-            ├── launcher/     # launcher + workspace overview
-            ├── cc/           # control center (wifi, bluetooth, battery, media, power, tools)
-            ├── notif/        # notifications
-            ├── osd/          # volume / brightness OSD
-            ├── clipboard/    # clipboard manager (cliphist)
-            ├── emoji/        # searchable emoji picker
-            ├── calendar/     # calendar
-            ├── media/        # media popup
-            ├── capture/      # area screenshot
-            ├── cheatsheet/   # keybind cheatsheet
-            ├── power/        # power menu
-            ├── lock/         # lock screen
-            ├── wallpaper/    # wallpaper
-            ├── services/     # audio and Hyprland overview services
-            └── ui/           # reusable UI components
+        └── macmono/
+            ├── shell.qml   # entry point
+            ├── assets/     # images and other assets
+            ├── components/ # reusable UI components
+            ├── config/     # app-specific configuration
+            ├── core/       # Theme, Settings, Shortcuts, and Sys
+            ├── data/       # data files (e.g. emoji list)
+            ├── lock/       # lock screen and lock scripts/config
+            ├── modules/    # menu bar, launcher, control center, and UI modules
+            ├── scripts/    # recording, session, and thumbnail utilities
+            └── services/   # system and shell services
 ```
 
 ## Features
@@ -71,14 +63,13 @@ Required:
 - `hyprland`, `hyprlock`, `hypridle`
 - `quickshell`
 - `pipewire` (audio), `networkmanager` (`nmcli`), `bluez` (Bluetooth), `upower` (battery)
-- `brightnessctl`
-- `libnotify` (`notify-send`)
-- `jq` (JSON parsing in shell utilities)
+- `brightnessctl`, `libnotify` (`notify-send`), `jq` (JSON parsing), `cava` (media visualizer)
+- `playerctl` (media controls and lock-screen metadata), `bc` (media keybind)
 - A polkit agent (any one): `polkit-kde-agent`, `hyprpolkitagent`, or `polkit-gnome`
 
 For specific features:
 
-- `grim`, `imagemagick` (`magick`), `wl-clipboard` (`wl-copy`): area screenshot
+- `grim`, `slurp`, `imagemagick` (`magick`), `wl-clipboard` (`wl-copy`): screenshots and region selection
 - `cliphist`: clipboard manager
 - `wf-recorder`: screen recording (GPU encoding via VA-API when available)
 - `systemsettings`, `gnome-control-center`, or `better-control`: settings app (`Super+I`)
@@ -88,7 +79,7 @@ Install on Arch / CachyOS:
 ```bash
 sudo pacman -S hyprland hyprlock hypridle quickshell \
   networkmanager bluez bluez-utils upower brightnessctl libnotify \
-  jq grim imagemagick wl-clipboard cliphist wf-recorder
+  jq cava playerctl bc grim slurp imagemagick wl-clipboard cliphist wf-recorder
 ```
 
 ## Installation
