@@ -20,7 +20,7 @@ Rectangle {
     clip: true
     onOpenChanged: armed = ""
 
-    Timer { id: disarmTimer; interval: 3000; onTriggered: root.armed = "" }
+    Timer { id: disarmTimer; interval: Settings.powerConfirmMs; onTriggered: root.armed = "" }
 
     ColumnLayout {
         id: powerCol

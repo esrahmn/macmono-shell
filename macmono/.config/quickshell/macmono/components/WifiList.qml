@@ -15,7 +15,9 @@ Rectangle {
     Behavior on opacity { NumberAnimation { duration: Theme.animFade } }
     visible: implicitHeight > 0.5
     radius: Theme.radius
-    color: Theme.tile
+    // Daftar = kotak cekung di dalam panel, bukan kartu terangkat: kontennya terasa masuk.
+    color: Theme.well
+    border.width: Theme.borderThin; border.color: Theme.cardStroke
     clip: true
 
     onOpenChanged: if (!open) pwFor = ""
@@ -43,7 +45,7 @@ Rectangle {
 
         Text {
             visible: Sys.wifiList.length === 0
-            width: parent.width; height: 34
+            width: parent.width; height: Theme.listHeaderHeight
             horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
             text: Sys.wifiOn ? "Searching for networks…" : "Wi-Fi is off"
             color: Theme.dim
@@ -66,7 +68,7 @@ Rectangle {
 
                 Text {
                     visible: entry.section !== ""
-                    width: parent.width; height: 26
+                    width: parent.width; height: Theme.listSubheaderHeight
                     leftPadding: 10
                     verticalAlignment: Text.AlignBottom
                     bottomPadding: 4
@@ -76,7 +78,7 @@ Rectangle {
                 }
 
                 Rectangle {
-                    width: parent.width; height: 46; radius: Theme.radiusSmall
+                    width: parent.width; height: Theme.listRowHeight; radius: Theme.radiusSmall
                     color: area.containsMouse || entry.asking ? Theme.tileMid : Theme.transparent
 
                     Column {
@@ -110,7 +112,7 @@ Rectangle {
                     Glyph {   // jaringan baru yang butuh password
                         visible: !entry.isActive && entry.modelData.secure && !entry.modelData.known
                         anchors { right: parent.right; rightMargin: Theme.space10; verticalCenter: parent.verticalCenter }
-                        width: 13; height: 13
+                        width: Theme.icon13; height: Theme.icon13
                         name: "lock"
                         color: Theme.dim
                     }
@@ -126,10 +128,10 @@ Rectangle {
                 // kolom password (cuma untuk jaringan yang dipilih)
                 Item {
                     visible: entry.asking
-                    width: parent.width; height: visible ? 46 : 0
+                    width: parent.width; height: visible ? Settings.wifiPasswordRowHeight : 0
                     Rectangle {
                         anchors { left: parent.left; right: joinBtn.left; rightMargin: Theme.space6; verticalCenter: parent.verticalCenter; leftMargin: Theme.space6 }
-                        height: 32; radius: Math.min(width, height) / 2
+                        height: Theme.wifiPasswordHeight; radius: Math.min(width, height) / 2
                         color: Theme.inset
                         border.width: Theme.borderThin; border.color: pw.activeFocus ? Theme.lineFocus : Theme.line
                         TextInput {
@@ -156,7 +158,7 @@ Rectangle {
                             id: showPw
                             property bool checked: false
                             anchors { right: parent.right; rightMargin: Theme.space4; verticalCenter: parent.verticalCenter }
-                            width: 28; height: 24
+                            width: Theme.wifiShowPwWidth; height: Theme.wifiShowPwHeight
                             onClicked: checked = !checked
                             Text {
                                 anchors.centerIn: parent
@@ -170,7 +172,7 @@ Rectangle {
                         id: joinBtn
                         function join() { if (pw.text.length >= 8) { Sys.connectWifi(entry.modelData.ssid, pw.text); root.pwFor = ""; } }
                         anchors { right: parent.right; rightMargin: Theme.space6; verticalCenter: parent.verticalCenter }
-                        width: 64; height: 32
+                        width: Theme.wifiJoinWidth; height: Theme.wifiJoinHeight
                         hoverEnabled: true
                         enabled: pw.text.length >= 8 && Sys.wifiConnecting === ""
                         opacity: enabled ? 1 : Theme.opacityDisabled
@@ -189,7 +191,7 @@ Rectangle {
 
         // footer: scan ulang + pengaturan jaringan
         Item {
-            width: col.width; height: 40
+            width: col.width; height: Theme.listFooterHeight
             Rectangle { anchors { left: parent.left; right: parent.right; top: parent.top; leftMargin: Theme.space6; rightMargin: Theme.space6 } height: 1; color: Theme.line }
             Row {
                 anchors { left: parent.left; leftMargin: Theme.space4; verticalCenter: parent.verticalCenter }
@@ -203,7 +205,7 @@ Rectangle {
     component FooterButton: MouseArea {
         id: fb
         property string label: ""
-        width: fbText.implicitWidth + 20; height: 28
+        width: fbText.implicitWidth + 20; height: Theme.listActionHeight
         hoverEnabled: true
         Rectangle { anchors.fill: parent; radius: Math.min(width, height) / 2; color: fb.containsMouse ? Theme.tileMid : Theme.transparent }
         Text { id: fbText; anchors.centerIn: parent; text: fb.label; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontBodyLg }

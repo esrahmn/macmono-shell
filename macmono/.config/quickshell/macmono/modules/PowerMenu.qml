@@ -90,7 +90,7 @@ Scope {
                         font.family: Theme.font; font.pixelSize: Theme.fontHeading
                     }
                 }
-                Item { width: 1; height: 14 }
+                Item { width: 1; height: Theme.space14 }
 
                 Row {
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -106,7 +106,7 @@ Scope {
 
                             Rectangle {
                                 anchors.horizontalCenter: parent.horizontalCenter
-                                width: 84; height: 84; radius: height / 2
+                                width: Theme.powerButtonSize; height: Theme.powerButtonSize; radius: height / 2
                                 color: card.active ? Theme.inverse : (ma.containsMouse ? Theme.tileHover : Theme.tile)
                                 border.width: Theme.borderThin
                                 border.color: card.active ? Theme.inverse : Theme.lineStrong
@@ -115,7 +115,7 @@ Scope {
                                 Behavior on scale { NumberAnimation { duration: Theme.animHover; easing.type: Theme.easeOut } }
                                 Glyph {
                                     anchors.centerIn: parent
-                                    width: 30; height: 30
+                                    width: Theme.powerGlyphSize; height: Theme.powerGlyphSize
                                     name: card.modelData.glyph
                                     color: card.active ? Theme.inverseText : Theme.text
                                 }

@@ -32,7 +32,7 @@ Scope {
             visible: present
             anchors { top: true }
             margins { top: Theme.barMargin + Theme.barHeight }
-            implicitWidth: 420
+            implicitWidth: Theme.calendarWidth
             implicitHeight: modelData.height - (Theme.barMargin + Theme.barHeight) - 8
             exclusionMode: ExclusionMode.Ignore
             color: Theme.transparent
@@ -169,13 +169,13 @@ Scope {
                                         delegate: MouseArea {
                                             id: nav
                                             required property int modelData
-                                            Layout.preferredWidth: 32; Layout.preferredHeight: 32
+                                            Layout.preferredWidth: Theme.calendarNavSize; Layout.preferredHeight: Theme.calendarNavSize
                                             hoverEnabled: true
                                             onClicked: win.shiftMonth(modelData)
                                             Rectangle { anchors.fill: parent; radius: Theme.radiusXs; color: nav.containsMouse ? Theme.tileHover : Theme.transparent }
                                             Glyph {
                                                 anchors.centerIn: parent
-                                                width: 15; height: 15
+                                                width: Theme.icon15; height: Theme.icon15
                                                 name: "chevron"
                                                 rotation: nav.modelData < 0 ? 90 : -90
                                                 color: Theme.text
@@ -193,7 +193,7 @@ Scope {
                                         model: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
                                         delegate: Text {
                                             required property string modelData
-                                            width: grid.cw; height: 30
+                                            width: grid.cw; height: Theme.calendarWeekdayHeight
                                             horizontalAlignment: Text.AlignHCenter
                                             verticalAlignment: Text.AlignVCenter
                                             text: modelData
@@ -206,10 +206,10 @@ Scope {
                                         delegate: Item {
                                             id: dayCell
                                             required property var modelData
-                                            width: grid.cw; height: 46
+                                            width: grid.cw; height: Theme.calendarDayHeight
                                             Rectangle {
                                                 anchors.centerIn: parent
-                                                width: 40; height: 40; radius: Math.min(width, height) / 2
+                                                width: Theme.calendarDayCircle; height: Theme.calendarDayCircle; radius: Math.min(width, height) / 2
                                                 color: dayArea.containsMouse && !isSelected ? Theme.tileHover : (isSelected ? Theme.inverse : Theme.transparent)
                                                 border.width: modelData.today && !isSelected ? 1 : 0
                                                 border.color: Theme.dim
@@ -248,7 +248,7 @@ Scope {
                             // Do Not Disturb cepat
                             MouseArea {
                                 id: dndBtn
-                                Layout.preferredWidth: 28; Layout.preferredHeight: 28
+                                Layout.preferredWidth: Theme.calendarSmallButton; Layout.preferredHeight: Theme.calendarSmallButton
                                 hoverEnabled: true
                                 onClicked: Sys.dnd = !Sys.dnd
                                 Rectangle {
@@ -256,7 +256,7 @@ Scope {
                                     color: Sys.dnd ? Theme.inverse : (dndBtn.containsMouse ? Theme.tileHover : Theme.transparent)
                                 }
                                 Glyph {
-                                    anchors.centerIn: parent; width: 14; height: 14
+                                    anchors.centerIn: parent; width: Theme.icon14; height: Theme.icon14
                                     name: "moon"
                                     color: Sys.dnd ? Theme.inverseText : Theme.text
                                 }
@@ -264,7 +264,7 @@ Scope {
                             MouseArea {
                                 id: clearBtn
                                 visible: Sys.notifHistory.length > 0
-                                Layout.preferredWidth: clearText.implicitWidth + 18; Layout.preferredHeight: 26
+                                Layout.preferredWidth: clearText.implicitWidth + 18; Layout.preferredHeight: Theme.calendarClearHeight
                                 hoverEnabled: true
                                 onClicked: Sys.clearNotifs()
                                 Rectangle { anchors.fill: parent; radius: Math.min(width, height) / 2; color: clearBtn.containsMouse ? Theme.tileHover : Theme.tile }

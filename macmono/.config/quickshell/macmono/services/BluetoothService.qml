@@ -9,6 +9,8 @@ import Quickshell.Bluetooth
 Scope {
     id: root
 
+    property int pairTimeoutSec: 30   // batas pairing (detik); diisi Sys dari Settings.btPairTimeoutSec
+
     readonly property bool btAvailable: Bluetooth.adapters.values.length > 0
     readonly property bool btOn: Bluetooth.defaultAdapter?.enabled ?? false
 
@@ -46,7 +48,7 @@ Scope {
         d.pair();
     }
 
-    // Batas 30 detik: kalau perangkat tidak pernah melapor paired, batalkan supaya
+    // Batas pairTimeoutSec detik: kalau perangkat tidak pernah melapor paired, batalkan supaya
     // baris "Pairing…" di UI tidak macet selamanya.
     Timer {
         interval: 1000; repeat: true
@@ -55,7 +57,7 @@ Scope {
             const d = root.pairing;
             if (!d) return;
             if (d.paired) { d.trusted = true; d.connect(); root.pairing = null; return; }
-            if (++root.pairTicks > 30) { d.cancelPair(); root.pairing = null; }
+            if (++root.pairTicks > root.pairTimeoutSec) { d.cancelPair(); root.pairing = null; }
         }
     }
 }

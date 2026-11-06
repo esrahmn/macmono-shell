@@ -74,7 +74,7 @@ Scope {
     // busy tetap true sehingga input terkunci tanpa jalan keluar. Batalkan saja;
     // abort() memicu completed(PamResult.Error) yang sudah menangani reset.
     Timer {
-        interval: 10000
+        interval: Settings.lockPamTimeoutMs
         running: root.busy
         onTriggered: {
             pam.abort();
@@ -84,7 +84,7 @@ Scope {
 
     // password yang diketik lalu ditinggal -> hapus otomatis
     Timer {
-        interval: 30000
+        interval: Settings.lockClearPasswordMs
         running: Sys.locked && root.password !== "" && !root.busy
         onTriggered: root.password = ""
     }

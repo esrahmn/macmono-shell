@@ -20,7 +20,6 @@ Item {
     property int retryCount: 0
     readonly property int maxRetries: 3 // Batas maksimal paksa cari ulang
 
-
     MediaClock { id: clock; player: root.player; active: root.active }
 
     readonly property string trackKey: player
@@ -232,8 +231,8 @@ Item {
             activeLine = -1;
             return;
         }
-        // Ditambahkan offset tipis (0.15 detik) untuk kompensasi latensi D-Bus Mpris
-        const position = clock.sample() + 0.15;
+        // Offset tipis untuk kompensasi latensi D-Bus Mpris (Settings.lyricsLeadSeconds)
+        const position = clock.sample() + Settings.lyricsLeadSeconds;
         let low = 0;
         let high = lines.length - 1;
         let match = -1;
@@ -248,7 +247,6 @@ Item {
         }
         activeLine = match;
     }
-
 
     // Baris aktif ditaruh di tengah, tapi nggak pernah scroll lewat batas atas/bawah daftar,
     // jadi baris-baris awal tetap nempel di atas (nggak ada ruang kosong di atas lirik).
@@ -304,7 +302,7 @@ Item {
 
     Timer {
         id: requestTimeout
-        interval: 11000
+        interval: Settings.lyricsRequestTimeoutMs
         onTriggered: {
             if (root.loading) {
                 root.loading = false;
@@ -318,7 +316,7 @@ Item {
     // Timer jeda untuk Auto-Retry agar tidak rate-limit API
     Timer {
         id: autoRetryTimer
-        interval: 3000
+        interval: Settings.lyricsRetryDelayMs
         repeat: false
         onTriggered: {
             root.requestedTrack = ""; // Paksa reset trackKey state agar mau hit ulang
@@ -326,17 +324,22 @@ Item {
         }
     }
 
-
-    // Timer Sinkronisasi Lirik: Dipercepat dari 80ms ke 30ms untuk responsivitas instan
+    // Sinkronisasi lirik: seberapa sering baris aktif diperbarui (Settings.lyricsSyncIntervalMs)
     Timer {
-        interval: 30
+        interval: Settings.lyricsSyncIntervalMs
         repeat: true
-        running: root.active && root.player !== null && root.lines.length > 0 && root.lines[0].time >= 0
+        running: root.active && root.player !== null && root.player.isPlaying && root.lines.length > 0 && root.lines[0].time >= 0
         onTriggered: {
             root.updateActiveLine();
         }
     }
 
+    // Timer di atas berhenti saat pause. Baris aktif tetap diperbarui tiap jam selesai baca
+    // posisi (setelah pause, seek, atau ganti lagu).
+    Connections {
+        target: clock
+        function onPolled() { root.updateActiveLine(); }
+    }
 
     Component.onCompleted: loadLyrics()
 
@@ -346,7 +349,7 @@ Item {
 
         Item {
             width: parent.width
-            height: 20
+            height: Settings.lyricsViewLineHeight
             Text {
                 anchors.verticalCenter: parent.verticalCenter
                 text: "Lyrics"
@@ -372,7 +375,10 @@ Item {
             width: parent.width
             height: parent.height - 28
             clip: true
-            spacing: Theme.space8
+            // Ruang napas di ujung daftar: tanpa ini baris terakhir nempel/terpotong di tepi panel.
+            topMargin: Theme.space4
+            bottomMargin: Theme.space16
+            spacing: Theme.space12
             model: root.lines
             boundsBehavior: Flickable.StopAtBounds
             visible: root.lines.length > 0
@@ -391,7 +397,7 @@ Item {
                 Behavior on color { ColorAnimation { duration: Theme.animBase } }
                 Behavior on opacity { NumberAnimation { duration: Theme.animBase } }
                 font.family: Theme.font
-                font.pixelSize: index === root.activeLine ? Theme.fontSubtitle : Theme.fontBodyLg
+                font.pixelSize: index === root.activeLine ? Theme.fontHeading : Theme.fontSubtitle
                 font.weight: index === root.activeLine ? Font.DemiBold : Font.Normal
             }
         }

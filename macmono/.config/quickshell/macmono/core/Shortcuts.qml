@@ -3,8 +3,8 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
 
-// Nama shortcut sengaja SAMA dengan yang dipakai keybind & hypridle end4,
-// jadi Super, Super+N, Super+L, Ctrl+Super+T, Super+Shift+S, auto-lock idle, dst langsung nyambung ke macmono.
+// Nama shortcut HARUS sama dengan yang dipakai keybind & hypridle di config Hypr (hl.dsp.global("quickshell:<nama>")).
+// Kalau mengganti nama, ubah bind-nya di keybinds.lua dalam satu commit.
 Scope {
     id: root
 
@@ -13,8 +13,8 @@ Scope {
     // =====================================================================
     // Di Hyprland 0.57, bind dengan { release = true } cuma ngirim event "released".
     // onPressed di searchToggleRelease jadi nggak pernah jalan, makanya waktu tekan
-    // juga dicatat dari bind transparan SUPER_L -> quickshell:workspaceNumber (bawaan end4).
-    // Default true (sama seperti ii), biar tap pertama langsung jalan.
+    // juga dicatat dari bind transparan SUPER_L -> quickshell:workspaceNumber.
+    // Default true, biar tap pertama langsung jalan.
     property bool superMightTrigger: true
     property real superPressedAt: 0
     property var wsAtPress: null
@@ -31,7 +31,7 @@ Scope {
         superPressedAt = 0;
         if (!superMightTrigger) { superMightTrigger = true; return; }
         if (pressedAt > 0) {
-            if (Date.now() - pressedAt > 450) return;                                 // ditahan lama
+            if (Date.now() - pressedAt > Settings.superTapMaxMs) return;                                 // ditahan lama
             if ((Hyprland.focusedWorkspace?.id ?? null) !== wsAtPress) return;        // habis Super+angka
             if (ToplevelManager.activeToplevel !== winAtPress) return;                // habis Super+panah/Q/dll
         }
@@ -65,7 +65,6 @@ Scope {
     // =====================================================================
     //  Fitur macmono
     // =====================================================================
-    // shortcut end4 yang sebelumnya mati, sekarang dipakai fitur macmono
     GlobalShortcut { name: "sidebarLeftToggle";   description: "macmono: kalender & notifikasi"; onPressed: Sys.toggleCalendar(Sys.focusedScreenName()) }
     GlobalShortcut { name: "mediaControlsToggle"; description: "macmono: kontrol media";        onPressed: Sys.toggleMedia() }
     GlobalShortcut { name: "cheatsheetToggle";    description: "macmono: daftar shortcut";      onPressed: Sys.toggleCheat() }
@@ -76,9 +75,7 @@ Scope {
     GlobalShortcut { name: "barToggle";           description: "macmono: toggle menubar";    onPressed: Sys.barVisible = !Sys.barVisible }
 
     // =====================================================================
-    //  Pengganti fitur ii yang nggak ada di macmono.
-    //  Keybind end4 pakai pola "qs ipc call TEST_ALIVE || fallback": selama qs hidup,
-    //  fallback-nya nggak pernah jalan, jadi tombol-tombol ini mati kalau nggak ditangkap di sini.
+    //  Jalur tunggal: keybinds.lua cuma memanggil global shortcut (fallback fuzzel/hyprshot sudah dihapus).
     // =====================================================================
     function sh(cmd) {
         closeAll();
@@ -118,5 +115,5 @@ Scope {
     }
     // Super+Shift+R (regionRecord) sengaja nggak dipakai: rekam layar cukup dari Control Center (⋯ → Record).
 
-    // IPC handlers dipindah ke services/Ipc.qml (hindari target dobel)
+    // IPC handlers ada di services/Ipc.qml (hindari target dobel)
 }

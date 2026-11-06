@@ -9,9 +9,11 @@ Rectangle {
     signal requestExpand(string key)
 
     Layout.fillWidth: true
-    implicitHeight: sliderCol.implicitHeight + 24
+    implicitHeight: sliderCol.implicitHeight + Theme.space22
     radius: Theme.radiusLarge
+    // Kartu terangkat: latar lebih terang dari panel + garis tipis supaya batasnya jelas.
     color: Theme.tile
+    border.width: Theme.borderThin; border.color: Theme.cardStroke
 
     ColumnLayout {
         id: sliderCol
@@ -29,13 +31,13 @@ Rectangle {
                 onMoved: (v) => Sys.setBrightness(v)
             }
             Text {
-                Layout.preferredWidth: 38
+                Layout.preferredWidth: Theme.ccSliderLabelWidth
                 horizontalAlignment: Text.AlignRight
                 text: Math.round(Sys.brightness * 100) + "%"
                 color: Theme.dim
                 font.family: Theme.font; font.pixelSize: Theme.fontBody
             }
-            Item { Layout.preferredWidth: 26 }
+            Item { Layout.preferredWidth: Theme.ccSliderButtonSize }
         }
         RowLayout {
             Layout.fillWidth: true
@@ -47,7 +49,7 @@ Rectangle {
                 onMoved: (v) => Sys.setVolume(v)
             }
             Text {
-                Layout.preferredWidth: 38
+                Layout.preferredWidth: Theme.ccSliderLabelWidth
                 horizontalAlignment: Text.AlignRight
                 text: Sys.muted ? "Muted" : Math.round(Sys.volume * 100) + "%"
                 color: Theme.dim
@@ -55,7 +57,7 @@ Rectangle {
             }
             MouseArea {
                 id: outBtn
-                Layout.preferredWidth: 26; Layout.preferredHeight: 26
+                Layout.preferredWidth: Theme.ccSliderButtonSize; Layout.preferredHeight: Theme.ccSliderButtonSize
                 hoverEnabled: true
                 onClicked: root.requestExpand("sound")
                 Rectangle {
@@ -68,7 +70,7 @@ Rectangle {
                 }
                 Glyph {
                     anchors.centerIn: parent
-                    width: 13; height: 13
+                    width: Theme.icon13; height: Theme.icon13
                     name: "chevron"
                     rotation: root.expanded === "sound" ? 180 : -90
                     color: Theme.text

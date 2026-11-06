@@ -112,7 +112,7 @@ Scope {
                 grid.positionViewAtIndex(grid.currentIndex, GridView.Contain);
             }
 
-            // Buka & tutup: animasi di QML (ui/Reveal.qml), laci dari bawah bar seperti control center.
+            // Buka & tutup: animasi di QML (components/Reveal.qml), laci dari bawah bar seperti control center.
             visible: present
             anchors { top: true; bottom: true; left: true; right: true }
             // window mulai di tepi bawah bar: panel keluar dari balik bar (bagian di atasnya terpotong)
@@ -161,7 +161,7 @@ Scope {
                     Row {
                         id: title
                         width: parent.width
-                        height: 28
+                        height: Theme.emojiTitleHeight
                         spacing: Theme.space8
 
                         Text {
@@ -184,7 +184,7 @@ Scope {
                     Rectangle {
                         id: searchBox
                         width: parent.width
-                        height: 40
+                        height: Theme.emojiSearchHeight
                         radius: Math.min(width, height) / 2
                         color: Theme.tile
                         border.width: search.activeFocus ? Theme.borderThin : 0
@@ -197,8 +197,8 @@ Scope {
                                 leftMargin: Theme.space14
                                 verticalCenter: parent.verticalCenter
                             }
-                            width: 16
-                            height: 16
+                            width: Theme.icon16
+                            height: Theme.icon16
                             name: "search"
                             color: Theme.dim
                         }
@@ -259,7 +259,7 @@ Scope {
                     Flickable {
                         id: categoryBar
                         width: parent.width
-                        height: 28
+                        height: Theme.emojiCategoryHeight
                         contentWidth: categoryRow.implicitWidth
                         contentHeight: height
                         clip: true
@@ -338,8 +338,8 @@ Scope {
                         delegate: Rectangle {
                             required property var modelData
                             required property int index
-                            width: 40
-                            height: 40
+                            width: Theme.emojiCellSize
+                            height: Theme.emojiCellSize
                             radius: Theme.radiusSmall
                             color: mouse.containsMouse || grid.currentIndex === index ? Theme.tileHover : Theme.transparent
                             border.width: grid.currentIndex === index ? Theme.borderThin : 0
@@ -370,7 +370,7 @@ Scope {
                                 bottom: parent.bottom
                                 rightMargin: Theme.space2
                             }
-                            width: 3
+                            width: Theme.emojiScrollbarWidth
                             radius: width / 2
                             color: Theme.tile
                             visible: grid.contentHeight > grid.height + 1
@@ -389,7 +389,7 @@ Scope {
                     Item {
                         id: footer
                         width: parent.width
-                        height: 34
+                        height: Theme.emojiFooterHeight
                         Text {
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
@@ -421,7 +421,7 @@ Scope {
                                     Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         width: keyLabel.implicitWidth + Theme.space10
-                                        height: 22
+                                        height: Theme.emojiKeyHeight
                                         radius: Theme.radiusKey
                                         color: Theme.tileMid
                                         border.width: Theme.borderThin

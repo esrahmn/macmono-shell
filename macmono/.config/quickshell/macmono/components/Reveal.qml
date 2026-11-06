@@ -28,7 +28,6 @@ Item {
     // Berikan pembulatan presisi agar saat target 0 tercapai, present langsung mutlak false
     readonly property bool present: open || (value > 0.006 && value !== 0)
 
-
     onOpenChanged: frames.running = true
 
     FrameAnimation {

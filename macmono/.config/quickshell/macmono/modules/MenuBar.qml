@@ -50,10 +50,10 @@ Scope {
 
                     Glyph { // logo: ensō -> launcher
                         anchors.verticalCenter: parent.verticalCenter
-                        width: 17; height: 17
+                        width: Theme.icon20; height: Theme.icon20
                         name: "enso"
                         color: Theme.text
-                        opacity: launcherArea.containsMouse ? 0.7 : 1
+                        opacity: launcherArea.containsMouse ? Theme.opacityHover : 1
                         Behavior on opacity { NumberAnimation { duration: Theme.animHover } }
                         MouseArea {
                             id: launcherArea
@@ -69,12 +69,12 @@ Scope {
                     Item {
                         id: ws
                         anchors.verticalCenter: parent.verticalCenter
-                        height: 16
+                        height: Theme.menubarCellHeight
                         width: wsRow.width
                         readonly property bool open: wsArea.containsMouse
                         // minimal 5 titik, nambah otomatis kalau workspace 6-10 dipakai
-                        readonly property int count: Math.min(10, Math.max(5, Hyprland.focusedWorkspace?.id ?? 0,
-                                                                           ...Hyprland.workspaces.values.map(w => w.id).filter(id => id > 0 && id <= 10)))
+                        readonly property int count: Math.min(Settings.menubarWorkspaceMax, Math.max(Settings.menubarWorkspaceMin, Hyprland.focusedWorkspace?.id ?? 0,
+                                                                           ...Hyprland.workspaces.values.map(w => w.id).filter(id => id > 0 && id <= Settings.menubarWorkspaceMax)))
 
                         MouseArea {
                             id: wsArea
@@ -99,10 +99,10 @@ Scope {
                                     readonly property int num: index + 1
                                     readonly property bool active: Hyprland.focusedWorkspace?.id === num
                                     readonly property bool occupied: Hyprland.workspaces.values.some(w => w.id === num)
-                                    readonly property real dotW: ws.open ? (active ? 20 : 7) : (active ? 8 : 0)
-                                    readonly property real gap: ws.open ? 8 : 0
+                                    readonly property real dotW: ws.open ? (active ? Theme.wsDotWide : Theme.wsDotNarrow) : (active ? Theme.wsDotCompact : 0)
+                                    readonly property real gap: ws.open ? Theme.space8 : 0
 
-                                    height: 16
+                                    height: Theme.menubarCellHeight
                                     width: dotW + (index < ws.count - 1 ? gap : 0)
                                     clip: false
                                     Behavior on width { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
@@ -130,7 +130,7 @@ Scope {
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: Math.min(implicitWidth, 300)
+                        width: Math.min(implicitWidth, Theme.menubarTitleMaxWidth)
                         elide: Text.ElideRight
                         text: bar.appName
                         color: Theme.text
@@ -159,8 +159,8 @@ Scope {
                     }
                     Rectangle {
                         visible: Sys.notifUnread > 0
-                        anchors { left: clockText.right; leftMargin: 5; verticalCenter: clockText.verticalCenter }
-                        width: 6; height: 6; radius: Math.min(width, height) / 2
+                        anchors { left: clockText.right; leftMargin: Theme.space4; verticalCenter: clockText.verticalCenter }
+                        width: Settings.menuBarUnreadDotSize; height: Settings.menuBarUnreadDotSize; radius: Math.min(width, height) / 2
                         color: Theme.text
                     }
                 }
@@ -214,7 +214,7 @@ Scope {
                                 id: trayItem
                                 required property var modelData
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 18; height: 18
+                                width: Theme.menubarTrayItem; height: Theme.menubarTrayItem
                                 acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                                 onClicked: (e) => {
                                     // kiri = buka app (atau menu kalau app-nya cuma punya menu),
@@ -251,7 +251,7 @@ Scope {
                             Rectangle {
                                 visible: Sys.recActive
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: recRow.implicitWidth + 18; height: 22; radius: Math.min(width, height) / 2
+                                width: recRow.implicitWidth + 18; height: Theme.menubarRecHeight; radius: Math.min(width, height) / 2
                                 color: recArea.containsMouse ? Theme.inverseHover : Theme.inverse
                                 Row {
                                     id: recRow
@@ -259,7 +259,7 @@ Scope {
                                     spacing: Theme.space6
                                     Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
-                                        width: 8; height: 8; radius: recArea.containsMouse ? Theme.radiusIndicator : Math.min(width, height) / 2   // titik -> kotak "stop" saat hover
+                                        width: Settings.menuBarRecordDotSize; height: Settings.menuBarRecordDotSize; radius: recArea.containsMouse ? Theme.radiusIndicator : Math.min(width, height) / 2   // titik -> kotak "stop" saat hover
                                         color: Theme.inverseText
                                         SequentialAnimation on opacity {
                                             running: Sys.recActive && !recArea.containsMouse; loops: Animation.Infinite
@@ -291,7 +291,7 @@ Scope {
                                 Rectangle {   // rekam layar: titik berkedip
                                     visible: Sys.recording
                                     anchors.verticalCenter: parent.verticalCenter
-                                    width: 9; height: 9; radius: Math.min(width, height) / 2
+                                    width: Settings.menuBarRecordingDotSize; height: Settings.menuBarRecordingDotSize; radius: Math.min(width, height) / 2
                                     color: Theme.text
                                     SequentialAnimation on opacity {
                                         running: Sys.recording; loops: Animation.Infinite
@@ -302,14 +302,14 @@ Scope {
                                 Rectangle {   // mic / kamera: pil putih kecil
                                     visible: Sys.micInUse || Sys.camInUse
                                     anchors.verticalCenter: parent.verticalCenter
-                                    width: privRow.implicitWidth + 12; height: 20; radius: Math.min(width, height) / 2
+                                    width: privRow.implicitWidth + 12; height: Theme.menubarPrivHeight; radius: Math.min(width, height) / 2
                                     color: Theme.inverse
                                     Row {
                                         id: privRow
                                         anchors.centerIn: parent
                                         spacing: Theme.space4
-                                        Glyph { visible: Sys.camInUse; width: 13; height: 13; name: "camera"; color: Theme.inverseText }
-                                        Glyph { visible: Sys.micInUse; width: 13; height: 13; name: "mic"; color: Theme.inverseText }
+                                        Glyph { visible: Sys.camInUse; width: Theme.icon13; height: Theme.icon13; name: "camera"; color: Theme.inverseText }
+                                        Glyph { visible: Sys.micInUse; width: Theme.icon13; height: Theme.icon13; name: "mic"; color: Theme.inverseText }
                                     }
                                 }
                             }
@@ -317,33 +317,33 @@ Scope {
                             Glyph {
                                 visible: Sys.micMuted
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 18; height: 18
+                                width: Theme.icon18; height: Theme.icon18
                                 name: "mic-off"
                                 color: Theme.text
                             }
                             Glyph {
                                 visible: Sys.dnd
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 18; height: 18
+                                width: Theme.icon18; height: Theme.icon18
                                 name: "moon"
                                 color: Theme.text
                             }
                             Glyph {
                                 visible: Sys.keepAwake
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 18; height: 18
+                                width: Theme.icon18; height: Theme.icon18
                                 name: "coffee"
                                 color: Theme.text
                             }
                             Glyph {
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 18; height: 18
+                                width: Theme.icon18; height: Theme.icon18
                                 name: Sys.wifiGlyph
                                 color: Sys.wifiOn ? Theme.text : Theme.dim
                             }
                             Glyph {
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: 18; height: 18
+                                width: Theme.icon18; height: Theme.icon18
                                 name: Sys.muted ? "mute" : Sys.volume <= 0.005 ? "volume-zero" : Sys.volume < 0.5 ? "volume-low" : "volume"
                                 color: Theme.text
                             }
@@ -364,7 +364,7 @@ Scope {
                                 Glyph {
                                     visible: Sys.batCharging
                                     anchors.verticalCenter: parent.verticalCenter
-                                    width: 11; height: 11
+                                    width: Theme.icon11; height: Theme.icon11
                                     name: "bolt"
                                     color: Theme.text
                                 }

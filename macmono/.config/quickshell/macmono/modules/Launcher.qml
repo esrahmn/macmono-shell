@@ -7,7 +7,7 @@ import "../core"
 import "../components"
 
 // Launcher macmono (desain "A · Spotlight"): satu panel kaca di bawah jam.
-//  - kolom search kosong -> app Pinned + overview workspace (drag window antar workspace, ala end4)
+//  - kolom search kosong -> app Pinned + overview workspace (drag window antar workspace)
 //  - mulai ngetik        -> hasil per kelompok (Top Hit, Windows, Apps, Actions) + panel preview di kanan
 Scope {
     id: root
@@ -38,9 +38,9 @@ Scope {
                 "elif command -v yay >/dev/null; then yay -Syu; else sudo pacman -Syu; fi"], true);
             break;
         case "lock":       Sys.lock(); break;
-        case "sleep":      Quickshell.execDetached(["sh", "-c", "systemctl suspend"]); break;
-        case "restart":    Quickshell.execDetached(["sh", "-c", "systemctl reboot"]); break;
-        case "shutdown":   Quickshell.execDetached(["sh", "-c", "systemctl poweroff"]); break;
+        case "sleep":      Sys.power("sleep"); break;
+        case "restart":    Sys.power("restart"); break;
+        case "shutdown":   Sys.power("shutdown"); break;
         case "logout":     Sys.power("logout"); break;
         }
         Sys.launcherOpen = false;
@@ -121,7 +121,7 @@ Scope {
         return grouped;
     }
 
-    // jalankan app (app terminal dibuka di kitty, karena execute() Quickshell nggak membuka terminal)
+    // jalankan app (app terminal dibuka lewat Sys.runInTerminal, karena execute() Quickshell nggak membuka terminal)
     function launchEntry(e) {
         if (!e) return;
         if (e.runInTerminal) Sys.runInTerminal(e.command, false);
@@ -217,7 +217,6 @@ Scope {
                 function onHyprClientsChanged() { if (win.shown && win.searching) win.refresh(); }
             }
 
-    
             MouseArea { anchors.fill: parent; enabled: win.shown; onClicked: Sys.launcherOpen = false }
 
             // ================= panel =================
@@ -246,14 +245,14 @@ Scope {
                     // ---------- kolom search ----------
                     Rectangle {
                         width: col.width
-                        height: 62
+                        height: Theme.launcherSearchHeight
                         radius: Theme.radiusLarge
                         color: Theme.tileFaint
 
                         Glyph {
                             id: searchIcon
                             anchors { left: parent.left; leftMargin: Theme.space18; verticalCenter: parent.verticalCenter }
-                            width: 22; height: 22
+                            width: Theme.icon22; height: Theme.icon22
                             name: "search"
                             color: win.searching ? Theme.text : Theme.dim
                         }
@@ -301,7 +300,7 @@ Scope {
                             id: hintChip
                             anchors { right: parent.right; rightMargin: Theme.space14; verticalCenter: parent.verticalCenter }
                             width: hintText.implicitWidth + 16
-                            height: 24
+                            height: Theme.launcherHintHeight
                             radius: Theme.radiusXs
                             color: Theme.tile
                             Text {
@@ -336,7 +335,7 @@ Scope {
                                         id: pin
                                         required property var modelData
                                         width: pinRow.cell
-                                        height: 108
+                                        height: Theme.launcherPinHeight
                                         hoverEnabled: true
                                         onClicked: root.launchEntry(pin.modelData)
                                         Rectangle {
@@ -349,12 +348,12 @@ Scope {
                                             spacing: Theme.space8
                                             Rectangle {
                                                 anchors.horizontalCenter: parent.horizontalCenter
-                                                width: 64; height: 64; radius: Theme.radius
+                                                width: Theme.launcherPinIconBox; height: Theme.launcherPinIconBox; radius: Theme.radius
                                                 color: Theme.tileFaint
                                                 border.width: Theme.borderThin; border.color: Theme.line
                                                 Image {
                                                     anchors.centerIn: parent
-                                                    width: 42; height: 42
+                                                    width: Theme.launcherPinIcon; height: Theme.launcherPinIcon
                                                     source: root.iconFor(pin.modelData.icon)
                                                     sourceSize.width: 84; sourceSize.height: 84
                                                     fillMode: Image.PreserveAspectFit
@@ -382,12 +381,12 @@ Scope {
                             width: parent.width
                             spacing: Theme.space8
                             Item {
-                                width: parent.width; height: 16
+                                width: parent.width; height: Theme.launcherSectionHeight
                                 SectionLabel { text: "WORKSPACES" }
                                 Text {
                                     anchors.right: parent.right
                                     text: "Click to switch · drag a window to move it"
-                                    color: Theme.faint
+                                    color: Theme.dim
                                     font.family: Theme.font; font.pixelSize: Theme.fontSmall
                                 }
                             }
@@ -434,7 +433,6 @@ Scope {
                                 highlightMoveDuration: 0
                                 onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
 
-
                                 // judul kelompok (TOP HIT / WINDOWS / APPS / ACTIONS) ditaruh di atas baris pertama tiap kelompok
                                 delegate: Column {
                                     id: rowWrap
@@ -446,7 +444,7 @@ Scope {
                                     Item {
                                         visible: rowWrap.showHead
                                         width: parent.width
-                                        height: visible ? 28 : 0
+                                        height: visible ? Settings.launcherSectionHeaderHeight : 0
                                         SectionLabel {
                                             anchors { left: parent.left; leftMargin: Theme.space10; bottom: parent.bottom; bottomMargin: Theme.space6 }
                                             text: String(rowWrap.modelData.group || "").toUpperCase()
@@ -489,7 +487,7 @@ Scope {
                                             color: row.sel ? Theme.inverseTile : Theme.tile
                                             Glyph {
                                                 anchors.centerIn: parent
-                                                width: 17; height: 17
+                                                width: Theme.icon17; height: Theme.icon17
                                                 name: row.modelData.glyph || "action"
                                                 color: row.fg
                                             }
@@ -523,7 +521,7 @@ Scope {
                                         visible: row.sel || row.modelData.tag !== ""
                                         anchors { right: parent.right; rightMargin: Theme.space12; verticalCenter: parent.verticalCenter }
                                         width: visible ? tagText.implicitWidth + 14 : 0
-                                        height: 22
+                                        height: Theme.launcherTagHeight
                                         radius: Theme.radiusXs
                                         color: row.sel ? Theme.inverseTile : Theme.tile
                                         Text {
@@ -550,8 +548,8 @@ Scope {
                         // panel preview hasil terpilih
                         Rectangle {
                             id: preview
-                            width: 340
-                            height: Math.max(resultsBox.height, prevCol.implicitHeight + 32)
+                            width: Theme.launcherPreviewWidth
+                            height: Math.max(resultsBox.height, prevCol.implicitHeight + Theme.launcherPreviewPadding)
                             radius: Theme.radiusLarge
                             color: Theme.tileFaint
                             visible: win.sel !== null
@@ -578,7 +576,7 @@ Scope {
                                     Image {
                                         visible: win.sel?.kind === "app" || (win.sel?.kind === "window" && !win.selToplevel)
                                         anchors.centerIn: parent
-                                        width: 64; height: 64
+                                        width: Theme.launcherPreviewIcon; height: Theme.launcherPreviewIcon
                                         source: visible ? root.iconFor(win.sel?.icon) : ""
                                         sourceSize.width: 128; sourceSize.height: 128
                                         fillMode: Image.PreserveAspectFit
@@ -589,7 +587,7 @@ Scope {
                                     Glyph {
                                         visible: win.sel?.kind === "action"
                                         anchors.centerIn: parent
-                                        width: 40; height: 40
+                                        width: Theme.launcherPreviewGlyph; height: Theme.launcherPreviewGlyph
                                         name: win.sel?.glyph || "action"
                                         color: Theme.text
                                     }
@@ -659,7 +657,7 @@ Scope {
                                             required property var modelData
                                             required property int index
                                             width: prevCol.width
-                                            height: 40
+                                            height: Theme.launcherPreviewRow
                                             hoverEnabled: true
                                             onClicked: pb.modelData.run()
                                             Rectangle {
@@ -683,7 +681,7 @@ Scope {
                     }
 
                     // ---------- petunjuk keyboard ----------
-                    Rectangle { width: col.width; height: 1; color: Theme.line }
+                    Rectangle { width: col.width; height: Theme.borderThin; color: Theme.line }
                     Row {
                         anchors.horizontalCenter: parent.horizontalCenter
                         spacing: Theme.space18

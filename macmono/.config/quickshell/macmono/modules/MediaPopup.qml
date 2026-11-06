@@ -113,7 +113,7 @@ Scope {
                         rightMargin: Theme.space16
                         topMargin: Theme.space16
                     }
-                    height: 208
+                    height: Theme.mediaPopupLyricsHeight
                     player: win.p
                     active: win.shown
                     visible: win.p !== null

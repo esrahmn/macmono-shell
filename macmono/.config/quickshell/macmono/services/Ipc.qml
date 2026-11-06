@@ -76,8 +76,8 @@ Scope {
 
     IpcHandler {
         target: "brightness"
-        function increment(): void { Sys.setBrightness(Sys.brightness + 0.05); }
-        function decrement(): void { Sys.setBrightness(Sys.brightness - 0.05); }
+        function increment(): void { Sys.setBrightness(Sys.brightness + Settings.brightnessStep); }
+        function decrement(): void { Sys.setBrightness(Sys.brightness - Settings.brightnessStep); }
     }
 
     IpcHandler {

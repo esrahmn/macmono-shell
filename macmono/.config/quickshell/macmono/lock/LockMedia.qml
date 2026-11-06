@@ -36,10 +36,16 @@ Rectangle {
         interval: 1000
         repeat: true
         triggeredOnStart: true
-        running: root.visible && root.player !== null && Sys.locked
+        running: root.visible && root.player !== null && root.player.isPlaying && Sys.locked
         onTriggered: {
             root.pos = clock.sample();
         }
+    }
+
+    // Timer di atas berhenti saat pause, jadi posisi disegarkan sekali tiap kartu muncul.
+    onVisibleChanged: {
+        if (visible && player && Sys.locked)
+            pos = clock.sample();
     }
 
     component CtlButton: Rectangle {
@@ -47,7 +53,7 @@ Rectangle {
         property string glyph: ""
         property bool primary: false
         signal clicked()
-        implicitWidth: primary ? 40 : 34
+        implicitWidth: primary ? Theme.lockMediaButtonPrimary : Theme.lockMediaButton
         implicitHeight: implicitWidth
         radius: width / 2
         color: primary ? Theme.inverse : (hover.hovered ? Theme.tileHover : Theme.transparent)
@@ -55,7 +61,7 @@ Rectangle {
         Behavior on color { ColorAnimation { duration: Theme.animHover } }
         Glyph {
             anchors.centerIn: parent
-            width: btn.primary ? 16 : 15
+            width: btn.primary ? Theme.icon16 : Theme.icon15
             height: width
             name: btn.glyph
             color: btn.primary ? Theme.inverseText : Theme.text
@@ -71,22 +77,22 @@ Rectangle {
         spacing: Theme.space14
 
         Item {
-            Layout.preferredWidth: 84
-            Layout.preferredHeight: 84
+            Layout.preferredWidth: Settings.lockMediaCoverSize
+            Layout.preferredHeight: Settings.lockMediaCoverSize
 
             Rectangle {
                 anchors.fill: parent
                 radius: Theme.radius
                 color: Theme.tile
                 visible: art.status !== Image.Ready
-                Glyph { anchors.centerIn: parent; width: 22; height: 22; name: "play"; color: Theme.dim }
+                Glyph { anchors.centerIn: parent; width: Theme.icon22; height: Theme.icon22; name: "play"; color: Theme.dim }
             }
             Image {
                 id: art
                 anchors.fill: parent
                 source: root.player?.trackArtUrl ?? ""
-                sourceSize.width: 168
-                sourceSize.height: 168
+                sourceSize.width: Settings.lockMediaCoverSize * 2
+                sourceSize.height: Settings.lockMediaCoverSize * 2
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 visible: false
@@ -129,7 +135,7 @@ Rectangle {
             Rectangle {
                 Layout.fillWidth: true
                 Layout.topMargin: Theme.space4
-                Layout.preferredHeight: 3
+                Layout.preferredHeight: Settings.lockMediaProgressHeight
                 radius: height / 2
                 color: Theme.tileMid
                 visible: root.len > 0
@@ -148,7 +154,7 @@ Rectangle {
                 Text {
                     visible: root.len > 0
                     text: root.fmt(root.pos) + " / " + root.fmt(root.len)
-                    color: Theme.muted
+                    color: Theme.dim
                     font.family: Theme.font
                     font.pixelSize: Theme.fontCaption
                 }

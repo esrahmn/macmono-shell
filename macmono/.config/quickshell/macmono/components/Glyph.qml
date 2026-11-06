@@ -28,8 +28,8 @@ Canvas {
 
     onImageLoaded: requestPaint()
 
-    implicitWidth: 20
-    implicitHeight: 20
+    implicitWidth: Theme.icon20
+    implicitHeight: Theme.icon20
 
     onNameChanged: {
         if (name === "enso")
@@ -310,8 +310,6 @@ Canvas {
             ctx.restore();
             break;
         }
-
-
 
         case "action":
             ctx.beginPath(); ctx.moveTo(13.5, 3); ctx.lineTo(5, 13.5); ctx.lineTo(11, 13.5); ctx.lineTo(10.5, 21); ctx.lineTo(19, 10.5); ctx.lineTo(13, 10.5); ctx.closePath(); ctx.stroke();

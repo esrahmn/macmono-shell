@@ -9,6 +9,15 @@ import Quickshell.Io
 Scope {
     id: root
 
+    // Diisi Sys dari Settings.wifi*
+    property int statusPollMs: 30000       // cek ulang status & sinyal (cadangan, nmcli monitor sudah event-driven)
+    property int connectTimeoutMs: 45000   // batas waktu menyambung
+    property int maxNetworks: 16           // maks. jaringan di daftar
+    // Internal (nggak perlu diubah): jeda gabung event beruntun & jeda restart nmcli monitor
+    readonly property int statusDebounceMs: 400
+    readonly property int listDebounceMs: 600
+    readonly property int monitorRestartMs: 5000
+
     property bool wifiOn: false
     property string wifiName: ""
     property string wifiActiveUuid: ""
@@ -178,19 +187,19 @@ Scope {
 
     Timer {
         id: statusDebounce
-        interval: 400
+        interval: root.statusDebounceMs
         onTriggered: if (!wifiStatusGet.running) wifiStatusGet.running = true
     }
 
     Timer {
         id: listDebounce
-        interval: 600
+        interval: root.listDebounceMs
         onTriggered: if (!wifiListGet.running) wifiListGet.running = true
     }
 
     // Fallback pelan + update kekuatan sinyal
     Timer {
-        interval: 30000
+        interval: root.statusPollMs
         running: true
         repeat: true
         onTriggered: statusDebounce.restart()
@@ -211,7 +220,7 @@ Scope {
 
     Timer {
         id: nmMonitorRestart
-        interval: 5000
+        interval: root.monitorRestartMs
         onTriggered: nmMonitor.running = true
     }
 
@@ -276,7 +285,7 @@ Scope {
                     });
                 }
                 list.sort((a, b) => (b.active - a.active) || (b.known - a.known) || (b.signal - a.signal) || a.ssid.localeCompare(b.ssid));
-                root.wifiList = list.slice(0, 16);
+                root.wifiList = list.slice(0, root.maxNetworks);
             }
         }
     }
@@ -310,7 +319,7 @@ Scope {
 
     Timer {
         id: wifiConnectTimeout
-        interval: 45000
+        interval: root.connectTimeoutMs
         onTriggered: if (wifiConnectProc.running) wifiConnectProc.running = false
     }
 

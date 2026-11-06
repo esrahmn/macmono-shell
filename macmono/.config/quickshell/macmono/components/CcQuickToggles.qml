@@ -18,7 +18,7 @@ ColumnLayout {
         spacing: Theme.space8
 
         Rectangle {
-            Layout.preferredWidth: 72
+            Layout.preferredWidth: Theme.ccProfileTileWidth
             Layout.fillHeight: true
             radius: Theme.radiusLarge
             scale: focusArea.pressed ? Theme.buttonPressedScale : 1
@@ -33,7 +33,7 @@ ColumnLayout {
             }
             Glyph {
                 anchors.centerIn: parent
-                width: 20; height: 20
+                width: Theme.icon20; height: Theme.icon20
                 name: "moon"
                 color: Sys.dnd ? Theme.inverseText : Theme.text
             }
@@ -55,7 +55,7 @@ ColumnLayout {
                 Glyph {
                     id: profileGlyph
                     anchors.verticalCenter: parent.verticalCenter
-                    width: 18; height: 18
+                    width: Theme.icon18; height: Theme.icon18
                     name: Sys.profileGlyph
                     color: profileButton.active ? Theme.inverseText : Theme.text
                     onNameChanged: profileGlyphAnimation.restart()
@@ -109,7 +109,7 @@ ColumnLayout {
                 required property var modelData
                 Layout.fillWidth: true
                 Layout.preferredWidth: 1
-                implicitHeight: 92
+                implicitHeight: Theme.ccToggleTileHeight
                 radius: Theme.radiusLarge
                 scale: sqArea.pressed ? Theme.buttonPressedScale : 1
                 color: modelData.on ? Theme.inverse : (sqArea.containsMouse ? Theme.tileHover : Theme.tile)
@@ -120,7 +120,7 @@ ColumnLayout {
                     spacing: Theme.space6
                     Glyph {
                         anchors.horizontalCenter: parent.horizontalCenter
-                        width: 22; height: 22
+                        width: Theme.icon22; height: Theme.icon22
                         name: sq.modelData.glyph
                         color: sq.modelData.on ? Theme.inverseText : Theme.text
                     }

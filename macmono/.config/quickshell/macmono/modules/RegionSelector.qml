@@ -4,7 +4,7 @@ import Quickshell.Wayland
 import Quickshell.Hyprland
 import "../core"
 
-// Pemilih area screenshot (teknik sama dengan end4):
+// Pemilih area screenshot:
 //  1. grim ngambil layar penuh dulu (Sys.startCapture) -> panel yang kebuka ikut kerekam
 //  2. gambar beku ditampilkan di sini, user drag area / klik window / klik panel
 //  3. hasil di-crop dari gambar beku pakai magick (Sys.finishCapture)
@@ -127,7 +127,7 @@ Scope {
                     anchors.horizontalCenter: parent.horizontalCenter
                     y: below ? parent.height + 8 : -height - 8
                     width: sizeText.implicitWidth + 16
-                    height: 24
+                    height: Theme.selectorBadgeHeight
                     radius: Math.min(width, height) / 2
                     color: Theme.badge
                     Text {
@@ -142,10 +142,10 @@ Scope {
 
             // petunjuk di bawah
             Rectangle {
-                anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: 28 }
+                anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: Theme.space30 }
                 visible: !win.dragging
                 width: hint.implicitWidth + 28
-                height: 34
+                height: Theme.selectorHintHeight
                 radius: Math.min(width, height) / 2
                 color: Theme.badge
                 border.width: Theme.borderThin

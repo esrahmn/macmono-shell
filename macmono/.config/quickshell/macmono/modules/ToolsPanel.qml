@@ -90,7 +90,7 @@ Rectangle {
                                 readonly property bool selected: (optGroup.modelData.key === "mode" ? root.recMode : root.recAudio) === modelData.v
                                 Layout.fillWidth: true
                                 Layout.preferredWidth: 1
-                                implicitHeight: 32
+                                implicitHeight: Theme.toolsSegmentHeight
                                 radius: Theme.radiusSmall
                                 color: selected ? Theme.inverse : (segmentArea.containsMouse ? Theme.tileHover : Theme.tileFaint)
 
@@ -119,14 +119,14 @@ Rectangle {
             MouseArea {
                 Layout.fillWidth: true
                 Layout.topMargin: Theme.space2
-                implicitHeight: 38
+                implicitHeight: Theme.toolsRecordHeight
                 hoverEnabled: true
                 onClicked: Sys.recordStart(root.recMode, root.recAudio)
                 Rectangle { anchors.fill: parent; radius: Theme.radiusMedium; color: parent.containsMouse ? Theme.inverseHover : Theme.inverse }
                 Row {
                     anchors.centerIn: parent
                     spacing: Theme.space8
-                    Glyph { anchors.verticalCenter: parent.verticalCenter; width: 16; height: 16; name: "record"; color: Theme.inverseText }
+                    Glyph { anchors.verticalCenter: parent.verticalCenter; width: Theme.icon16; height: Theme.icon16; name: "record"; color: Theme.inverseText }
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
                         text: "Start Recording"

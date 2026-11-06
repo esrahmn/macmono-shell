@@ -80,7 +80,7 @@ Scope {
                 // tombol kembali (hanya di dalam submenu)
                 Rectangle {
                     visible: root.stack.length > 0
-                    Layout.fillWidth: true; implicitHeight: 30; radius: Theme.radiusXs
+                    Layout.fillWidth: true; implicitHeight: Theme.trayBackHeight; radius: Theme.radiusXs
                     color: backMa.containsMouse ? Theme.tileHover : Theme.transparent
                     Text {
                         anchors { left: parent.left; leftMargin: Theme.space10; verticalCenter: parent.verticalCenter }
@@ -108,7 +108,7 @@ Scope {
                         Rectangle {
                             visible: row.sep
                             anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; leftMargin: Theme.space6; rightMargin: Theme.space6 }
-                            height: 1
+                            height: Theme.borderThin
                             color: Theme.tileMid
                         }
 
@@ -122,7 +122,7 @@ Scope {
                             Text {
                                 id: chk
                                 anchors { left: parent.left; leftMargin: Theme.space10; verticalCenter: parent.verticalCenter }
-                                width: 14
+                                width: Theme.trayCheckWidth
                                 text: row.modelData.buttonType === QsMenuButtonType.None ? ""
                                     : (row.modelData.checkState === Qt.Checked ? (row.modelData.buttonType === QsMenuButtonType.RadioButton ? "●" : "✓") : "")
                                 color: Theme.text
@@ -132,12 +132,12 @@ Scope {
                                 id: ico
                                 visible: row.modelData.icon !== ""
                                 anchors { left: chk.right; leftMargin: Theme.space4; verticalCenter: parent.verticalCenter }
-                                width: 16; height: 16
+                                width: Theme.icon16; height: Theme.icon16
                                 source: row.modelData.icon
                             }
                             Text {
                                 id: lbl
-                                anchors { left: ico.visible ? ico.right : chk.right; leftMargin: Theme.space8; right: parent.right; rightMargin: 28; verticalCenter: parent.verticalCenter }
+                                anchors { left: ico.visible ? ico.right : chk.right; leftMargin: Theme.space8; right: parent.right; rightMargin: Theme.space30; verticalCenter: parent.verticalCenter }
                                 text: row.modelData.text
                                 elide: Text.ElideRight
                                 color: row.modelData.enabled ? Theme.text : Theme.faint

@@ -4,7 +4,7 @@ import QtQuick.Layouts
 import "../core"
 
 // Isi kartu media (cover, judul, progress, tombol kontrol), dipakai bersama oleh
-// kartu di Control Center (cc/MediaCard) dan popup Super+M (media/MediaPopup).
+// kartu di Control Center (modules/MediaCard) dan popup Super+M (modules/MediaPopup).
 // Bungkus (latar, padding, animasi buka) tetap tanggung jawab pemakainya.
 // `roomy` = tampilan lega untuk popup yang berdiri sendiri.
 ColumnLayout {
@@ -41,11 +41,17 @@ ColumnLayout {
         interval: 1000
         repeat: true
         triggeredOnStart: true
-        running: root.panelShown && root.player !== null
+        running: root.panelShown && root.player !== null && root.player.isPlaying
         onTriggered: {
             root.player.positionChanged();
             root.pos = clock.sample();
         }
+    }
+
+    // Timer di atas berhenti saat pause, jadi posisi disegarkan sekali tiap panel dibuka.
+    onPanelShownChanged: {
+        if (panelShown && player)
+            pos = clock.sample();
     }
 
     RowLayout {
@@ -53,8 +59,8 @@ ColumnLayout {
         spacing: root.roomy ? Theme.space14 : Theme.space12
 
         Rectangle {
-            Layout.preferredWidth: 72
-            Layout.preferredHeight: 72
+            Layout.preferredWidth: Theme.mediaArtSize
+            Layout.preferredHeight: Theme.mediaArtSize
             radius: root.artRadius
             color: Theme.tile
             clip: true
@@ -124,7 +130,7 @@ ColumnLayout {
             hoverEnabled: true
             onClicked: root.playerChangeRequested((root.players.indexOf(root.player) + 1) % root.players.length)
             Rectangle { anchors.fill: parent; radius: Theme.radiusXs; color: switchArea.containsMouse ? Theme.tileHover : Theme.transparent }
-            Glyph { anchors.centerIn: parent; width: 13; height: 13; name: "chevron"; rotation: -90; color: Theme.dim }
+            Glyph { anchors.centerIn: parent; width: Theme.icon13; height: Theme.icon13; name: "chevron"; rotation: -90; color: Theme.dim }
         }
     }
 
@@ -134,10 +140,10 @@ ColumnLayout {
         spacing: Theme.space4
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: 10
+            Layout.preferredHeight: Theme.mediaProgressRow
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
-                width: parent.width; height: 4; radius: Math.min(width, height) / 2
+                width: parent.width; height: Theme.mediaProgressHeight; radius: Math.min(width, height) / 2
                 color: Theme.tileHover
                 Rectangle {
                     width: parent.width * Math.max(0, Math.min(1, root.pos / Math.max(1, root.len)))
@@ -158,9 +164,10 @@ ColumnLayout {
         }
         RowLayout {
             Layout.fillWidth: true
-            Text { text: Sys.formatMediaTime(root.pos); color: Theme.faint; font.family: Theme.font; font.pixelSize: Theme.fontCaption }
+            // Durasi = informasi, bukan hiasan: pakai dim, bukan faint (faint terlalu redup di atas panel).
+            Text { text: Sys.formatMediaTime(root.pos); color: Theme.dim; font.family: Theme.font; font.pixelSize: Theme.fontCaption }
             Item { Layout.fillWidth: true }
-            Text { text: "-" + Sys.formatMediaTime(root.len - root.pos); color: Theme.faint; font.family: Theme.font; font.pixelSize: Theme.fontCaption }
+            Text { text: "-" + Sys.formatMediaTime(root.len - root.pos); color: Theme.dim; font.family: Theme.font; font.pixelSize: Theme.fontCaption }
         }
     }
 

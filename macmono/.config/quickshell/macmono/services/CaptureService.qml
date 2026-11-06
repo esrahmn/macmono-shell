@@ -2,12 +2,14 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Screenshot pipeline (ala end4): grim membekukan layar -> pemilih area di RegionSelector
+// Screenshot pipeline: grim membekukan layar -> pemilih area di RegionSelector
 // -> crop pakai magick -> wl-copy (copy) atau tesseract (ocr).
 // State, Timer, dan Process-nya tinggal di sini; UI tetap memakai fasad Sys.capturing /
 // Sys.captureFile / Sys.captureTargets / Sys.captureMode / Sys.finishCapture().
 Scope {
     id: root
+
+    property int panelCloseDelayMs: 380   // diisi Sys dari Settings.panelCloseDelayMs
 
     property string runtimeDir: ""      // diisi Sys: folder 0700 untuk file sementara
 
@@ -21,7 +23,7 @@ Scope {
     }
 
     // =====================================================================
-    //  Screenshot ala end4: layar dibekukan dulu pakai grim (panel yang lagi
+    //  Screenshot: layar dibekukan dulu pakai grim (panel yang lagi
     //  kebuka ikut kerekam), lalu area dipilih di RegionSelector, crop pakai magick.
     // =====================================================================
     property bool capturing: false      // RegionSelector lagi tampil
@@ -76,7 +78,7 @@ Scope {
               "else notify-send -a Screenshot -u critical 'Screenshot saved' \"Could not copy to clipboard: $out\"; fi"
         Quickshell.execDetached(["bash", "-c", script, "bash", captureFile, geo]);
     }
-    Timer { id: delay; interval: 380; onTriggered: root.startRequested() }   // tunggu panel selesai menutup (components/Reveal.qml)
+    Timer { id: delay; interval: root.panelCloseDelayMs; onTriggered: root.startRequested() }   // tunggu animasi tutup panel selesai (components/Reveal.qml)
     Process {
         id: grimProc
         onExited: (code) => {

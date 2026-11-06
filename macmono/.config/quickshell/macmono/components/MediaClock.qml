@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell.Io
+import "../core"
 
 // Jam posisi lagu yang dijaga. Spotify (lewat MPRIS) kadang melaporkan Position yang loncat
 // beberapa detik tepat setelah pause/play, sehingga progress bar dan lirik ikut loncat.
@@ -12,7 +13,7 @@ Item {
     visible: false
 
     property var player: null
-    // true = baca posisi asli dari player tiap 1 detik (set false kalau panel lagi ketutup)
+    // true = jam ikut berdetak (set false kalau panel lagi ketutup)
     property bool active: true
     signal polled()
 
@@ -28,6 +29,11 @@ Item {
     readonly property real jumpThreshold: 1.0
     readonly property real restartZone: 1.5
     readonly property int guardMs: 2500
+
+    // Diatur di Settings.mediaPollIntervalMs (default 6000 ms: cukup untuk mengoreksi drift, 6x
+    // lebih jarang men-spawn proses daripada membaca tiap detik). Pause/play dan ganti lagu langsung
+    // memicu baca ulang; seek dari luar instance ini baru ketahuan di polling berikutnya.
+    property int pollIntervalMs: Settings.mediaPollIntervalMs
 
     property real offset: 0
     property real lastRaw: -1
@@ -56,6 +62,17 @@ Item {
         poller.command = ["busctl", "--user", "get-property", p.dbusName,
             "/org/mpris/MediaPlayer2", "org.mpris.MediaPlayer2.Player", "Position"];
         poller.running = true;
+    }
+
+    // Baca ulang posisi asli hanya kalau data yang dipegang sudah basi (atau belum pernah ada).
+    // Dipanggil dari timer 1 detik, jadi tetap presisi tanpa proses tiap detik.
+    function pollIfStale() {
+        const p = player;
+        if (!p || !p.dbusName || poller.running)
+            return;
+        if (polledPos >= 0 && Date.now() - polledAt < pollIntervalMs)
+            return;
+        pollNow();
     }
 
     function onPollResult(text) {
@@ -120,6 +137,10 @@ Item {
         player.position = raw;
         lastRaw = raw;
         lastAt = Date.now();
+        // Jadikan posisi hasil seek sebagai titik acuan interpolasi. Tanpa ini, jam akan
+        // melompat balik ke posisi lama sampai pembacaan berkala berikutnya datang.
+        polledPos = raw;
+        polledAt = Date.now();
     }
 
     // Tangkap lompatan yang terjadi di antara polling (mis. saat popup tertutup).
@@ -140,6 +161,9 @@ Item {
         repeat: true
         triggeredOnStart: true
         running: root.active && root.player !== null
-        onTriggered: root.pollNow()
+        onTriggered: {
+            root.sample();      // murah: hitung dari interpolasi, tanpa proses
+            root.pollIfStale(); // spawn busctl hanya kalau data sudah basi
+        }
     }
 }

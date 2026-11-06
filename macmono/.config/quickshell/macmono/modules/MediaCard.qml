@@ -16,7 +16,9 @@ Rectangle {
     Layout.fillWidth: true
     implicitHeight: view.implicitHeight + 2 * Theme.space12
     radius: Theme.radiusLarge
+    // Kartu terangkat: sama seperti kartu lain di Control Center.
     color: Theme.tile
+    border.width: Theme.borderThin; border.color: Theme.cardStroke
 
     MediaPlayerView {
         id: view

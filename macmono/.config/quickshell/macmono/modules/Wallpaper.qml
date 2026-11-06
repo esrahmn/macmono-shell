@@ -44,7 +44,7 @@ Scope {
                     else if (status === Image.Error) Sys.markWallpaperLoadError(wallpaperPath);
                 }
             }
-         
+
         }
     }
     // ---------------- picker wallpaper: filmstrip + live preview ----------------
@@ -66,9 +66,9 @@ Scope {
             readonly property real ui: anim * (1 - uiOut)
             NumberAnimation { id: openAnim; target: picker; property: "anim"; from: 0; to: 1; duration: Theme.animBase; easing.type: Theme.easeOut }
             NumberAnimation { id: keepAnim; target: picker; property: "uiOut"; from: 0; to: 1; duration: Theme.animFade; easing.type: Theme.easeIn }
-            Timer { id: closeTimer; interval: 170; onTriggered: Sys.wallpaperOpen = false }
+            Timer { id: closeTimer; interval: Theme.wpCloseDelay; onTriggered: Sys.wallpaperOpen = false }
             Timer {
-                id: wallpaperReadyTimeout; interval: 8000
+                id: wallpaperReadyTimeout; interval: Settings.wallpaperReadyTimeoutMs
                 // Ada layar yang belum lapor siap, tapi gambar sudah termuat di layar lain dan nggak error -> terima saja.
                 onTriggered: {
                     if (Sys.wallpaperLoadError === "" && Sys.wallpaperReadyScreens.length > 0) picker.finishKeep();
@@ -169,7 +169,7 @@ Scope {
                 if (selIndex >= 0) strip.positionViewAtIndex(selIndex, ListView.Center);
             }
 
-            Timer { id: previewTimer; interval: 90; onTriggered: picker.loadPreview() }
+            Timer { id: previewTimer; interval: Settings.wallpaperPreviewDebounceMs; onTriggered: picker.loadPreview() }
             onSelIndexChanged: strip.currentIndex = selIndex
 
             Connections {
@@ -288,9 +288,9 @@ Scope {
                 id: pill
                 visible: picker.selPath !== ""
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: 52 - Theme.openDrop * (1 - picker.anim)
+                y: Theme.wpPillTop - Theme.openDrop * (1 - picker.anim)
                 width: pillRow.implicitWidth + 22
-                height: 40
+                height: Theme.wpPillHeight
                 radius: Math.min(width, height) / 2
                 color: Theme.panel
                 border.width: Theme.borderThin
@@ -307,7 +307,7 @@ Scope {
                     spacing: Theme.space10
 
                     Text {
-                        Layout.maximumWidth: 380
+                        Layout.maximumWidth: Settings.wallpaperPillTextMaxWidth
                         elide: Text.ElideMiddle
                         text: picker.baseOf(picker.selPath)
                         color: Theme.text
@@ -320,12 +320,12 @@ Scope {
                         font.family: Theme.font; font.pixelSize: Theme.fontBodyLg
                     }
                     Chip {
-                        implicitHeight: 28
+                        implicitHeight: Theme.wpChipHeight
                         label: "Cancel"
                         onTapped: Sys.wallpaperOpen = false
                     }
                     Chip {
-                        implicitHeight: 28
+                        implicitHeight: Theme.wpChipHeight
                         label: "Keep"
                         strong: true
                         onTapped: picker.keep()
@@ -339,10 +339,10 @@ Scope {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                anchors.leftMargin: 24
-                anchors.rightMargin: 24
-                anchors.bottomMargin: 24 - 24 * (1 - picker.anim)
-                height: 200
+                anchors.leftMargin: Theme.wpTrayMargin
+                anchors.rightMargin: Theme.wpTrayMargin
+                anchors.bottomMargin: Theme.wpTrayMargin - Theme.wpTrayMargin * (1 - picker.anim)
+                height: Theme.wpTrayHeight
                 radius: Theme.radiusXl
                 color: Theme.panel
                 border.width: Theme.borderThin
@@ -477,7 +477,7 @@ Scope {
                                         anchors.bottom: parent.bottom
                                         anchors.margins: Theme.space7
                                         width: curText.implicitWidth + 12
-                                        height: 18
+                                        height: Theme.wpBadgeHeight
                                         radius: Math.min(width, height) / 2
                                         color: Theme.badge
                                         Text {
@@ -530,7 +530,7 @@ Scope {
         signal tapped()
         readonly property bool light: selected || strong
         implicitWidth: chipText.implicitWidth + 28
-        implicitHeight: 30
+        implicitHeight: Theme.wpChipDefaultHeight
         radius: height / 2
         color: light ? (chipArea.containsMouse ? Theme.inverseHover : Theme.inverse)
                      : (chipArea.containsMouse ? Theme.tileHover : Theme.tile)
@@ -556,15 +556,15 @@ Scope {
         id: rb
         property real turn: 0
         signal tapped()
-        implicitWidth: 36
-        implicitHeight: 36
+        implicitWidth: Theme.wpRoundButton
+        implicitHeight: Theme.wpRoundButton
         radius: Math.min(width, height) / 2
         color: rbArea.containsMouse ? Theme.tileHover : Theme.tile
         scale: rbArea.pressed ? 0.94 : 1.0
         Behavior on scale { NumberAnimation { duration: Theme.animPress } }
         Glyph {
             anchors.centerIn: parent
-            width: 16; height: 16
+            width: Theme.icon16; height: Theme.icon16
             name: "chevron"
             color: Theme.text
             rotation: rb.turn

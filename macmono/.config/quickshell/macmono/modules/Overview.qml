@@ -4,7 +4,7 @@ import Quickshell.Wayland
 import Quickshell.Hyprland
 import "../core"
 
-// Overview workspace ala end4:
+// Overview workspace:
 //  - klik workspace          -> pindah ke workspace itu
 //  - klik window             -> fokus ke window itu
 //  - drag window ke workspace lain -> window dipindah (nggak ikut pindah layar)
@@ -150,7 +150,7 @@ Rectangle {
                 onWantsPreviewChanged: retries = 0
                 // jaring pengaman: masih kosong padahal harusnya ada preview -> coba lagi (maks 6x per buka)
                 Timer {
-                    interval: 700
+                    interval: Settings.overviewPreviewRetryMs
                     repeat: true
                     running: w.wantsPreview && !preview.hasContent && w.retries < 6
                     onTriggered: { w.retries++; w.restartCapture(); }
@@ -173,7 +173,7 @@ Rectangle {
                     color: Theme.raised
                 }
 
-                // Preview polos, persis seperti end4: ScreencopyView langsung, tanpa efek apa pun di atasnya
+                // Preview polos: ScreencopyView langsung, tanpa efek apa pun di atasnya
                 // (efek abu-abu / masker bikin gambarnya nggak ikut diperbarui).
                 ScreencopyView {
                     id: preview

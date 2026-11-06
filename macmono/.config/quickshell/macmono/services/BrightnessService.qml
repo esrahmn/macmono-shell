@@ -9,6 +9,10 @@ import Quickshell.Io
 Scope {
     id: root
 
+    // Jeda (ms) sebelum nilai dikirim saat slider digeser; diisi Sys dari Settings.brightness*DebounceMs
+    property int debounceMs: 80
+    property int ddcDebounceMs: 250
+
     property real brightness: 0.5
     property bool brightnessOk: false
     property string brightnessBackend: ""   // "backlight" | "ddc"
@@ -31,7 +35,7 @@ Scope {
 
     Timer {
         id: brightSetDebounce
-        interval: root.brightnessBackend === "ddc" ? 250 : 80
+        interval: root.brightnessBackend === "ddc" ? root.ddcDebounceMs : root.debounceMs
         onTriggered: {
             if (brightSet.running) { restart(); return; }
             if (root.brightnessBackend === "ddc") {

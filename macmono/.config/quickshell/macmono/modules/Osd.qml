@@ -4,7 +4,7 @@ import Quickshell.Wayland
 import "../core"
 import "../components"
 
-// OSD volume / kecerahan: pill kecil di bawah layar, hilang sendiri.
+// OSD volume / kecerahan: pill di bawah bar (tengah atas), masuk dari atas lalu turun, keluar naik lagi.
 Scope {
     id: root
     property string kind: "volume"      // "volume" | "brightness"
@@ -14,8 +14,8 @@ Scope {
 
     readonly property real level: kind === "volume" ? (Sys.muted ? 0 : Math.min(1, Sys.volume)) : Sys.brightness
 
-    Timer { interval: 2500; running: true; onTriggered: root.ready = true }
-    Timer { id: hideTimer; interval: 1400; onTriggered: root.shown = false }
+    Timer { interval: Settings.osdStartupGraceMs; running: true; onTriggered: root.ready = true }
+    Timer { id: hideTimer; interval: Settings.osdHideMs; onTriggered: root.shown = false }
 
     function pop(k) {
         if (!ready || Sys.ccOpen || Sys.capturing) return;
@@ -40,11 +40,13 @@ Scope {
             required property var modelData
             screen: modelData
 
+            readonly property bool active: root.shown && root.screenName === win.modelData.name
+
             visible: pill.opacity > 0.01
-            anchors { bottom: true }
-            margins { bottom: 90 }
-            implicitWidth: 240
-            implicitHeight: 56
+            anchors { top: true }
+            margins { top: Theme.barMargin + Theme.barHeight + Theme.space8 }
+            implicitWidth: Theme.osdWidth
+            implicitHeight: Theme.osdHeight
             exclusionMode: ExclusionMode.Ignore
             color: Theme.transparent
             mask: Region {}          // klik tembus
@@ -59,21 +61,34 @@ Scope {
                 color: Theme.popup
                 border.width: Theme.borderThin
                 border.color: Theme.lineStrong
-                opacity: (root.shown && root.screenName === win.modelData.name) ? 1 : 0
-                Behavior on opacity { NumberAnimation { duration: Theme.animFade; easing.type: Theme.easeOut } }
-                scale: (root.shown && root.screenName === win.modelData.name) ? 1 : Theme.openScaleFrom
-                Behavior on scale { SpringAnimation { spring: Theme.springStiff; damping: Theme.springDamp; epsilon: 0.001 } }
+                opacity: win.active ? 1 : 0
+                Behavior on opacity {
+                    NumberAnimation {
+                        duration: win.active ? Theme.animFade : Theme.animBase
+                        easing.type: win.active ? Theme.easeOut : Theme.easeIn
+                    }
+                }
+                transform: Translate {
+                    id: slide
+                    y: win.active ? 0 : -Theme.osdSlideFrom
+                    Behavior on y {
+                        NumberAnimation {
+                            duration: win.active ? Theme.animOpen : Theme.animBase
+                            easing.type: win.active ? Theme.easeOut : Theme.easeIn
+                        }
+                    }
+                }
 
                 Glyph {
                     id: ic
-                    anchors { left: parent.left; leftMargin: 20; verticalCenter: parent.verticalCenter }
-                    width: 20; height: 20
+                    anchors { left: parent.left; leftMargin: Theme.space18; verticalCenter: parent.verticalCenter }
+                    width: Theme.icon20; height: Theme.icon20
                     name: root.kind === "brightness" ? "sun" : (Sys.muted ? "mute" : "volume")
                     color: Theme.text
                 }
                 Rectangle {
                     anchors { left: ic.right; leftMargin: Theme.space14; right: pct.left; rightMargin: Theme.space12; verticalCenter: parent.verticalCenter }
-                    height: 6; radius: Math.min(width, height) / 2
+                    height: Theme.osdTrackHeight; radius: Math.min(width, height) / 2
                     color: Theme.tileHover
                     Rectangle {
                         width: parent.width * Math.max(0, Math.min(1, root.level))
@@ -85,7 +100,7 @@ Scope {
                 Text {
                     id: pct
                     anchors { right: parent.right; rightMargin: Theme.space18; verticalCenter: parent.verticalCenter }
-                    width: 34
+                    width: Theme.osdLabelWidth
                     horizontalAlignment: Text.AlignRight
                     text: Math.round(root.level * 100)
                     color: Theme.dim

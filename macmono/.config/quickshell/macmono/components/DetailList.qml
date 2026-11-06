@@ -18,7 +18,9 @@ Rectangle {
     visible: implicitHeight > 0.5
 
     radius: Theme.radius
-    color: Theme.tile
+    // Daftar = kotak cekung di dalam panel, bukan kartu terangkat: kontennya terasa masuk.
+    color: Theme.well
+    border.width: Theme.borderThin; border.color: Theme.cardStroke
     clip: true
 
     Column {
@@ -28,7 +30,7 @@ Rectangle {
         Text {
             visible: root.items.length === 0
             width: parent.width
-            height: 34
+            height: Theme.listHeaderHeight
             horizontalAlignment: Text.AlignHCenter
             verticalAlignment: Text.AlignVCenter
             text: root.emptyText
@@ -42,7 +44,7 @@ Rectangle {
                 id: row
                 required property var modelData
                 width: col.width
-                height: 44
+                height: Theme.detailRowHeight
                 radius: Theme.radiusSmall
                 color: area.containsMouse ? Theme.tileMid : Theme.transparent
 
@@ -68,7 +70,7 @@ Rectangle {
                     id: tick
                     visible: row.modelData.on === true
                     anchors { right: parent.right; rightMargin: Theme.space10; verticalCenter: parent.verticalCenter }
-                    width: 14; height: 14
+                    width: Theme.icon14; height: Theme.icon14
                     name: "check"
                     color: Theme.text
                 }

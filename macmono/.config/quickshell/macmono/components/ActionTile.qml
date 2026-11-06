@@ -10,7 +10,7 @@ Rectangle {
     property bool hot: false          // putih (aktif / menunggu konfirmasi)
     signal clicked()
 
-    implicitHeight: 78
+    implicitHeight: Theme.actionTileHeight
     radius: Theme.radius
     color: hot ? Theme.inverse : (area.containsMouse ? Theme.tileHover : Theme.tileFaint)
     Behavior on color { ColorAnimation { duration: Theme.animHover } }
@@ -23,7 +23,7 @@ Rectangle {
         spacing: Theme.space7
         Glyph {
             anchors.horizontalCenter: parent.horizontalCenter
-            width: 22; height: 22
+            width: Theme.icon22; height: Theme.icon22
             name: root.glyph
             color: root.hot ? Theme.inverseText : Theme.text
         }

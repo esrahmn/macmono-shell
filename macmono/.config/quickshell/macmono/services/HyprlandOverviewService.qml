@@ -4,10 +4,9 @@ import Quickshell.Io
 import Quickshell.Hyprland
 
 // Snapshot client + monitor Hyprland untuk Launcher / Overview.
-// Perbaikan vs versi lama:
-//  - Hanya refresh saat benar-benar dibutuhkan (active) atau event relevan
-//  - Debounce lebih ketat
-//  - Hindari double-spawn Process
+//  - Hanya refresh saat dibutuhkan (active) atau ada event relevan
+//  - Debounce supaya event beruntun jadi satu refresh
+//  - Nggak spawn Process dobel
 //  - Fallback aman kalau hyprctl gagal / JSON rusak
 Scope {
     id: root
@@ -17,6 +16,7 @@ Scope {
     property var monitors: []
     property bool pendingRefresh: false
     property bool lastOk: true
+    readonly property int debounceMs: 80   // gabung event beruntun jadi satu refresh
 
     // Event yang memang mengubah daftar window / workspace / monitor
     readonly property var relevantEvents: [
@@ -64,7 +64,7 @@ Scope {
 
     Timer {
         id: debounce
-        interval: 80
+        interval: root.debounceMs
         onTriggered: root.refresh()
     }
 

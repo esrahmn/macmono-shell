@@ -12,7 +12,9 @@ Rectangle {
     Behavior on opacity { NumberAnimation { duration: Theme.animFade } }
     visible: implicitHeight > 0.5
     radius: Theme.radius
-    color: Theme.tile
+    // Daftar = kotak cekung di dalam panel, bukan kartu terangkat: kontennya terasa masuk.
+    color: Theme.well
+    border.width: Theme.borderThin; border.color: Theme.cardStroke
     clip: true
 
     // scan otomatis selama daftar terbuka, berhenti saat ditutup
@@ -24,7 +26,7 @@ Rectangle {
 
         Text {
             visible: Sys.btOn && Sys.btDevices.length === 0
-            width: parent.width; height: 36
+            width: parent.width; height: Theme.btHeaderHeight
             horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
             text: "No paired devices"
             color: Theme.dim
@@ -33,7 +35,7 @@ Rectangle {
         // Bluetooth mati: tombol nyalakan langsung di sini
         Item {
             visible: !Sys.btOn
-            width: parent.width; height: 64
+            width: parent.width; height: Theme.btHintHeight
             Column {
                 anchors.centerIn: parent
                 spacing: Theme.space8
@@ -47,7 +49,7 @@ Rectangle {
                     id: onBtn
                     visible: Sys.btAvailable
                     anchors.horizontalCenter: parent.horizontalCenter
-                    width: onText.implicitWidth + 28; height: 30
+                    width: onText.implicitWidth + 28; height: Theme.btToggleHeight
                     hoverEnabled: true
                     onClicked: Sys.toggleBt()
                     Rectangle { anchors.fill: parent; radius: Math.min(width, height) / 2; color: onBtn.containsMouse ? Theme.inverseHover : Theme.inverse }
@@ -71,7 +73,7 @@ Rectangle {
         // perangkat baru
         Text {
             visible: Sys.btOn
-            width: parent.width; height: 26
+            width: parent.width; height: Theme.listSubheaderHeight
             leftPadding: 10
             verticalAlignment: Text.AlignBottom
             text: Sys.btScanning ? "Nearby devices · scanning…" : "Nearby devices"
@@ -90,12 +92,12 @@ Rectangle {
         }
 
         Item {
-            width: col.width; height: 40
+            width: col.width; height: Theme.listFooterHeight
             Rectangle { anchors { left: parent.left; right: parent.right; top: parent.top; leftMargin: Theme.space6; rightMargin: Theme.space6 } height: 1; color: Theme.line }
             MouseArea {
                 id: setBtn
                 anchors { left: parent.left; leftMargin: Theme.space4; verticalCenter: parent.verticalCenter }
-                width: setText.implicitWidth + 20; height: 28
+                width: setText.implicitWidth + 20; height: Theme.listActionHeight
                 hoverEnabled: true
                 onClicked: Sys.openBtSettings()
                 Rectangle { anchors.fill: parent; radius: Math.min(width, height) / 2; color: setBtn.containsMouse ? Theme.tileMid : Theme.transparent }
@@ -109,7 +111,7 @@ Rectangle {
         property var dev: null
         property string sub: ""
         signal picked()
-        height: 46; radius: Theme.radiusSmall
+        height: Theme.listRowHeight; radius: Theme.radiusSmall
         color: ma.containsMouse ? Theme.tileMid : Theme.transparent
         Column {
             anchors { left: parent.left; leftMargin: Theme.space10; right: tick.left; rightMargin: Theme.space8; verticalCenter: parent.verticalCenter }
@@ -131,7 +133,7 @@ Rectangle {
             id: tick
             visible: dr.dev?.connected ?? false
             anchors { right: parent.right; rightMargin: Theme.space10; verticalCenter: parent.verticalCenter }
-            width: 14; height: 14
+            width: Theme.icon14; height: Theme.icon14
             name: "check"
             color: Theme.text
         }

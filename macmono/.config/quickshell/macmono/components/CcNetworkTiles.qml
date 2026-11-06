@@ -11,9 +11,11 @@ Rectangle {
     Layout.fillWidth: true
     Layout.preferredWidth: 1
     Layout.fillHeight: true
-    implicitHeight: netCol.implicitHeight + 16
+    implicitHeight: netCol.implicitHeight + Theme.space16
     radius: Theme.radiusLarge
+    // Kartu terangkat: latar lebih terang dari panel + garis tipis supaya batasnya jelas.
     color: Theme.tile
+    border.width: Theme.borderThin; border.color: Theme.cardStroke
 
     Column {
         id: netCol
@@ -33,7 +35,7 @@ Rectangle {
                 required property var modelData
                 readonly property bool open: root.expanded === modelData.key
                 width: netCol.width
-                height: 56
+                height: Theme.ccNetworkTileHeight
                 radius: Theme.radiusCard
                 scale: rowArea.pressed ? Theme.buttonPressedScale : 1
                 color: open ? Theme.tileMid : (rowArea.containsMouse ? Theme.tileFaint : Theme.transparent)
@@ -55,14 +57,14 @@ Rectangle {
                 Rectangle {
                     id: dot
                     anchors { left: parent.left; leftMargin: Theme.space8; verticalCenter: parent.verticalCenter }
-                    width: 36; height: 36; radius: Math.min(width, height) / 2
+                    width: Theme.ccNetworkIconCircle; height: Theme.ccNetworkIconCircle; radius: Math.min(width, height) / 2
                     scale: dotArea.pressed ? Theme.buttonPressedScale : 1
                     color: nr.modelData.on ? Theme.inverse : (dotArea.containsMouse ? Theme.tileStrong : Theme.tileMid)
                     Behavior on color { ColorAnimation { duration: Theme.animHover; easing.type: Theme.easeOut } }
                     Behavior on scale { NumberAnimation { duration: Theme.animPress; easing.type: Theme.easeOut } }
                     Glyph {
                         anchors.centerIn: parent
-                        width: 18; height: 18
+                        width: Theme.icon18; height: Theme.icon18
                         name: nr.modelData.glyph
                         color: nr.modelData.on ? Theme.inverseText : Theme.text
                     }
@@ -87,7 +89,7 @@ Rectangle {
                     id: chev
                     visible: nr.modelData.list
                     anchors { right: parent.right; rightMargin: Theme.space8; verticalCenter: parent.verticalCenter }
-                    width: visible ? 13 : 0; height: 13
+                    width: visible ? Theme.icon13 : 0; height: Theme.icon13
                     name: "chevron"
                     rotation: nr.open ? 180 : -90
                     color: Theme.dim

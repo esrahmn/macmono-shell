@@ -10,6 +10,11 @@ Scope {
     // Dipasang Sys; lihat services/StateStore.qml
     property var stateStore: null
 
+    // Diisi Sys dari Settings.wallpaper*: folder yang dipindai ("~" = home), kedalaman subfolder, batas jumlah file
+    property var searchDirs: []
+    property int scanDepth: 2
+    property int maxFiles: 500
+
     property string wallpaper: ""
     property bool wallpaperMono: true
     property var wallpapers: []
@@ -88,13 +93,14 @@ Scope {
 
     Process {
         id: wallpaperFind
+        // Folder dikirim sebagai argumen ($@), bukan disisipkan ke string shell.
         command: ["sh", "-c",
-            "find \"$HOME/Pictures/Wallpapers\" \"$HOME/Pictures\" \"$HOME/Wallpapers\" " +
-            "\"$HOME/.local/share/backgrounds\" /usr/share/backgrounds /usr/share/wallpapers " +
-            "-maxdepth 2 -type f -not -path '*/Screenshots/*' " +
+            "find \"$@\" " +
+            "-maxdepth " + Math.floor(root.scanDepth) + " -type f -not -path '*/Screenshots/*' " +
             "\\( -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.png' -o -iname '*.webp' \\) 2>/dev/null " +
-            "| awk '!seen[$0]++' | head -120"
-        ]
+            "| awk '!seen[$0]++' | head -" + Math.floor(root.maxFiles),
+            "sh"
+        ].concat(root.searchDirs.map(d => d.startsWith("~") ? Quickshell.env("HOME") + d.slice(1) : d))
         stdout: StdioCollector {
             onStreamFinished: {
                 root.wallpapers = text.split("\n").filter(l => l.trim() !== "");

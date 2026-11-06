@@ -8,7 +8,7 @@ Rectangle {
     property string icon: ""
     signal moved(real v)
 
-    implicitHeight: 38
+    implicitHeight: Theme.sliderHeight
     radius: height / 2
     color: Theme.tile
     clip: true
@@ -25,7 +25,7 @@ Rectangle {
     Glyph {
         anchors.verticalCenter: parent.verticalCenter
         x: 9
-        width: 16; height: 16
+        width: Theme.icon16; height: Theme.icon16
         name: root.icon
         color: Theme.inverseText
     }

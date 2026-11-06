@@ -38,7 +38,7 @@ Item {
         blur: 1.0
         blurMax: 48
         saturation: Sys.wallpaperMono ? -1.0 : 0.0
-        brightness: -0.3
+        brightness: Theme.lockWallpaperDim
         opacity: wall.status === Image.Ready ? 1 : 0
         Behavior on opacity { NumberAnimation { duration: Theme.animFade } }
     }
@@ -65,7 +65,7 @@ Item {
             RowLayout {
                 visible: Sys.wifiName !== ""
                 spacing: Theme.space6
-                Glyph { name: "wifi"; color: Theme.text; Layout.preferredWidth: 16; Layout.preferredHeight: 16 }
+                Glyph { name: "wifi"; color: Theme.text; Layout.preferredWidth: Theme.icon16; Layout.preferredHeight: Theme.icon16 }
                 Text {
                     text: Sys.wifiName
                     color: Theme.text
@@ -87,8 +87,8 @@ Item {
                     visible: Sys.batCharging
                     name: "bolt"
                     color: Theme.text
-                    Layout.preferredWidth: 14
-                    Layout.preferredHeight: 14
+                    Layout.preferredWidth: Settings.lockBoltIconSize
+                    Layout.preferredHeight: Settings.lockBoltIconSize
                 }
             }
         }
@@ -97,7 +97,7 @@ Item {
         ColumnLayout {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
-            anchors.topMargin: parent.height * 0.09
+            anchors.topMargin: parent.height * Theme.lockClockTopRatio
             spacing: 0
 
             Text {
@@ -122,7 +122,7 @@ Item {
         ColumnLayout {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: parent.height * 0.1
+            anchors.bottomMargin: parent.height * Theme.lockInputBottomRatio
             spacing: Theme.space16
 
             LockMedia {
@@ -143,10 +143,10 @@ Item {
                 transform: Translate { id: shakeT }
                 SequentialAnimation {
                     id: shakeAnim
-                    NumberAnimation { target: shakeT; property: "x"; to: -12; duration: 50 }
-                    NumberAnimation { target: shakeT; property: "x"; to: 12; duration: 70 }
-                    NumberAnimation { target: shakeT; property: "x"; to: -8; duration: 60 }
-                    NumberAnimation { target: shakeT; property: "x"; to: 0; duration: 50 }
+                    NumberAnimation { target: shakeT; property: "x"; to: -Theme.lockShakeAmplitude; duration: Theme.animShakeFast }
+                    NumberAnimation { target: shakeT; property: "x"; to: Theme.lockShakeAmplitude; duration: Theme.animShakeSlow }
+                    NumberAnimation { target: shakeT; property: "x"; to: -Theme.lockShakeAmplitudeSoft; duration: Theme.animShakeMid }
+                    NumberAnimation { target: shakeT; property: "x"; to: 0; duration: Theme.animShakeFast }
                 }
                 Connections {
                     target: root.lock
@@ -162,8 +162,8 @@ Item {
 
                     Item {
                         Layout.alignment: Qt.AlignHCenter
-                        Layout.preferredWidth: 88
-                        Layout.preferredHeight: 88
+                        Layout.preferredWidth: Settings.lockAvatarSize
+                        Layout.preferredHeight: Settings.lockAvatarSize
 
                         Rectangle {
                             anchors.fill: parent
@@ -183,8 +183,8 @@ Item {
                             id: avatarImg
                             anchors.fill: parent
                             source: Sys.avatar !== "" ? "file://" + Sys.avatar : ""
-                            sourceSize.width: 176
-                            sourceSize.height: 176
+                            sourceSize.width: Settings.lockAvatarSize * 2
+                            sourceSize.height: Settings.lockAvatarSize * 2
                             fillMode: Image.PreserveAspectCrop
                             asynchronous: true
                             cache: true
@@ -214,7 +214,7 @@ Item {
 
                     Rectangle {
                         Layout.fillWidth: true
-                        Layout.preferredHeight: 44
+                        Layout.preferredHeight: Settings.lockPasswordFieldHeight
                         radius: height / 2
                         color: Theme.inset
                         border.width: 1
@@ -253,7 +253,7 @@ Item {
                                     capsDelay.restart();
                                 }
                             }
-                            Timer { id: capsDelay; interval: 60; onTriggered: root.lock.checkCaps() }
+                            Timer { id: capsDelay; interval: Settings.lockCapsRecheckMs; onTriggered: root.lock.checkCaps() }
                         }
 
                         Text {

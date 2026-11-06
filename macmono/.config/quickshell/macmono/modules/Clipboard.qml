@@ -80,7 +80,7 @@ Scope {
             readonly property real anim: reveal.progress
             readonly property bool present: reveal.present
 
-            // Open/close animation is handled in QML (ui/Reveal.qml); the drawer slides out from below the bar.
+            // Open/close animation is handled in QML (components/Reveal.qml); the drawer slides out from below the bar.
             // Hyprland layer animations are disabled through no_anim.
             visible: present
             anchors { top: true; bottom: true; left: true; right: true }
@@ -109,7 +109,7 @@ Scope {
             onSelChanged: detailTimer.restart()
             Timer {
                 id: detailTimer
-                interval: 70
+                interval: Settings.clipboardDetailDebounceMs
                 onTriggered: {
                     const e = win.sel;
                     if (!e) { win.detailText = ""; win.detailImage = ""; win.detailFor = ""; return; }
@@ -173,8 +173,10 @@ Scope {
                 id: panel
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: Theme.drawerGap
-                width: Math.min(860, parent.width - 40)
-                height: Math.min(500, parent.height - y - 40)
+                // Panel dibuat lebih lega supaya preview gambar tidak kecil; tetap dibatasi
+                // ukuran layar supaya tidak keluar tepi di monitor kecil.
+                width: Math.min(1120, parent.width - 32)
+                height: Math.min(720, parent.height - y - 32)
                 radius: Theme.radiusPanel
                 color: Theme.panel
                 border.width: Theme.borderThin
@@ -192,12 +194,12 @@ Scope {
                     Item {
                         id: header
                         anchors { left: parent.left; right: parent.right; top: parent.top }
-                        height: 62
+                        height: Theme.clipHeaderHeight
 
                         Row {
-                            anchors { left: parent.left; leftMargin: 20; verticalCenter: parent.verticalCenter }
+                            anchors { left: parent.left; leftMargin: Theme.space18; verticalCenter: parent.verticalCenter }
                             spacing: Theme.space10
-                            Glyph { anchors.verticalCenter: parent.verticalCenter; width: 18; height: 18; name: "clipboard"; color: Theme.text }
+                            Glyph { anchors.verticalCenter: parent.verticalCenter; width: Theme.icon18; height: Theme.icon18; name: "clipboard"; color: Theme.text }
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: "Clipboard"
@@ -216,7 +218,7 @@ Scope {
                             id: clearAllButton
                             anchors { right: searchBox.left; rightMargin: Theme.space8; verticalCenter: parent.verticalCenter }
                             width: clearLabel.implicitWidth + 34
-                            height: 34
+                            height: Theme.clipClearHeight
                             radius: Math.min(width, height) / 2
                             color: clearArea.containsMouse ? Theme.tileHover : Theme.tile
                             opacity: root.entries.length > 0 ? 1 : 0.45
@@ -225,7 +227,7 @@ Scope {
                                 spacing: Theme.space6
                                 Glyph {
                                     anchors.verticalCenter: parent.verticalCenter
-                                    width: 13; height: 13
+                                    width: Theme.icon13; height: Theme.icon13
                                     name: "trash"
                                     color: Theme.dim
                                 }
@@ -251,8 +253,8 @@ Scope {
                         Rectangle { // Search field
                             id: searchBox
                             anchors { right: parent.right; rightMargin: Theme.space14; verticalCenter: parent.verticalCenter }
-                            width: 270
-                            height: 36
+                            width: Theme.clipSearchWidth
+                            height: Theme.clipSearchHeight
                             radius: Math.min(width, height) / 2
                             color: Theme.tile
                             border.width: search.activeFocus ? 1 : 0
@@ -261,7 +263,7 @@ Scope {
                             Glyph {
                                 id: sIcon
                                 anchors { left: parent.left; leftMargin: Theme.space12; verticalCenter: parent.verticalCenter }
-                                width: 15; height: 15
+                                width: Theme.icon15; height: Theme.icon15
                                 name: "search"
                                 color: Theme.dim
                             }
@@ -311,7 +313,7 @@ Scope {
                     Rectangle { // Header divider
                         id: headerLine
                         anchors { left: parent.left; right: parent.right; top: header.bottom }
-                        height: 1
+                        height: Theme.borderThin
                         color: Theme.line
                     }
 
@@ -319,9 +321,9 @@ Scope {
                     Item {
                         id: footer
                         anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                        height: 40
+                        height: Theme.clipFooterHeight
 
-                        Rectangle { anchors { left: parent.left; right: parent.right; top: parent.top } height: 1; color: Theme.line }
+                        Rectangle { anchors { left: parent.left; right: parent.right; top: parent.top } height: Theme.borderThin; color: Theme.line }
 
                         Row {
                             anchors { left: parent.left; leftMargin: Theme.space18; verticalCenter: parent.verticalCenter }
@@ -333,7 +335,7 @@ Scope {
                                     spacing: Theme.space6
                                     Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
-                                        width: k.implicitWidth + 10; height: 20; radius: Theme.radiusKey
+                                        width: k.implicitWidth + Theme.space10; height: Theme.clipKeyHeight; radius: Theme.radiusKey
                                         color: Theme.tile
                                         Text { id: k; anchors.centerIn: parent; text: modelData[0]; color: Theme.dim; font.family: Theme.font; font.pixelSize: Theme.fontCaption }
                                     }
@@ -347,7 +349,7 @@ Scope {
                     ListView {
                         id: list
                         anchors { left: parent.left; top: headerLine.bottom; bottom: footer.top; margins: Theme.space8 }
-                        width: 330
+                        width: Theme.clipListWidth
                         clip: true
                         spacing: Theme.space2
                         model: win.filtered
@@ -363,7 +365,7 @@ Scope {
                             required property int index
                             readonly property bool sel: index === win.current
                             width: list.width
-                            height: 54
+                            height: Theme.clipRowHeight
                             radius: Theme.radiusMedium
                             color: sel ? Theme.inverse : (rowArea.containsMouse ? Theme.tileFaint : Theme.transparent)
                             readonly property color fg: sel ? Theme.inverseText : Theme.text
@@ -372,11 +374,11 @@ Scope {
                             Rectangle {
                                 id: typeIcon
                                 anchors { left: parent.left; leftMargin: Theme.space10; verticalCenter: parent.verticalCenter }
-                                width: 32; height: 32; radius: Theme.radiusXs
+                                width: Theme.clipTypeIconSize; height: Theme.clipTypeIconSize; radius: Theme.radiusXs
                                 color: row.sel ? Theme.inverseTile : Theme.tile
                                 Glyph {
                                     anchors.centerIn: parent
-                                    width: 16; height: 16
+                                    width: Theme.icon16; height: Theme.icon16
                                     name: row.modelData.type === "image" ? "image" : (row.modelData.type === "link" ? "link" : "text")
                                     color: row.fg
                                 }
@@ -412,11 +414,11 @@ Scope {
                                 id: trash
                                 visible: rowArea.containsMouse || containsMouse
                                 anchors { right: parent.right; rightMargin: Theme.space8; verticalCenter: parent.verticalCenter }
-                                width: 26; height: 26
+                                width: Theme.clipTrashSize; height: Theme.clipTrashSize
                                 hoverEnabled: true
                                 onClicked: { win.current = row.index; win.deleteSelected(); }
                                 Rectangle { anchors.fill: parent; radius: Theme.radiusXs; color: parent.containsMouse ? (row.sel ? Theme.inverseTile : Theme.tileHover) : Theme.transparent }
-                                Glyph { anchors.centerIn: parent; width: 14; height: 14; name: "trash"; color: row.fgDim }
+                                Glyph { anchors.centerIn: parent; width: Theme.icon14; height: Theme.icon14; name: "trash"; color: row.fgDim }
                             }
                         }
                     }
@@ -433,7 +435,7 @@ Scope {
                     Rectangle { // Vertical divider
                         id: vline
                         anchors { left: list.right; leftMargin: Theme.space8; top: headerLine.bottom; bottom: footer.top }
-                        width: 1
+                        width: Theme.borderThin
                         color: Theme.line
                     }
 
@@ -445,7 +447,7 @@ Scope {
                         Item {
                             id: paneHead
                             anchors { left: parent.left; right: parent.right; top: parent.top }
-                            height: 30
+                            height: Theme.clipPaneHeadHeight
                             visible: win.sel !== null
 
                             Text {
@@ -457,14 +459,14 @@ Scope {
                             Rectangle {
                                 anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                                 width: copyRow.implicitWidth + 22
-                                height: 28
+                                height: Theme.clipPaneChipHeight
                                 radius: Math.min(width, height) / 2
                                 color: copyArea.containsMouse ? Theme.inverseHover : Theme.inverse
                                 Row {
                                     id: copyRow
                                     anchors.centerIn: parent
                                     spacing: Theme.space6
-                                    Glyph { anchors.verticalCenter: parent.verticalCenter; width: 13; height: 13; name: "clipboard"; color: Theme.inverseText }
+                                    Glyph { anchors.verticalCenter: parent.verticalCenter; width: Theme.icon13; height: Theme.icon13; name: "clipboard"; color: Theme.inverseText }
                                     Text { anchors.verticalCenter: parent.verticalCenter; text: "Copy"; color: Theme.inverseText; font.family: Theme.font; font.pixelSize: Theme.fontBody; font.weight: Font.DemiBold }
                                 }
                                 MouseArea { id: copyArea; anchors.fill: parent; hoverEnabled: true; onClicked: win.copySelected() }
@@ -501,6 +503,8 @@ Scope {
                                     selectedTextColor: Theme.inverseText
                                     font.family: Theme.fontMono
                                     font.pixelSize: Theme.fontBody
+                                    // Catatan: TextEdit tidak punya lineHeight (hanya Text), jadi leading di
+                                    // sini tetap bawaan Qt. Jangan tambahkan — shell gagal load karenanya.
                                 }
                             }
 
@@ -509,6 +513,11 @@ Scope {
                                 visible: win.sel?.type === "image"
                                 anchors { fill: parent; margins: Theme.space10 }
                                 source: visible && win.detailImage !== "" ? "file://" + win.detailImage : ""
+                                // Decode seukuran kotak tampil saja: screenshot 4K cukup ~2 MB di memori
+                                // GPU, bukan ~33 MB. PreserveAspectFit tetap menjaga proporsi, jadi
+                                // yang terlihat tidak berubah.
+                                sourceSize.width: Math.round(width)
+                                sourceSize.height: Math.round(height)
                                 fillMode: Image.PreserveAspectFit
                                 asynchronous: true
                                 cache: false

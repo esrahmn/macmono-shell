@@ -12,10 +12,25 @@ Singleton {
     id: root
 
     // Subsystem services (hidup di dalam Sys supaya property binding tetap sederhana)
-    PrivacyService { id: privacy }
-    BrightnessService { id: brightnessSvc }
-    WifiService { id: wifiSvc }
-    WallpaperService { id: wallpaperSvc; stateStore: stateStore }
+    PrivacyService {
+        id: privacy
+        activePollMs: Settings.privacyPollActiveMs
+        cameraPossible: root.camWindowOpen
+    }
+    BrightnessService { id: brightnessSvc; debounceMs: Settings.brightnessDebounceMs; ddcDebounceMs: Settings.brightnessDdcDebounceMs }
+    WifiService {
+        id: wifiSvc
+        statusPollMs: Settings.wifiStatusPollMs
+        connectTimeoutMs: Settings.wifiConnectTimeoutMs
+        maxNetworks: Settings.wifiMaxNetworks
+    }
+    WallpaperService {
+        id: wallpaperSvc
+        stateStore: stateStore
+        searchDirs: Settings.wallpaperDirs
+        scanDepth: Settings.wallpaperScanDepth
+        maxFiles: Settings.wallpaperMaxFiles
+    }
     MediaVisualizerService { id: mediaVisualizer }
     StateStore { id: stateStore }
 
@@ -42,7 +57,7 @@ Singleton {
     property string trayMenuScreen: ""
     property real trayMenuX: 0
     function openTrayMenu(item, screenName, x) {
-        if (Date.now() - trayClosedAt < 200) return;
+        if (Date.now() - trayClosedAt < Settings.trayReopenGuardMs) return;
         closeCCQuiet();
         trayMenuItem = item; trayMenuScreen = screenName; trayMenuX = x; trayMenuOpen = true;
     }
@@ -57,11 +72,9 @@ Singleton {
         "[ -d \"$f\" ] && i=$(find \"$f\" -maxdepth 1 -type f \\( -iname '*.png' -o -iname '*.jpg' -o -iname '*.jpeg' -o -iname '*.webp' \\) | sort | head -n1) && " +
         "[ -n \"$i\" ] && { echo \"$i\"; exit 0; }; done"]
         stdout: StdioCollector {
-            // Menggunakan sintaks penugasan langsung Quickshell yang benar
             onStreamFinished: root.avatar = this.text.trim()
         }
     }
-
 
     // ---------------- indikator privasi (delegasi ke PrivacyService) ----------------
     // mic & screencast = reactive Pipewire; camera/recorder = poll hemat di PrivacyService
@@ -102,7 +115,7 @@ Singleton {
         closeCCQuiet();
         recordStartDelay.restart();
         // jaga-jaga record.sh gagal ngabarin lewat IPC: jangan biarkan tombol Record macet selamanya
-        recStartTimeout.interval = recStartMode === "area" ? 120000 : 15000;
+        recStartTimeout.interval = recStartMode === "area" ? Settings.recordStartTimeoutAreaMs : Settings.recordStartTimeoutMs;
         recStartTimeout.restart();
     }
     function recordStop() {
@@ -137,10 +150,10 @@ Singleton {
             recStatus.running = true;
         }
     }
-    Timer { id: recStopGrace; interval: 8000; onTriggered: root.recStopping = false }
+    Timer { id: recStopGrace; interval: Settings.recordStopGraceMs; onTriggered: root.recStopping = false }
     Timer {
         id: recordStartDelay
-        interval: 380   // tunggu panel selesai menutup (ui/Reveal.qml), supaya nggak ikut terekam
+        interval: Settings.panelCloseDelayMs   // tunggu animasi tutup panel selesai (components/Reveal.qml), supaya nggak ikut terekam
         onTriggered: {
             Quickshell.execDetached(["bash", Quickshell.shellDir + "/scripts/record.sh", "start", root.recStartMode, root.recStartAudio]);
         }
@@ -168,11 +181,11 @@ Singleton {
         if (!batAvailable) return;
         const pct = Math.round(batPercent * 100);
         if (batCharging) { batWarned = 100; return; }
-        for (const lvl of [5, 10, 20]) {
+        for (const lvl of Settings.batteryWarnLevels) {
             if (pct <= lvl && batWarned > lvl) {
                 batWarned = lvl;
-                batNotify(lvl <= 10 ? "critical" : "normal",
-                          lvl <= 10 ? "Battery critically low" : "Battery low",
+                batNotify(lvl <= Settings.batteryCriticalLevel ? "critical" : "normal",
+                          lvl <= Settings.batteryCriticalLevel ? "Battery critically low" : "Battery low",
                           pct + "% remaining. Plug in your charger.");
                 return;
             }
@@ -186,7 +199,7 @@ Singleton {
         batChargingKnown = true;
         checkBattery();
     }
-    Timer { interval: 4000; running: true; onTriggered: { root.batChargingKnown = true; root.checkBattery(); } }
+    Timer { interval: Settings.batteryStartupDelayMs; running: true; onTriggered: { root.batChargingKnown = true; root.checkBattery(); } }
 
     // ---------------- kalender + pusat notifikasi (klik jam) ----------------
     property bool calendarOpen: false
@@ -194,7 +207,7 @@ Singleton {
     property real calendarClosedAt: 0
     onCalendarOpenChanged: if (!calendarOpen) calendarClosedAt = Date.now(); else notifUnread = 0
     function toggleCalendar(screenName) {
-        if (Date.now() - calendarClosedAt < 300) return;   // klik jam saat terbuka: focus grab sudah nutup duluan
+        if (Date.now() - calendarClosedAt < Settings.panelReopenGuardMs) return;   // klik jam saat terbuka: focus grab sudah nutup duluan
         if (calendarOpen) { calendarOpen = false; return; }
         closeCCQuiet();
         calendarScreen = screenName || focusedScreenName();
@@ -202,7 +215,7 @@ Singleton {
     }
 
     // ---------------- popup media (Super+M) & cheatsheet (Super+/) ----------------
-    readonly property int mediaPopupWidth: 420
+    readonly property int mediaPopupWidth: Theme.mediaPopupWidth
     property bool mediaOpen: false
     property string mediaScreen: ""
     property real mediaPopupRightMargin: Theme.space16
@@ -228,7 +241,7 @@ Singleton {
     property int notifSeq: 0
     function pushNotif(n) {
         const item = { id: ++notifSeq, app: n.appName || "", summary: n.summary || "", body: n.body || "", time: Date.now() };
-        notifHistory = [item].concat(notifHistory).slice(0, 50);
+        notifHistory = [item].concat(notifHistory).slice(0, Settings.notifHistoryMax);
         if (!calendarOpen) notifUnread++;
     }
     function removeNotif(id) { notifHistory = notifHistory.filter(x => x.id !== id); }
@@ -236,7 +249,7 @@ Singleton {
     // riwayat disimpan ke ~/.local/state/macmono/notifications.json (ditulis lewat FileView, bukan argv)
     property bool notifLoaded: false
     onNotifHistoryChanged: if (notifLoaded) notifSave.restart()
-    Timer { id: notifSave; interval: 1000; onTriggered: notifFile.setText(JSON.stringify(root.notifHistory)) }
+    Timer { id: notifSave; interval: Settings.notifSaveDelayMs; onTriggered: notifFile.setText(JSON.stringify(root.notifHistory)) }
     FileView {
         id: notifFile
         path: Quickshell.env("HOME") + "/.local/state/macmono/notifications.json"
@@ -246,7 +259,7 @@ Singleton {
             try {
                 const list = JSON.parse(text());
                 if (Array.isArray(list)) {
-                    root.notifHistory = list.slice(0, 50);
+                    root.notifHistory = list.slice(0, Settings.notifHistoryMax);
                     root.notifSeq = list.reduce((m, x) => Math.max(m, x.id || 0), 0);
                 }
             } catch (e) {}
@@ -266,7 +279,7 @@ Singleton {
 
     function toggleCC(screenName) {
         // Klik tombol saat panel kebuka: focus grab nutup duluan, jangan dibuka lagi
-        if (Date.now() - ccClosedAt < 300) return;
+        if (Date.now() - ccClosedAt < Settings.panelReopenGuardMs) return;
         if (ccOpen && ccScreen === screenName) { ccOpen = false; return; }
         closeCCQuiet();
         ccScreen = screenName || focusedScreenName();
@@ -299,7 +312,7 @@ Singleton {
     // Tutup semua panel dulu, baru kirim dispatch ke Hyprland.
     // Race: begitu launcher melepas keyboard focus, Hyprland mengembalikan fokus ke window
     // terakhir dan bisa menimpa dispatch workspace/window. Solusi: tutup panel dulu,
-    // baru dispatch setelah fokus sempat settle (docs Hyprland + pengalaman end-4/ii).
+    // baru dispatch setelah fokus sempat settle (docs Hyprland).
     // =====================================================================
     property string pendingDispatch: ""
     function closeAndDispatch(cmd) {
@@ -312,7 +325,7 @@ Singleton {
     }
     Timer {
         id: dispatchDelay
-        interval: 120
+        interval: Settings.focusSettleDelayMs
         onTriggered: {
             if (root.pendingDispatch) {
                 Hyprland.dispatch(root.pendingDispatch);
@@ -320,8 +333,6 @@ Singleton {
             }
         }
     }
-
-
 
     function toggleClipboard() {
         if (clipboardOpen) { clipboardOpen = false; return; }
@@ -343,6 +354,30 @@ Singleton {
     // Implementasi ada di HyprlandOverviewService; UI tetap pakai Sys.hyprClients / Sys.hyprMonitors.
     HyprlandOverviewService { id: hyprOverview; active: root.launcherOpen }
     readonly property var hyprClients: hyprOverview.clients
+
+    // Window yang biasanya bisa membuka kamera (browser, meeting, perekam). Dipakai PrivacyService
+    // untuk memilih ritme cek: ada window seperti ini = cek cepat, tidak ada = cek lambat.
+    // Daftarnya sengaja longgar; window ini cuma "mungkin" memakai kamera, bukan bukti.
+    // Sumbernya Hyprland.toplevels (selalu hidup), BUKAN Sys.hyprClients — hyprClients cuma
+    // di-refresh saat launcher terbuka, jadi gate-nya akan selalu false kalau pakai itu.
+    //
+    // Kenapa regex-nya ditulis langsung di dalam binding, bukan property var terpisah:
+    // regex literal yang disimpan di property var bisa sampai ke binding sebagai nilai kosong,
+    // lalu .test() melempar dan hasil binding bool-nya jadi undefined — persis warning
+    // "Unable to assign [undefined] to bool" di log. Literal inline tidak lewat konversi itu.
+    // Loop gaya index + guard di awal: kalau Hyprland belum siap dan toplevels.values masih
+    // kosong/undefined, hasilnya tetap false yang sah, bukan error.
+    readonly property bool camWindowOpen: {
+        const tl = Hyprland.toplevels;                                  // dibaca di binding -> reaktif saat window buka/tutup
+        const list = (tl && tl.values) ? tl.values : [];
+        const re = /(chrome|chromium|brave|vivaldi|opera|edge|firefox|zen|zoom|teams|skype|discord|vesktop|webcord|slack|telegram|signal|obs|cheese|guvcview|kamoso)/i;
+        for (let i = 0; i < list.length; i++) {
+            const t = list[i];
+            const name = String((t && (t.class || t.title)) || "");
+            if (re.test(name)) return true;
+        }
+        return false;
+    }
     readonly property var hyprMonitors: hyprOverview.monitors
     function refreshHypr() { hyprOverview.refresh(); }
     onLauncherOpenChanged: if (launcherOpen) { refreshHypr(); calendarOpen = false; mediaOpen = false; cheatOpen = false; }
@@ -436,7 +471,7 @@ Singleton {
     }
     function applyNightLight() {
         Quickshell.execDetached(["bash", "-c",
-            "pidof hyprsunset >/dev/null || (hyprsunset >/dev/null 2>&1 &) ; sleep 0.4; hyprctl hyprsunset temperature " + (nightLight ? 4200 : 6500)]);
+            "pidof hyprsunset >/dev/null || (hyprsunset >/dev/null 2>&1 &) ; sleep 0.4; hyprctl hyprsunset temperature " + (nightLight ? Settings.nightLightKelvin : Settings.nightLightOffKelvin)]);
     }
     // toggle disimpan di ~/.local/state/macmono, dipulihkan saat shell start
     property bool togglesLoaded: false
@@ -506,7 +541,7 @@ Singleton {
     //  Bluetooth (data, scan, pairing ada di BluetoothService)
     //  Buka settings tetap di sini karena butuh termScript + closeCCQuiet().
     // =====================================================================
-    BluetoothService { id: btSvc }
+    BluetoothService { id: btSvc; pairTimeoutSec: Settings.btPairTimeoutSec }
     readonly property bool btAvailable: btSvc.btAvailable
     readonly property bool btOn: btSvc.btOn
     readonly property var btDevices: btSvc.btDevices
@@ -524,7 +559,7 @@ Singleton {
     }
 
     // =====================================================================
-    //  Lock screen (hyprlock dengan tema macmono)
+    //  Lock screen
     // =====================================================================
     // Lock native QML (lock/LockScreen.qml). lock/lock.sh (hyprlock) cuma cadangan
     // dari hypridle kalau qs lagi mati.
@@ -542,7 +577,7 @@ Singleton {
     }
 
     // =====================================================================
-    //  Screenshot ala end4: layar dibekukan dulu pakai grim (panel yang lagi
+    //  Screenshot: layar dibekukan dulu pakai grim (panel yang lagi
     //  kebuka ikut kerekam), lalu area dipilih di RegionSelector, crop pakai magick.
     //  Implementasinya ada di CaptureService; UI tetap pakai Sys.capturing /
     //  Sys.captureTargets / Sys.captureMode / Sys.finishCapture(), dst.
@@ -550,6 +585,7 @@ Singleton {
     CaptureService {
         id: captureSvc
         runtimeDir: root.runtimeDir
+        panelCloseDelayMs: Settings.panelCloseDelayMs
     }
     property alias capturing: captureSvc.capturing
     property alias capturePending: captureSvc.capturePending
@@ -640,8 +676,7 @@ Singleton {
     function loadWallpapers() { wallpaperSvc.loadWallpapers(); }
     function randomWallpaper() { wallpaperSvc.randomWallpaper(); }
     function thumbFor(path) { return wallpaperSvc.thumbFor(path); }
-    // Penyimpanan state kecil (~/.local/state/macmono) ada di StateStore;
-    // dulu perintah shell-nya diduplikasi di sini dan di WallpaperService.
+    // Penyimpanan state kecil (~/.local/state/macmono) ada di StateStore.
     function saveState(name, value) { stateStore.save(name, value); }
 
     // =====================================================================

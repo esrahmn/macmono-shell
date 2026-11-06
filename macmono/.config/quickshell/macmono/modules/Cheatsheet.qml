@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import "../core"
+import "../components"
 
 // Super+/ : daftar shortcut macmono. Esc atau klik di mana saja untuk tutup.
 Scope {
@@ -14,7 +15,7 @@ Scope {
             ["Ctrl + Super + Alt + T", "Random wallpaper"], ["Ctrl + Super + R", "Restart shell"] ] },
         { title: "Capture", items: [
             ["Super + Shift + S", "Screenshot area"], ["Print", "Screenshot full screen"],
-            ["Super + Shift + X", "Copy text (OCR)"], 
+            ["Super + Shift + X", "Copy text (OCR)"],
             ["Super + Shift + C", "Color picker"] ] },
         { title: "Windows", items: [
             ["Super + Q", "Close window"], ["Super + F", "Fullscreen"], ["Super + D", "Maximize"],
@@ -42,10 +43,11 @@ Scope {
             screen: modelData
 
             readonly property bool shown: Sys.cheatOpen && Sys.cheatScreen === modelData.name
-            property real anim: 0
-            Behavior on anim { SpringAnimation { spring: Theme.springStiff; damping: Theme.springDamp; epsilon: 0.001 } }
-            readonly property bool present: shown || anim > 0.002
-            onShownChanged: { if (shown) { anim = 1; keys.forceActiveFocus(); } else { anim = 0; } }
+            Reveal { id: reveal; open: win.shown }
+            readonly property real anim: reveal.progress
+            readonly property real closeHideThreshold: 0.03
+            readonly property bool present: shown || anim > closeHideThreshold
+            onShownChanged: if (shown) keys.forceActiveFocus()
 
             visible: present
             anchors { top: true; bottom: true; left: true; right: true }
@@ -70,8 +72,8 @@ Scope {
 
             Rectangle {
                 anchors.centerIn: parent
-                width: content.width + 48
-                height: content.height + 48
+                width: content.width + Theme.cheatsheetCardPadding * 2
+                height: content.height + Theme.cheatsheetCardPadding * 2
                 radius: Theme.radiusPanel
                 color: Theme.panel
                 border.width: Theme.borderThin
@@ -95,9 +97,9 @@ Scope {
                 }
 
                 Grid {
-                    columns: 3
-                    columnSpacing: 40
-                    rowSpacing: 26
+                    columns: Theme.cheatsheetColumns
+                    columnSpacing: Theme.cheatsheetColumnSpacing
+                    rowSpacing: Theme.cheatsheetRowSpacing
 
                     Repeater {
                         model: groups
@@ -105,13 +107,13 @@ Scope {
                             id: grp
                             required property var modelData
                             spacing: Theme.space8
-                            width: 340
+                            width: Theme.cheatsheetGroupWidth
 
                             Text {
                                 text: grp.modelData.title.toUpperCase()
                                 color: Theme.faint
                                 font.family: Theme.font; font.pixelSize: Theme.fontSmall; font.weight: Font.DemiBold
-                                font.letterSpacing: 1.2
+                                font.letterSpacing: Theme.cheatsheetSectionLetterSpacing
                             }
                             Repeater {
                                 model: grp.modelData.items
@@ -119,7 +121,7 @@ Scope {
                                     id: row
                                     required property var modelData
                                     width: grp.width
-                                    height: 24
+                                    height: Theme.cheatsheetRowHeight
                                     Row {
                                         id: caps
                                         anchors.verticalCenter: parent.verticalCenter
@@ -128,7 +130,9 @@ Scope {
                                             model: row.modelData[0].split(" + ")
                                             delegate: Rectangle {
                                                 required property string modelData
-                                                width: Math.max(22, capText.implicitWidth + 12); height: 22; radius: Theme.radiusKey
+                                                width: Math.max(Theme.cheatsheetKeycapMinWidth, capText.implicitWidth + Theme.cheatsheetKeycapPadding)
+                                                height: Theme.cheatsheetKeycapHeight
+                                                radius: Theme.radiusKey
                                                 color: Theme.tileMid
                                                 border.width: Theme.borderThin; border.color: Theme.lineStrong
                                                 Text {
