@@ -17,7 +17,8 @@ set -euo pipefail
 REPO_URL="https://github.com/esrahmn/macmono-shell.git"
 CLONE_DIR="${XDG_DATA_HOME:-$HOME/.local/share}/macmono-shell"
 CONFIG_DIR="${XDG_CONFIG_HOME:-$HOME/.config}"
-CONFIG_DIRS=(hypr quickshell)
+CONFIG_SOURCES=(hypr macmono)
+CONFIG_TARGETS=(hypr quickshell/macmono)
 TIMESTAMP="$(date +%Y%m%d-%H%M%S)"
 
 MODE="copy"
@@ -77,6 +78,10 @@ preflight() {
   command -v git >/dev/null 2>&1 || fail "git is required."
 }
 
+repo_has_configs() {
+  [[ -d "$1/macmono/config/hypr" && -d "$1/macmono/config/macmono" ]]
+}
+
 # Find the repo: next to this script, or clone it when run through curl.
 locate_repo() {
   local script_path="${BASH_SOURCE[0]:-}"
@@ -85,7 +90,7 @@ locate_repo() {
     script_dir="$(cd "$(dirname "$script_path")" && pwd)"
   fi
 
-  if [[ -n "$script_dir" && -d "$script_dir/macmono/.config" ]]; then
+  if [[ -n "$script_dir" ]] && repo_has_configs "$script_dir"; then
     REPO_DIR="$script_dir"
     return
   fi
@@ -99,7 +104,7 @@ locate_repo() {
   fi
   REPO_DIR="$CLONE_DIR"
 
-  [[ -d "$REPO_DIR/macmono/.config" ]] || fail "Cloned repository has no macmono/.config directory."
+  repo_has_configs "$REPO_DIR" || fail "Repository is missing macmono/config/hypr or macmono/config/macmono."
 }
 
 install_packages() {
@@ -147,9 +152,9 @@ enable_services() {
 }
 
 backup_existing() {
-  local name target
-  for name in "${CONFIG_DIRS[@]}"; do
-    target="$CONFIG_DIR/$name"
+  local relative target
+  for relative in "${CONFIG_TARGETS[@]}"; do
+    target="$CONFIG_DIR/$relative"
     if [[ -e "$target" || -L "$target" ]]; then
       mv "$target" "$target.bak-$TIMESTAMP"
       info "Backed up $target to $target.bak-$TIMESTAMP"
@@ -158,28 +163,34 @@ backup_existing() {
 }
 
 install_configs() {
-  local src_root="$REPO_DIR/macmono/.config"
+  local src_root="$REPO_DIR/macmono/config"
   mkdir -p "$CONFIG_DIR"
 
-  local name
-  for name in "${CONFIG_DIRS[@]}"; do
-    [[ -d "$src_root/$name" ]] || fail "Missing $src_root/$name in the repository."
+  local source relative
+  for source in "${CONFIG_SOURCES[@]}"; do
+    [[ -d "$src_root/$source" ]] || fail "Missing $src_root/$source in the repository."
   done
 
   backup_existing
 
-  for name in "${CONFIG_DIRS[@]}"; do
+  local index
+  for index in "${!CONFIG_SOURCES[@]}"; do
+    source="${CONFIG_SOURCES[$index]}"
+    relative="${CONFIG_TARGETS[$index]}"
+    mkdir -p "$(dirname "$CONFIG_DIR/$relative")"
     if [[ "$MODE" == "link" ]]; then
-      ln -s "$src_root/$name" "$CONFIG_DIR/$name"
-      info "Linked $CONFIG_DIR/$name -> $src_root/$name"
+      ln -s "$src_root/$source" "$CONFIG_DIR/$relative"
+      info "Linked $CONFIG_DIR/$relative -> $src_root/$source"
     else
-      cp -r "$src_root/$name" "$CONFIG_DIR/$name"
-      info "Copied $name to $CONFIG_DIR/$name"
+      cp -r "$src_root/$source" "$CONFIG_DIR/$relative"
+      info "Copied $source to $CONFIG_DIR/$relative"
     fi
   done
 
-  find -L "$CONFIG_DIR/quickshell/macmono" "$CONFIG_DIR/hypr/hyprland/scripts" \
-    -type f -name '*.sh' -exec chmod +x {} +
+  if [[ "$MODE" == "copy" ]]; then
+    find "$CONFIG_DIR/quickshell/macmono" "$CONFIG_DIR/hypr/hyprland/scripts" \
+      -type f -name '*.sh' -exec chmod +x {} +
+  fi
 }
 
 finish() {
@@ -199,7 +210,7 @@ main() {
   info "macmono installer (mode: $MODE)"
   (( INSTALL_DEPS )) && install_packages && enable_services
 
-  if ! confirm "Install configs into $CONFIG_DIR? Existing hypr/ and quickshell/ will be backed up."; then
+  if ! confirm "Install configs into $CONFIG_DIR? Existing hypr/ and quickshell/macmono/ will be backed up."; then
     fail "Aborted."
   fi
   install_configs

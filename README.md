@@ -18,26 +18,24 @@ Every color in this shell is pure gray (R=G=B), with no accent colors at all. Th
 
 ```
 macmono/
-└── .config/
+└── config/
     ├── hypr/
     │   ├── hyprland.lua
     │   ├── hyprland-gui.lua
     │   ├── hypridle.conf
     │   ├── hyprland/       # base config, library, and scripts
     │   └── custom/         # personal overrides
-    └── quickshell/
-        └── macmono/
-            ├── shell.qml   # entry point
-            ├── assets/     # images and other assets
-            ├── components/ # reusable UI components
-            ├── config/     # app-specific configuration
-            ├── core/       # Theme, Settings, Shortcuts, and Sys
-            ├── data/       # data files (e.g. emoji list)
-            ├── lock/       # lock screen and lock scripts/config
-            ├── modules/    # menu bar, launcher, control center, and UI modules
-            ├── scripts/    # recording, session, and thumbnail utilities
-            └── services/   # system and shell services
+    └── macmono/
+        ├── shell.qml       # Quickshell entry point
+        ├── core/           # settings, system facade, shortcuts, and theme
+        ├── features/       # launcher, control center, lock screen, and other UI
+        ├── shared/         # reusable components, services, and assets
+        ├── scripts/        # audio, capture, development, and session utilities
+        └── docs/           # audits and changelogs
 ```
+
+The installer maps `config/hypr/` to `~/.config/hypr/` and `config/macmono/` to
+`~/.config/quickshell/macmono/`.
 
 ## Features
 
@@ -50,7 +48,7 @@ macmono/
 - **Area screenshot** and **screen recording** (`wf-recorder`)
 - **Calendar**, **media popup**, keybind **cheatsheet**, and **power menu**
 - **Lock screen** (`hyprlock`) plus idle auto-lock (`hypridle`)
-- **Centralized theme**: all colors, radii, and font sizes live in `core/Theme.qml`
+- **Centralized theme**: all colors, radii, and font sizes live in `config/macmono/core/theme/Theme.qml`
 
 ## Base config
 
@@ -92,7 +90,10 @@ cd macmono-shell
 ./install.sh
 ```
 
-The script installs the dependencies with `pacman` (Arch / CachyOS), backs up your existing `~/.config/hypr` and `~/.config/quickshell` as `*.bak-<timestamp>`, then copies the configs in.
+The script installs the dependencies with `pacman` (Arch / CachyOS), backs up
+`~/.config/hypr` and `~/.config/quickshell/macmono` as
+`*.bak-<timestamp>`, then copies the configs in. Other Quickshell configs are
+left untouched.
 
 | Option            | Description                                                 |
 | ----------------- | ----------------------------------------------------------- |
@@ -115,19 +116,14 @@ Prefer to do it by hand? **Back up your existing config first.**
 git clone https://github.com/esrahmn/macmono-shell.git
 cd macmono-shell
 
-# back up
-mv ~/.config/hypr ~/.config/hypr.bak
-mv ~/.config/quickshell ~/.config/quickshell.bak
+# back up existing configs (if present)
+[ ! -e ~/.config/hypr ] || mv ~/.config/hypr ~/.config/hypr.bak
+[ ! -e ~/.config/quickshell/macmono ] || mv ~/.config/quickshell/macmono ~/.config/quickshell/macmono.bak
 
 # install
-cp -r macmono/.config/hypr ~/.config/
-cp -r macmono/.config/quickshell ~/.config/
-```
-
-Or use [GNU Stow](https://www.gnu.org/software/stow/) to symlink everything and make updates easy:
-
-```bash
-stow -t ~ macmono
+mkdir -p ~/.config/hypr ~/.config/quickshell
+cp -r macmono/config/hypr/. ~/.config/hypr/
+cp -r macmono/config/macmono ~/.config/quickshell/macmono
 ```
 
 Then log back into Hyprland, or launch the shell directly:
@@ -136,7 +132,9 @@ Then log back into Hyprland, or launch the shell directly:
 qs -c macmono
 ```
 
-> If you don't have end-4's config yet, `hypr/hyprland/` in this repo already ships the base config. If you already use end-4's dots, you only need to copy `hypr/custom/` and the `quickshell/macmono/` folder.
+> If you don't have end-4's config yet, `macmono/config/hypr/hyprland/` in this
+> repo already ships the base config. If you already use end-4's dots, copy
+> `macmono/config/hypr/custom/` and `macmono/config/macmono/`.
 
 ## Key bindings
 
@@ -156,15 +154,16 @@ qs -c macmono
 | `Ctrl + Super + R`    | Reload shell          |
 | `Ctrl + Alt + Delete` | Session / power menu  |
 
-The full list is in `hypr/hyprland/keybinds.lua`. Put personal keybinds in `hypr/custom/keybinds.lua`.
+The full list is in `macmono/config/hypr/hyprland/keybinds.lua`. Put personal
+keybinds in `macmono/config/hypr/custom/keybinds.lua`.
 
 ## Customization
 
-- **Appearance**: edit `quickshell/macmono/core/Theme.qml`, then reload with `Ctrl + Super + R`. Other QML files should just use `Theme.<name>`, so don't hardcode colors or sizes in components.
-- **Keybinds**: `hypr/custom/keybinds.lua`
-- **Autostart**: `hypr/custom/execs.lua`
-- **Window rules**: `hypr/custom/rules.lua`
-- **Variables**: `hypr/custom/variables.lua`
+- **Appearance**: edit `macmono/config/macmono/core/theme/Theme.qml`, then reload with `Ctrl + Super + R`. Other QML files should use `Theme.<name>` rather than hardcoding colors or sizes.
+- **Keybinds**: `macmono/config/hypr/custom/keybinds.lua`
+- **Autostart**: `macmono/config/hypr/custom/execs.lua`
+- **Window rules**: `macmono/config/hypr/custom/rules.lua`
+- **Variables**: `macmono/config/hypr/custom/variables.lua`
 
 ## Credits
 
@@ -186,8 +185,6 @@ macmono wouldn't exist without the work of these people and projects. Huge thank
 - [brightnessctl](https://github.com/Hummer12007/brightnessctl) by [@Hummer12007](https://github.com/Hummer12007): brightness control
 - [ImageMagick](https://imagemagick.org): image processing for screenshots and thumbnails
 - [PipeWire](https://pipewire.org), [NetworkManager](https://networkmanager.dev), [BlueZ](https://www.bluez.org), and [UPower](https://upower.freedesktop.org): audio, network, Bluetooth, and battery services
-- [GNU Stow](https://www.gnu.org/software/stow/): symlink management
-
 **Design inspiration**
 
 - macOS, for the menu bar, Control Center, and overall look and feel
