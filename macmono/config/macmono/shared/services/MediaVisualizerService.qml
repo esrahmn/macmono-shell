@@ -1,0 +1,33 @@
+import QtQuick
+import Quickshell
+import Quickshell.Io
+import Quickshell.Services.Mpris
+
+Item {
+    id: root
+
+    readonly property var activePlayer: Mpris.players.values.find(player => player.isPlaying) ?? null
+    readonly property bool active: activePlayer !== null
+    property bool enabled: true    // diisi Sys dari Settings.visualizerEnabled
+    property bool wanted: true     // bar atau popup butuh gelombang (diisi Sys)
+    property bool forceRun: false  // pratinjau di Settings > Sound: jalan walau tidak ada pemutar musik
+    property real gain: 1.0       // diisi Sys dari Settings.visualizerGain
+    property var levels: Array(32).fill(0)
+
+    function updateLevels(frame) {
+        const values = frame.trim().split(";").filter(value => value.length > 0).map(Number);
+        if (values.length !== levels.length || values.some(value => !Number.isFinite(value)))
+            return;
+        levels = values.map(value => Math.max(0, Math.min(1000, value * gain)));
+    }
+
+    Process {
+        id: cava
+        running: root.enabled && ((root.active && root.wanted) || root.forceRun)
+        command: ["cava", "-p", Quickshell.shellDir + "/features/media/config/cava-mini.conf"]
+        stdout: SplitParser {
+            onRead: line => root.updateLevels(line)
+        }
+        onRunningChanged: if (!running) root.levels = Array(32).fill(0)
+    }
+}

@@ -6,11 +6,8 @@ end
 
 local qsIpcCall = "qs -c $qsConfig ipc call"
 
---picture in picture mode
-hl.bind("SUPER + P", function()
-hl.dispatch(hl.dsp.window.float({ action = "toggle" }))
-hl.dispatch(hl.dsp.window.pin({ action = "toggle" }))
-end)
+--picture in picture mode (float aja, tanpa pin)
+hl.bind("SUPER + P", hl.dsp.window.float({ action = "toggle" }), { description = "Window: Toggle floating (PiP)" })
 
 hl.bind("SUPER + SUPER_L", hl.dsp.global("quickshell:searchToggleRelease"),
     { release = true, description = "Shell: Toggle search" })
@@ -33,6 +30,7 @@ hl.bind("SUPER + Slash", hl.dsp.global("quickshell:cheatsheetToggle"), { descrip
 hl.bind("SUPER + M", hl.dsp.global("quickshell:mediaControlsToggle"), { description = "Shell: Toggle media controls" })
 hl.bind("CTRL + ALT + Delete", hl.dsp.global("quickshell:sessionToggle"), { description = "Shell: Toggle session menu" })
 hl.bind("SUPER + J", hl.dsp.global("quickshell:barToggle"), { description = "Shell: Toggle bar" })
+hl.bind("SUPER + K", hl.dsp.global("quickshell:commandPaletteToggle"), { description = "Shell: Toggle command palette" })
 
 hl.bind("XF86MonBrightnessUp", hl.dsp.exec_cmd(qsIpcCall .. " brightness increment || brightnessctl s 5%+"),
     { locked = true, repeating = true })
@@ -158,8 +156,6 @@ hl.bind("SUPER + F", hl.dsp.window.fullscreen({ mode = "fullscreen", action = "t
     { description = "Window: Fullscreen" })
 hl.bind("SUPER + ALT + F", hl.dsp.window.fullscreen_state({ internal = 0, client = 3, action = "toggle" }),
     { description = "Window: Fullscreen spoof" })
-
-hl.bind("SUPER + P", hl.dsp.window.pin(), { description = "Window: Pin" })
 
 --#/# bind = SUPER+ALT, Hash,, -- Send to workspace -- (1, 2, 3,...)
 for i = 1, 10 do

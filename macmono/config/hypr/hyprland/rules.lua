@@ -110,15 +110,16 @@ hl.window_rule({
 
 -- Layer shell macmono (namespace bukan quickshell:*)
 local mmAll   = "^macmono:.*$"
-local mmBlur  = "^macmono:(menubar|cc|notif|calendar|media|launcher|clipboard|power|traymenu|cheatsheet|settings)$"
+local mmBlur  = "^macmono:(menubar|cc|notif|calendar|media|launcher|clipboard|power|traymenu|cheatsheet|settings|command-palette)$"
 local mmPanel = "^macmono:(menubar|cc|notif|calendar|media|cheatsheet|settings)$"
-local mmModal = "^macmono:(launcher|clipboard|power|traymenu)$"
+local mmModal = "^macmono:(launcher|clipboard|power|traymenu|command-palette)$"
 
 -- Animasi panel diurus QML; matikan animasi layer Hyprland biar blur tidak "nyangkut"
 hl.layer_rule({ match = { namespace = mmAll }, no_anim = true })
 -- xray bikin blur cuma nampilin wallpaper; pastikan mati untuk panel macmono
 hl.layer_rule({ match = { namespace = mmAll }, xray = false })
 
+-- Settings adalah panel kaca floating; blur berasal dari compositor, bukan efek QML.
 hl.layer_rule({ match = { namespace = mmBlur }, blur = true })
 hl.layer_rule({ match = { namespace = "^macmono:menubar$" }, blur_popups = true, ignore_alpha = 0.2 })
 hl.layer_rule({ match = { namespace = mmPanel }, ignore_alpha = 0.2 })
@@ -129,6 +130,3 @@ hl.layer_rule({ match = { namespace = "^macmono:power$" }, ignore_alpha = 0.0 })
 -- Floating window rata-rata di tengah (kecuali PiP)
 hl.window_rule({ match = { float = true }, center = true })
 hl.window_rule({ match = { title = "^(Picture-in-Picture)$" }, center = false })
-
--- Overview: window di workspace lain tetap render (video/game tidak "pause" saat peek)
-hl.window_rule({ match = { class = ".*" }, render_unfocused = true })

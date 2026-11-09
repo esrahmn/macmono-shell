@@ -33,3 +33,12 @@ end
 
 -- HyprMod managed settings
 require("hyprland-gui")
+
+-- macmono Settings > Display menulis file ini (paling akhir supaya menimpa setelan monitor lain)
+if is_file_exists(HOME .. "/.config/hypr/custom/macmono-generated.lua") then
+    require("custom.macmono-generated")
+end
+
+-- macmono Settings > Input menulis blok "input" di file yang sama (macmono-generated.lua),
+-- jadi nggak ada file generated kedua. Ini paling akhir: menimpa input lain termasuk HyprMod.
+-- (Blok itu sudah ikut ke-load oleh require("custom.macmono-generated") di atas.)
