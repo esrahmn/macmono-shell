@@ -1,16 +1,11 @@
 import QtQuick
 import "../../../core"
 
-// Footer "Reset page" di dasar halaman pengaturan yang punya draft.
-// Zona sendiri: jarak + garis tipis dari grup di atasnya, lalu satu baris (judul kiri, tombol kanan)
-// dan satu catatan akibat aksi. Dua ketukan, sama dengan Reset di Backup & Reset:
-// ketukan pertama "mempersenjatai" tombol (putih + "Tap again"), tidak diketuk lagi dalam
-// Theme.settingsConfirmMs -> kembali normal. Reset hanya mengisi draft, jadi tetap bisa dibatalkan (Cancel).
 Column {
     id: root
 
-    property int changedCount: 0     // jumlah opsi di halaman ini yang beda dari bawaan (draft ikut dihitung)
-    property string pageKey: ""      // id halaman; berganti halaman -> tombol dilepas
+    property int changedCount: 0
+    property string pageKey: ""
     signal confirmed()
 
     property bool armed: false
@@ -25,7 +20,6 @@ Column {
         onTriggered: root.armed = false
     }
 
-    // jarak + garis pemisah: zona ini tidak boleh terlihat sebagai lanjutan daftar pengaturan
     Item {
         width: root.width
         height: Theme.settingsGroupSpacing * 2

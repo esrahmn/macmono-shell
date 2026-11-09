@@ -9,6 +9,7 @@ Modular desktop shell built with Quickshell / Qt 6.12.
 - `features/` — feature-owned QML surfaces and their private components, scripts, config, and data.
 - `shared/` — reusable components, system services, and shared assets.
 - `scripts/` — session, capture, and development utilities.
+- `docs/` — migration audits and historical changelogs.
 
 ## Settings System
 

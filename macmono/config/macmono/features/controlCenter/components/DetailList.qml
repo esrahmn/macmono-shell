@@ -2,12 +2,10 @@ import QtQuick
 import "../../../core"
 import "../../../shared/components"
 
-// Daftar kecil yang muncul pas tile di-expand (jaringan wifi, perangkat bluetooth, output suara).
-// Tinggi dianimasikan (buka/tutup halus), jadi layout di bawahnya ikut bergeser mulus.
 Rectangle {
     id: root
     property bool open: false
-    property var items: []            // [{ label, sub, on, ref }]
+    property var items: []
     property string emptyText: "Nothing here"
     signal picked(var item)
 
@@ -19,7 +17,6 @@ Rectangle {
     visible: implicitHeight > 0.5
 
     radius: Theme.radiusCard
-    // Daftar = kotak cekung di dalam panel, bukan kartu terangkat: kontennya terasa masuk.
     color: Theme.well
     border.width: Theme.borderThin; border.color: Theme.cardStroke
     clip: true

@@ -1,15 +1,8 @@
 pragma Singleton
 
 import QtQuick
-import Quickshell   // `Singleton {}` (root object) berasal dari modul Quickshell, bukan QtQuick
+import Quickshell
 
-// Satu-satunya sumber daftar pintasan keyboard macmono.
-// Dipakai dua tempat: Cheatsheet (Super+/) dan halaman "Keyboard Shortcuts" di Pengaturan.
-// Dulu tabelnya cuma hidup di Cheatsheet; kalau ditulis ulang di Pengaturan, dua daftar
-// pasti mulai berbeda. Komentar keybind sebenarnya ada di config Hypr (keybinds.lua),
-// jadi kalau menambah bind baru, tambahkan satu baris di sini juga.
-//
-// Format tiap baris: [ "Modifier + Tombol", "Keterangan" ]
 Singleton {
     readonly property var groups: [
         { title: "Shell", items: [

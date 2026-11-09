@@ -2,22 +2,10 @@ import QtQuick
 import "../../../core"
 import "../../../shared/components"
 
-// Halaman Sound: output, input, dan volume per aplikasi.
-// Semua perubahan langsung berlaku (tanpa draft/Apply) karena yang diubah state PipeWire,
-// bukan nilai di settings.json. Logika device ada di shared/services/AudioService.qml;
-// halaman ini cuma memakai fasad Sys.* (sink, source, outputDevices, inputDevices, streams).
-//
-// Di bawahnya ada MUSIC VISUALIZER: pratinjau langsung + nyala/mati, tinggi, tempat tampil. Visualizer ditulis langsung ke settings.json lewat SettingsStore.apply, tanpa Apply.
-//
-// Pola tampilan sama dengan halaman Power dan Display: label KAPITAL, lalu kartu. Satu kartu = satu hal:
-//   OUTPUT / INPUT : nama perangkat aktif, persen + tombol bisu, slider penuh; kalau ada lebih dari
-//                    satu perangkat, daftar "Switch device" muncul di bawahnya (centang = yang dipakai)
-//   APPLICATIONS   : volume per aplikasi, satu baris per aplikasi
 Column {
     id: root
-    spacing: 0   // jarak antar grup diatur SectionLabel (topPadding), bukan Column
+    spacing: 0
 
-    // ---- komponen lokal ----
 
     component SectionLabel: SettingsText {
         property bool first: false
@@ -30,8 +18,6 @@ Column {
         leftPadding: Theme.settingsRowPadX
     }
 
-    // Tombol bisu berbentuk ikon (speaker / mic). Menggantikan saklar tanpa label yang
-    // artinya ambigu ("nyala" = bisu atau bersuara?). Redup + ikon coret = sedang bisu.
     component MuteButton: Rectangle {
         id: mb
         property bool muted: false
@@ -66,7 +52,6 @@ Column {
         }
     }
 
-    // Kartu: latar tile + garis tipis, isinya ditata ke bawah. Pola sama dengan halaman Power dan Display.
     component Card: Rectangle {
         default property alias content: body.data
         width: root.width
@@ -84,7 +69,6 @@ Column {
         }
     }
 
-    // Volume satu perangkat: nama di kiri, persen + tombol bisu di kanan, slider melebar penuh di bawahnya.
     component VolumeBlock: Column {
         id: vb
         property string title: ""
@@ -139,7 +123,6 @@ Column {
         }
     }
 
-    // Daftar perangkat untuk berpindah. Hanya tampil kalau ada lebih dari satu; yang aktif diberi centang.
     component DeviceList: Column {
         id: dl
         property var devices: []
@@ -194,7 +177,6 @@ Column {
         }
     }
 
-    // Keterangan kecil di bawah sekelompok baris.
     component Note: SettingsText {
         width: root.width
         topPadding: Theme.space8
@@ -208,7 +190,6 @@ Column {
 
     function setVis(key, value) { SettingsStore.apply(({ [key]: value }), []); }
 
-    // ---- output ----
 
     SectionLabel { first: true; text: "OUTPUT" }
 
@@ -227,10 +208,6 @@ Column {
             onPicked: (node) => Sys.setOutput(node)
         }
 
-        // Tes suara: diputar ke default sink (pw-play/paplay, lalu canberra/speaker-test).
-        // Selama berbunyi tombolnya jadi "Stop" putih: bunyi bisa dipotong kapan saja tanpa
-        // menunggu habis, dan ketukan ganda tidak menumpuk. `timeout` di AudioService memastikan
-        // tombol tidak bisa tertahan di "Stop" kalau pemutarnya macet.
         Column {
             width: parent.width
             spacing: Theme.space6
@@ -253,7 +230,6 @@ Column {
                 }
             }
 
-            // Keadaan, bukan petunjuk: hanya muncul kalau memang tidak ada pemutar suara.
             SettingsText {
                 visible: Sys.testSoundStatus === "failed"
                 width: parent.width
@@ -265,12 +241,9 @@ Column {
         }
     }
 
-    // ---- input ----
 
     SectionLabel { text: "INPUT" }
 
-    // Meter mikrofon: proses perekam (pw-record/parec) hanya hidup selama halaman ini tampil,
-    // sama seperti pratinjau visualizer di bawah. Lihat AudioService.meterScript.
     Binding { target: Sys; property: "soundMeterActive"; value: root.visible && Sys.settingsOpen }
 
     Card {
@@ -285,8 +258,6 @@ Column {
             onMuteClicked: Sys.setSourceMuted(!Sys.micMuted)
         }
 
-        // Level mikrofon yang sedang dipakai: rel tipis + persen. Disembunyikan kalau sistem
-        // tidak punya pw-record/parec (AudioService menandainya lewat meterAvailable).
         Column {
             visible: Sys.inputMeterAvailable
             width: parent.width
@@ -334,7 +305,6 @@ Column {
         }
     }
 
-    // ---- volume per aplikasi ----
 
     SectionLabel { text: "APPLICATIONS" }
 
@@ -400,12 +370,9 @@ Column {
         }
     }
 
-    // ---- visualizer musik ----
 
     SectionLabel { text: "MUSIC VISUALIZER" }
 
-    // Pratinjau langsung. Selama halaman ini terbuka, cava jalan terus (walau tidak ada pemutar
-    // musik) supaya suara apa pun yang keluar dari speaker kelihatan bergerak di sini.
     Binding { target: Sys; property: "visualizerPreview"; value: root.visible && Sys.settingsOpen }
 
     Rectangle {

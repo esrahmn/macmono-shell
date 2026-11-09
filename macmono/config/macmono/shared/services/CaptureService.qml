@@ -2,19 +2,13 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Screenshot pipeline: grim membekukan layar -> pemilih area di RegionSelector
-// -> crop pakai magick -> wl-copy (copy) atau tesseract (ocr).
-// State, Timer, dan Process-nya tinggal di sini; UI tetap memakai fasad Sys.capturing /
-// Sys.captureFile / Sys.captureTargets / Sys.captureMode / Sys.finishCapture().
 Scope {
     id: root
 
-    property int panelCloseDelayMs: 380   // diisi Sys dari Settings.panelCloseDelayMs
+    property int panelCloseDelayMs: 380
 
-    property string runtimeDir: ""      // diisi Sys: folder 0700 untuk file sementara
+    property string runtimeDir: ""
 
-    // Minta Sys memulai capture. Dipakai untuk mode closeFirst: layar fokus di-resolve
-    // pada saat itu juga, setelah panel benar-benar hilang dari layar.
     signal startRequested()
 
     function scheduleStart() {
@@ -22,16 +16,12 @@ Scope {
         delay.restart();
     }
 
-    // =====================================================================
-    //  Screenshot: layar dibekukan dulu pakai grim (panel yang lagi
-    //  kebuka ikut kerekam), lalu area dipilih di RegionSelector, crop pakai magick.
-    // =====================================================================
-    property bool capturing: false      // RegionSelector lagi tampil
-    property bool capturePending: false // grim lagi jalan
+    property bool capturing: false
+    property bool capturePending: false
     property string captureScreen: ""
-    property string captureMode: "copy" // "copy" | "ocr"
+    property string captureMode: "copy"
     property string captureFile: ""
-    property var captureTargets: ({})   // hasil hyprctl: { clients, monitors, layers }
+    property var captureTargets: ({})
 
     function startCapture(screenName) {
         if (capturing || capturePending) return;
@@ -45,7 +35,6 @@ Scope {
         captureFile = runtimeDir + "/shot-" + captureScreen + ".png";
         capturePending = true;
         targetsGet.running = true;
-        // umask 077 -> folder 0700 dan file 0600
         grimProc.exec(["sh", "-c",
             "umask 077; mkdir -p \"$1\" && exec grim -o \"$2\" \"$3\"",
             "sh", runtimeDir, captureScreen, captureFile]);
@@ -54,7 +43,6 @@ Scope {
         capturing = false;
         Quickshell.execDetached(["rm", "-f", captureFile]);
     }
-    // x, y, w, h dalam piksel fisik (sudah dikali scale monitor)
     function finishCapture(x, y, w, h) {
         capturing = false;
         if (w < 2 || h < 2) { cancelCapture(); return; }
@@ -78,7 +66,7 @@ Scope {
               "else notify-send -a Screenshot -u critical 'Screenshot saved' \"Could not copy to clipboard: $out\"; fi"
         Quickshell.execDetached(["bash", "-c", script, "bash", captureFile, geo]);
     }
-    Timer { id: delay; interval: root.panelCloseDelayMs; onTriggered: root.startRequested() }   // tunggu animasi tutup panel selesai (shared/components/Reveal.qml)
+    Timer { id: delay; interval: root.panelCloseDelayMs; onTriggered: root.startRequested() }
     Process {
         id: grimProc
         onExited: (code) => {

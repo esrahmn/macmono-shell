@@ -1,7 +1,4 @@
 #!/bin/sh
-# macmono: logout bertahap, dengan log di ~/.local/state/macmono/session.log
-# 1) tutup semua window pelan-pelan  2) Hyprland exit
-# 3) loginctl terminate-session (BUKAN terminate-user)  4) pkill
 log="$HOME/.local/state/macmono/session.log"
 mkdir -p "$(dirname "$log")"
 exec >>"$log" 2>&1
@@ -10,8 +7,6 @@ echo "XDG_SESSION_ID=$XDG_SESSION_ID HYPRLAND_INSTANCE_SIGNATURE=$HYPRLAND_INSTA
 
 alive() { pgrep -x Hyprland >/dev/null 2>&1; }
 
-# Cara yang disarankan wiki Hyprland: hyprshutdown minta aplikasi keluar dengan rapi, baru keluar dari Hyprland.
-# Kalau nggak terpasang atau macet lebih dari 20 detik, lanjut ke langkah bertahap di bawah.
 if command -v hyprshutdown >/dev/null 2>&1; then
     echo "step 0: hyprshutdown"
     hyprshutdown >/dev/null 2>&1
@@ -19,7 +14,7 @@ if command -v hyprshutdown >/dev/null 2>&1; then
         alive || { echo "hyprland exited via hyprshutdown"; exit 0; }
         sleep 0.2
     done
-    echo "hyprshutdown timeout, lanjut fallback"
+    echo "hyprshutdown timed out, falling back"
 fi
 
 echo "step 1: close windows"

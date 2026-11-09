@@ -2,18 +2,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Info sistem untuk halaman About di Pengaturan.
-//
-// Quickshell TIDAK punya singleton `SystemInfo` (yang ada cuma `SystemClock` —
-// lihat daftar tipe modul Quickshell core), jadi datanya dibaca langsung dari OS:
-//   /etc/os-release  -> nama OS       (PRETTY_NAME, fallback NAME)
-//   uname -r         -> versi kernel
-//   uname -m         -> arsitektur
-//   /proc/uptime     -> uptime (detik) saat dibaca
-//
-// Keempat proses jalan sekali saat shell start, lalu berhenti. Uptime tidak di-poll:
-// nilainya dihitung dari selisih jam terhadap `bootStamp`, jadi tetap akurat tanpa proses
-// tambahan (dan tanpa timer yang bangun tiap detik).
 Scope {
     id: root
 
@@ -21,15 +9,10 @@ Scope {
     property string kernelVersion: ""
     property string architecture: ""
 
-    // Uptime (detik) sebagai FUNGSI, bukan property: property di QML menghitung sekali
-    // lalu menyimpan hasilnya, jadi angka uptime akan membeku. Dipanggil ulang tiap 30 detik
-    // oleh baris About.
     function uptimeSeconds() {
         return boot > 0 ? boot + Math.max(0, (Date.now() - bootStamp) / 1000) : 0;
     }
 
-    // Detail komputer (model, CPU, GPU, RAM, disk, versi Hyprland/Quickshell). Dibaca sekali oleh
-    // scripts/session/system-info.sh, baru saat halaman About pertama dibuka (bukan saat shell start).
     property var details: ({})
     property bool detailsRequested: false
     function loadDetails() {
@@ -51,10 +34,9 @@ Scope {
         stdout: StdioCollector { onStreamFinished: root.details = root.parseDetails(text) }
     }
 
-    property real boot: 0        // uptime (detik) saat /proc/uptime dibaca
-    property real bootStamp: 0   // Date.now() pada saat yang sama
+    property real boot: 0
+    property real bootStamp: 0
 
-    // PRETTY_NAME="Arch Linux" -> "Arch Linux"; kalau tak ada, pakai NAME.
     function parseOsRelease(text) {
         let name = "";
         for (const line of String(text).split("\n")) {

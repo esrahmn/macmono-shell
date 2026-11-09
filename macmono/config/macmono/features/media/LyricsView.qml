@@ -16,9 +16,8 @@ Item {
     property int requestGeneration: 0
     property string requestStage: ""
     property bool retryAvailable: false
-    // SISTEM AUTO-RETRY OTOMATIS
     property int retryCount: 0
-    readonly property int maxRetries: 3 // Batas maksimal paksa cari ulang
+    readonly property int maxRetries: 3
 
     MediaClock { id: clock; player: root.player; active: root.active }
 
@@ -87,13 +86,12 @@ Item {
         lyricsProcess.running = true;
     }
 
-    // Fungsi baru untuk menangani kegagalan jaringan & memicu auto-retry
     function handleNetworkFailure() {
         requestTimeout.stop();
         if (retryCount < maxRetries) {
             retryCount++;
             status = "Connection failed. Retrying in 3s (" + retryCount + "/" + maxRetries + ")…";
-            autoRetryTimer.start(); // Jeda 3 detik sebelum nembak API lagi agar tidak rate-limit
+            autoRetryTimer.start();
         } else {
             finishLookupError();;
         }
@@ -231,7 +229,6 @@ Item {
             activeLine = -1;
             return;
         }
-        // Offset tipis untuk kompensasi latensi D-Bus Mpris (Settings.lyricsLeadSeconds)
         const position = clock.sample() + Settings.lyricsLeadSeconds;
         let low = 0;
         let high = lines.length - 1;
@@ -248,8 +245,6 @@ Item {
         activeLine = match;
     }
 
-    // Baris aktif ditaruh di tengah, tapi nggak pernah scroll lewat batas atas/bawah daftar,
-    // jadi baris-baris awal tetap nempel di atas (nggak ada ruang kosong di atas lirik).
     function scrollToActive(animate) {
         if (lines.length === 0)
             return;
@@ -313,18 +308,16 @@ Item {
         }
     }
 
-    // Timer jeda untuk Auto-Retry agar tidak rate-limit API
     Timer {
         id: autoRetryTimer
         interval: Settings.lyricsRetryDelayMs
         repeat: false
         onTriggered: {
-            root.requestedTrack = ""; // Paksa reset trackKey state agar mau hit ulang
+            root.requestedTrack = "";
             root.loadLyrics();
         }
     }
 
-    // Sinkronisasi lirik: seberapa sering baris aktif diperbarui (Settings.lyricsSyncIntervalMs)
     Timer {
         interval: Settings.lyricsSyncIntervalMs
         repeat: true
@@ -334,8 +327,6 @@ Item {
         }
     }
 
-    // Timer di atas berhenti saat pause. Baris aktif tetap diperbarui tiap jam selesai baca
-    // posisi (setelah pause, seek, atau ganti lagu).
     Connections {
         target: clock
         function onPolled() { root.updateActiveLine(); }
@@ -343,7 +334,6 @@ Item {
 
     Component.onCompleted: loadLyrics()
 
-    // ---- daftar lirik: animasi lama (scrollToActive + ganti warna/ukuran baris aktif)
     ListView {
         id: lyricList
         anchors.fill: parent
@@ -354,7 +344,6 @@ Item {
         model: root.lines
         boundsBehavior: Flickable.StopAtBounds
         visible: root.lines.length > 0
-        // Scroll diatur manual (scrollToActive), bukan highlight range bawaan ListView.
         highlightRangeMode: ListView.NoHighlightRange
         NumberAnimation { id: scrollAnim; target: lyricList; property: "contentY"; duration: Theme.animScroll; easing.type: Theme.easeOut }
         delegate: Text {
@@ -374,7 +363,6 @@ Item {
         }
     }
 
-    // ---- status kosong: mencari, tidak ketemu, retry
     Text {
         anchors.fill: parent
         visible: root.lines.length === 0

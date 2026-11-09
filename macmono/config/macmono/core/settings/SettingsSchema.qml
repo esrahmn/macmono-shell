@@ -3,27 +3,6 @@ pragma Singleton
 import QtQuick
 import Quickshell
 
-// ============================================================================
-//  SETTINGSSCHEMA macmono: daftar halaman dan kontrol di aplikasi Pengaturan Sistem.
-//
-//  Tiap item: { key, label, desc?, type, def, ... }
-//    type "slider"  : min, max, step, fmt
-//    type "stepper" : min, max, step
-//    type "toggle"  : boolean
-//    type "chips"   : daftar; mono (font monospasi), num (hanya angka)
-//    live: true     : bukan nilai Settings; membaca Sys[key] dan memanggil Sys[liveAction]()
-//    preview (di grup)      : nama pratinjau yang digambar tepat di atas baris grup itu (lihat SettingsPanel):
-//                             touchpad | pointer | keyboard | night | sleep | alert
-//    sync: "input" | "idle" : setelah Apply, SettingsPanel memanggil Sys.hyprSync untuk menulis
-//                             config Hyprland (input) atau hypridle (idle).
-//  Opsi timing/guard/debounce sengaja TIDAK ditampilkan di sini (user nggak butuh); nilainya tetap
-//  ada di Settings.qml dan bisa diubah lewat ~/.config/macmono/settings.json.
-//
-//  `def` HARUS sama dengan nilai bawaan di core/settings/Settings.qml (dipakai tombol "Bawaan").
-//  Cek kecocokannya: python3 scripts/check-settings-defaults.py
-//  Menambah opsi baru: tambah properti di Settings.qml (dibungkus SettingsStore.v),
-//  lalu tambah satu baris item di sini.
-// ============================================================================
 Singleton {
     id: root
 
@@ -37,7 +16,7 @@ Singleton {
 
     function format(item, v) {
         switch (item.fmt) {
-        case "factor": return Number(v).toFixed(2);   // nilai 0..1 sebagai angka (0.60), supaya langkah 1% kelihatan
+        case "factor": return Number(v).toFixed(2);
         case "pct":    return Math.round(v * 100) + "%";
         case "pctInt": return Math.round(v) + "%";
         case "x":      return Number(v).toFixed(2) + "×";
@@ -53,8 +32,6 @@ Singleton {
         }
     }
 
-    // Jumlah item yang benar-benar bisa diubah; dipakai halaman About supaya angkanya tidak dihitung manual di QML.
-    // Baris read-only (info/action) tidak ikut dihitung.
     readonly property int settingCount: {
         let n = 0;
         for (const p of pages)
@@ -98,10 +75,8 @@ Singleton {
                 { key: "inputKbVariants", label: "Layout variants", desc: "Optional. One variant per layout, same order. Leave empty for the standard layout.", type: "chips", mono: true, def: [], sync: "input" },
                 { key: "inputKbOptions", label: "Layout options", desc: "Optional extras. For example grp:alt_shift_toggle lets you switch layouts with Alt+Shift.", type: "chips", mono: true, def: [], sync: "input" } ] } ] },
 
-        // Halaman tanpa item schema: `sound: true` dirender SettingsSound (output, input, volume per aplikasi).
         { id: "sound", label: "Sound", icon: "volume", desc: "Output, input, per-app volume and music visualizer", sound: true, groups: [] },
 
-        // Halaman tanpa item schema: `eq: true` dirender SettingsEqualizer (10 band + kurva respons, via Easy Effects).
         { id: "eq", label: "Equalizer", icon: "eq", desc: "Adjust bass, voice and treble for all system sound", eq: true, groups: [] },
 
         { id: "weather", label: "Location & Weather", icon: "pin", desc: "Choose the city and temperature units used by weather", weather: true, groups: [] },
@@ -111,15 +86,10 @@ Singleton {
                 { key: "wallpaperDirs", label: "Wallpaper folders", desc: "Folders searched for wallpapers. Type a path and press Enter. Folders higher in the list come first.", type: "chips", mono: true,
                   def: ["~/Pictures/Wallpapers", "~/Pictures", "~/Wallpapers", "~/.local/share/backgrounds", "/usr/share/backgrounds", "/usr/share/wallpapers"] } ] } ] },
 
-        // Halaman tanpa item schema: `notifications: true` dirender SettingsNotifications
-        // (jadwal DND + mute per aplikasi). notifDefaultTimeoutMs tetap ada di Settings.qml
-        // sebagai knob developer dan sengaja tidak tampil lagi di UI.
         { id: "notif", label: "Notifications", icon: "bell", desc: "Do Not Disturb schedule and per-application mute", notifications: true, groups: [] },
 
-        // Halaman tanpa item schema: `backup: true` dirender SettingsBackup.
         { id: "backup", label: "Backup & Reset", icon: "archive", desc: "Save or restore your settings", backup: true, groups: [] },
 
-        // Halaman tanpa item schema: `apps: true` dirender SettingsApps (autostart XDG).
         { id: "apps", label: "Apps & Startup", icon: "apps", desc: "Applications that start with your session", apps: true, groups: [] },
 
         { id: "power", label: "Power & Battery", icon: "bolt", desc: "Screen lock, sleep and battery warnings", power: true, groups: [
@@ -131,10 +101,8 @@ Singleton {
                 { key: "batteryWarnLevels", label: "Low battery alert levels", desc: "Show a warning when the battery drops to each of these percentages.", type: "chips", num: true, def: [5, 10, 20] },
                 { key: "batteryCriticalLevel", label: "Critical battery level", desc: "At or below this level, battery warnings become urgent.", type: "slider", min: 3, max: 30, step: 1, def: 10, fmt: "pctInt" } ] } ] },
 
-        // Pintasan memakai sumber data yang sama dengan Cheatsheet.
         { id: "keys", label: "Keyboard Shortcuts", icon: "command", desc: "View MacMono keyboard shortcuts", keys: true, groups: [] },
 
-        // Halaman tanpa item schema: `about: true` dirender SettingsAbout (ringkasan komputer, tanpa path).
         { id: "about", label: "About MacMono", icon: "enso", desc: "Computer model, processor, memory, system and software versions", about: true, groups: [] }
     ]
 }

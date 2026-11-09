@@ -1,19 +1,9 @@
 import QtQuick
 import "../../../core"
 
-// Halaman Notifications: pratinjau notifikasi, Do Not Disturb (manual + jadwal + garis waktu 24 jam),
-// aplikasi yang dibisukan (dengan saran dari notifikasi terakhir), dan riwayat notifikasi.
-// Nilai disimpan langsung ke settings.json (tanpa draft/Apply), sama seperti halaman Weather.
-// Penegakan mute ada di features/notifications/Notifs.qml, jadwalnya di
-// shared/services/DndSchedule.qml. Lama tampil notifikasi (notifDefaultTimeoutMs)
-// sengaja tidak lagi tampil di sini: itu knob timing buat developer.
-//
-// Tampilan memakai SettingsRow yang sama dengan grup schema: tanpa kartu, hairline di atas
-// latar transparan, judul di kiri dan kontrol di kanan. Jam jendela ditampilkan sebagai
-// `valueText` baris Schedule, bukan sebagai baris teks tambahan (R5).
 Column {
     id: root
-    spacing: 0   // jarak antar grup diatur SectionLabel, bukan Column (kalau tidak, tiap baris ikut renggang)
+    spacing: 0
 
     function hhmm(minutes) {
         const m = Math.max(0, Math.min(24 * 60 - 1, Math.round(Number(minutes) || 0)));
@@ -22,7 +12,6 @@ Column {
     function setStart(v) { SettingsStore.apply({ dndStartMin: v }, []); }
     function setEnd(v) { SettingsStore.apply({ dndEndMin: v }, []); }
 
-    // Aplikasi yang baru mengirim notifikasi dan belum dibisukan (maks. 6), jadi bisa di-tap tanpa mengetik.
     readonly property var recentApps: {
         const seen = {};
         const out = [];
@@ -41,8 +30,6 @@ Column {
     property bool confirmClear: false
     Timer { id: confirmTimer; interval: Theme.settingsConfirmMs; onTriggered: root.confirmClear = false }
 
-    // Label grup. Baris di bawahnya menempel (tanpa jarak), persis seperti grup di halaman Appearance:
-    // jarak antar grup = topPadding label (kecuali yang pertama), jarak label -> baris = bottomPadding.
     component SectionLabel: SettingsText {
         property bool first: false
         topPadding: first ? 0 : Theme.settingsGroupSpacing
@@ -54,7 +41,6 @@ Column {
         leftPadding: Theme.settingsRowPadX
     }
 
-    // ---- jadwal DND ----
 
     SettingsNotifPreview {
         width: root.width
@@ -113,8 +99,6 @@ Column {
                 onMoved: (v) => root.setStart(v * 60 + (Settings.dndStartMin % 60))
             }
             SettingsText {
-                // Row tidak boleh memakai anchors; tinggi eksplisit + alineasi vertikal teks
-                // membuat titik dua sejajar dengan stepper di kiri-kanannya.
                 height: Theme.settingsStepperHeight
                 verticalAlignment: Text.AlignVCenter
                 text: ":"
@@ -154,11 +138,8 @@ Column {
         }
     }
 
-    Item { width: 1; height: Theme.settingsGroupSpacing }   // jarak antar grup (baris ini tidak punya label)
+    Item { width: 1; height: Theme.settingsGroupSpacing }
 
-    // ---- aplikasi yang dibisukan ----
-    // Tanpa label KAPITAL tambahan: judul barisnya sendiri sudah menjadi judul bagian,
-    // dan menaruh keduanya membuat kata yang sama tertulis dua kali.
     SettingsRow {
         width: root.width
         stacked: true
@@ -170,7 +151,6 @@ Column {
         }
     }
 
-    // Saran: aplikasi yang baru mengirim notifikasi. Tap untuk membisukan.
     Column {
         visible: root.recentApps.length > 0
         x: Theme.settingsRowPadX
@@ -204,7 +184,6 @@ Column {
         font.pixelSize: Theme.fontBody
     }
 
-    // ---- riwayat ----
 
     SectionLabel { text: "HISTORY" }
 

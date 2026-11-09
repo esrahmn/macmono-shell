@@ -6,7 +6,6 @@ import "../../core"
 import "../../shared/components"
 import "components"
 
-// Popup media berisi kontrol playback dan lirik tersinkron.
 Scope {
     Variants {
         model: Quickshell.screens
@@ -22,8 +21,6 @@ Scope {
             readonly property bool present: reveal.present
             onShownChanged: { if (shown) keys.forceActiveFocus(); }
 
-            // Window penuh di bawah bar; klik di luar kartu = tutup (pola ControlCenter, tanpa
-            // HyprlandFocusGrab). Saat menutup cuma area kartu yang menangkap klik.
             visible: present
             anchors { top: true; bottom: true; left: true; right: true }
             margins { top: Theme.barMargin + Theme.barHeight }
@@ -33,11 +30,8 @@ Scope {
             color: Theme.transparent
             WlrLayershell.namespace: "macmono:media"
             WlrLayershell.layer: WlrLayer.Overlay
-            // Exclusive supaya spasi / panah / Esc langsung jalan tanpa harus klik kartu dulu
-            // (dulu fokus datang dari HyprlandFocusGrab).
             WlrLayershell.keyboardFocus: (shown && !Sys.capturing) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-            // Klik di luar kartu = tutup. Dimatiin selama screenshot (pemilih area).
             MouseArea {
                 anchors.fill: parent
                 acceptedButtons: Qt.AllButtons
@@ -47,7 +41,6 @@ Scope {
 
             property int playerIndex: -1
             readonly property var p: Sys.mediaPlayer(Mpris.players.values, playerIndex)
-            // Spasi = play/pause, ←/→ = prev/next, Esc = tutup
             Item {
                 id: keys
                 focus: true
@@ -70,13 +63,10 @@ Scope {
                 color: Theme.panel
                 border.width: Theme.borderThin
                 border.color: Theme.line
-                // laci: kartu keluar dari tepi bawah bar
                 transform: Translate { y: -(card.height + Theme.drawerGap) * (1 - Math.min(1, win.anim)) }
 
-                // klik di bagian kartu yang kosong jangan tembus ke penangkap klik di bawahnya
                 MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; z: -1 }
 
-                // cava: area gunung di dasar kartu, di belakang konten
                 CavaWave {
                     anchors {
                         left: parent.left

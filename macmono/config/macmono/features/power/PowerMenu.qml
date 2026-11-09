@@ -4,8 +4,6 @@ import Quickshell.Wayland
 import "../../core"
 import "../../shared/components"
 
-// Menu power layar penuh (pengganti wlogout): Lock, Sleep, Log out, Restart, Shut down.
-// Tombol cepat: L / S / O / R / P, panah + Enter, Esc untuk batal.
 Scope {
     Variants {
         model: Quickshell.screens
@@ -18,7 +16,7 @@ Scope {
             readonly property bool shown: Sys.powerOpen && Sys.powerScreen === modelData.name
             property real anim: 0
             property int sel: 2
-            Behavior on anim { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }   // fade saja
+            Behavior on anim { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
             readonly property bool present: shown || anim > 0.002
 
             visible: present

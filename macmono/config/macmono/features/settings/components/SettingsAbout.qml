@@ -5,30 +5,20 @@ import Quickshell
 import Quickshell.Io
 import "../../../core"
 
-// Halaman About: ringkasan komputer untuk pengguna (bukan info developer).
-//   Hero     : laptop (bezel, kamera, alas dengan lekukan jari) dengan wallpaper aktif di layarnya + nama komputer + aksi
-//   Hardware : kartu 2x2, strukturnya sama: label / nilai / keterangan (penyimpanan ditambah bar pemakaian)
-//   Software : tumpukan lapisan, dari MacMono (paling terang) turun ke sistem dasar; tiap baris melebar saat
-//              di-hover dan bisa diklik untuk menyalin versinya
-// Path file dan angka internal sengaja tidak ditampilkan. Detail dibaca sekali dari
-// Sys.systemDetails (scripts/session/system-info.sh) saat halaman ini pertama dibuka.
-// Semua ukuran khusus halaman ini ada di Theme.qml bagian "Halaman About" (token about*).
 Column {
     id: root
     spacing: 0
 
     readonly property var d: Sys.systemDetails
-    property int tick: 0          // alasan teks uptime dihitung ulang; naik tiap 30 dtk selama halaman terbuka
+    property int tick: 0
     property bool copied: false
 
     onVisibleChanged: if (visible) Sys.loadSystemDetails()
     Timer { interval: 30000; repeat: true; running: root.visible && Sys.settingsOpen; onTriggered: root.tick++ }
     Timer { id: copiedTimer; interval: 1600; onTriggered: root.copied = false }
 
-    // ---- teks turunan ----
 
     function clean(s) { return String(s ?? "").trim(); }
-    // Vendor/produk bawaan pabrik yang tidak berguna ("To be filled by O.E.M." dsb) dianggap kosong.
     function junk(s) { return /o\.e\.m|default string|system (manufacturer|product)|not specified|^none$/i.test(s); }
 
     readonly property string computerName: {
@@ -50,17 +40,11 @@ Column {
         return c > 0 ? c : 0;
     }
 
-    // Keterangan kartu prosesor: "6 cores · 12 threads" (atau hanya thread kalau jumlah core tidak terbaca).
     readonly property string cpuSub: cpuCores > 0 && cpuThreads > 0 ? cpuCores + " cores · " + cpuThreads + " threads"
                                    : cpuThreads > 0 ? cpuThreads + " threads" : ""
 
-    // Satu baris untuk laporan "Copy system info"; kartu di layar memisahkan nama dan keterangan.
     readonly property string processor: cpuName === "" ? "" : (cpuSub !== "" ? cpuName + " · " + cpuSub : cpuName)
 
-    // ---- grafis ----
-    // lspci memberi nama kode ("AMD Barcelo"), bukan nama yang dikenal pengguna. Urutannya:
-    //   1) ada nama dagang di dalam [...] -> pakai itu ("NVIDIA GeForce RTX 4060 Max-Q / Mobile")
-    //   2) hanya nama kode               -> "AMD Radeon Graphics" / "Intel Graphics"
     readonly property string gpuRaw: clean(d.gpu)
         .replace("Advanced Micro Devices, Inc. [AMD/ATI]", "AMD")
         .replace("NVIDIA Corporation", "NVIDIA")
@@ -80,8 +64,6 @@ Column {
         return gpuRaw;
     }
 
-    // Perkiraan iGPU vs diskrit (tidak ada flag resmi di sysfs untuk ini):
-    //   NVIDIA = diskrit; Intel = iGPU kecuali Arc/DG; AMD = iGPU kalau CPU-nya APU ("with Radeon Graphics") dan GPU-nya bukan RX/Pro.
     readonly property bool gpuIntegrated: {
         if (gpuVendor === "NVIDIA") return false;
         if (gpuVendor === "Intel") return !/\barc\b|\bDG[12]\b|alchemist|battlemage/i.test(gpuRaw);
@@ -89,7 +71,6 @@ Column {
         return false;
     }
 
-    // iGPU memakai RAM sistem, jadi tidak ada angka VRAM yang jujur untuk ditampilkan; diskrit menampilkan VRAM-nya.
     readonly property string graphicsSub: {
         if (graphics === "") return "";
         if (gpuIntegrated) return "Integrated · shares system memory";
@@ -97,9 +78,6 @@ Column {
         return gb > 0 ? "Discrete · " + gb + " GB" : "Discrete";
     }
 
-    // ---- memori ----
-    // MemTotal selalu lebih kecil dari RAM terpasang (sebagian dipakai kernel/firmware). Ukuran terpasang
-    // diperkirakan dari ukuran standar terdekat di atasnya: 15 GB terbaca -> 16 GB terpasang.
     readonly property real memUsableGb: {
         const kb = parseInt(d.memkb);
         return kb > 0 ? kb / 1048576 : 0;
@@ -115,17 +93,14 @@ Column {
     readonly property string memory: memInstalledGb > 0 ? memInstalledGb + " GB" : ""
     readonly property string memorySub: memInstalledGb > 0 && Math.round(memUsableGb) !== memInstalledGb ? Math.round(memUsableGb) + " GB usable" : ""
 
-    // ---- penyimpanan ----
     readonly property var diskParts: clean(d.disk).split(" ")
     readonly property real diskTotalKb: parseInt(diskParts[0]) || 0
     readonly property real diskUsedKb: parseInt(diskParts[1]) || 0
     function diskGb(kb) { return Math.round(kb * 1024 / 1e9); }
 
-    // Bagian terpakai 0..1 untuk bar penyimpanan; -1 kalau datanya tidak ada (bar disembunyikan).
     readonly property real storageRatio: diskTotalKb > 0 ? Math.min(1, diskUsedKb / diskTotalKb) : -1
     readonly property string storageTotal: diskTotalKb > 0 ? diskGb(diskTotalKb) + " GB" : ""
     readonly property string storageSub: diskTotalKb > 0 ? diskGb(diskUsedKb) + " GB used · " + Math.round(storageRatio * 100) + "%" : ""
-    // Untuk laporan "Copy system info".
     readonly property string storage: diskTotalKb > 0 ? diskGb(diskUsedKb) + " GB used of " + diskGb(diskTotalKb) + " GB" : ""
 
     readonly property string hyprVersion: {
@@ -152,8 +127,6 @@ Column {
         return "less than a minute";
     }
 
-    // Kartu hardware. Semua kartu punya struktur yang sama (label, nilai besar, keterangan kecil);
-    // penyimpanan menambah bar pemakaian di bawahnya.
     readonly property var statCells: [
         { label: "Processor", value: cpuName, sub: cpuSub, ratio: -1 },
         { label: "Graphics", value: graphics, sub: graphicsSub, ratio: -1 },
@@ -161,7 +134,6 @@ Column {
         { label: "Storage", value: storageTotal, sub: storageSub, ratio: storageRatio }
     ].filter(c => c.value !== "")
 
-    // Lapisan software, dari yang paling dekat dengan pengguna (atas) ke dasar (bawah).
     readonly property var layers: [
         { name: "MacMono", value: "Shell", copy: shell },
         { name: "Quickshell", value: qsVersion, copy: "Quickshell " + qsVersion },
@@ -170,7 +142,6 @@ Column {
           copy: String(Sys.osName ?? "") + ", Linux " + clean(Sys.kernelVersion) }
     ].filter(l => l.name !== "" && (l.name === "MacMono" || l.value !== ""))
 
-    // Dipakai laporan "Copy system info" (apa yang tampil di halaman ini, tanpa path).
     readonly property var hardwareRows: [
         { label: "Processor", value: processor },
         { label: "Graphics", value: graphics },
@@ -200,7 +171,6 @@ Column {
         copiedTimer.restart();
     }
 
-    // Salin versi dari satu baris Software (klik / Enter). copiedLayer = indeks baris yang sedang menampilkan "Copied".
     property int copiedLayer: -1
     Timer { id: layerCopiedTimer; interval: 1400; onTriggered: root.copiedLayer = -1 }
     Process {
@@ -222,7 +192,6 @@ Column {
         onStarted: { write(root.report()); stdinEnabled = false; }
     }
 
-    // ---- komponen lokal ----
 
     component SectionLabel: SettingsText {
         topPadding: Theme.aboutSectionGap
@@ -233,7 +202,6 @@ Column {
         font.letterSpacing: Theme.labelCapsTracking
     }
 
-    // flat = tombol tanpa latar (aksi sekunder), supaya hanya satu tombol yang "berbentuk".
     component PillButton: Rectangle {
         id: pb
         property string label: ""
@@ -263,7 +231,6 @@ Column {
         Accessible.name: pb.label
     }
 
-    // ---- halaman: rata kiri, dibatasi lebarnya, satu tepi kiri dengan judul halaman ----
 
     Column {
         id: page
@@ -271,13 +238,11 @@ Column {
         width: Math.min(Theme.aboutContentMax, root.width - Theme.settingsRowPadX * 2)
         spacing: 0
 
-        // -- hero: laptop bergaris + nama komputer
         Item {
             id: hero
             width: page.width
             height: laptop.height
 
-            // laptop = layar (lid) + alas, rata kiri dengan kolom halaman. Alas lebih lebar dari layar.
             Item {
                 id: laptop
                 width: Theme.aboutLaptopBaseWidth
@@ -289,13 +254,11 @@ Column {
                     width: Theme.aboutLaptopWidth
                     height: Theme.aboutLaptopHeight
 
-                    // Sudut: atas bulat (tutup laptop), bawah hampir siku (engsel). Layar di dalamnya mengikuti, dikurangi tebal bezel.
                     readonly property real lidTop: Theme.radiusCard
                     readonly property real lidBottom: Theme.space4
                     readonly property real screenTop: Math.max(0, lidTop - Theme.aboutLaptopBezel)
                     readonly property real screenBottom: Theme.space2
 
-                    // tutup laptop: bezel tipis gelap + garis tepi tipis
                     Rectangle {
                         anchors.fill: parent
                         topLeftRadius: lid.lidTop
@@ -307,7 +270,6 @@ Column {
                         border.color: Theme.lineStrong
                     }
 
-                    // layar: wallpaper aktif (sama dengan yang ada di desktop, ikut mode monokrom)
                     Rectangle {
                         anchors.fill: parent
                         anchors.margins: Theme.aboutLaptopBezel
@@ -327,7 +289,6 @@ Column {
                         fillMode: Image.PreserveAspectCrop
                         asynchronous: true
                         cache: false
-                        // Decode kecil saja: layar ini cuma 260 px, wallpaper aslinya bisa 4K.
                         sourceSize.width: Theme.aboutLaptopWidth * 2
                         sourceSize.height: Theme.aboutLaptopHeight * 2
                     }
@@ -352,7 +313,6 @@ Column {
                         maskSpreadAtMin: 1.0
                     }
 
-                    // poni kamera: kapsul gelap menempel di tepi atas layar, menggigit sedikit ke dalam gambar
                     Rectangle {
                         x: (parent.width - width) / 2
                         y: Theme.aboutLaptopBezel
@@ -364,8 +324,6 @@ Column {
                     }
                 }
 
-                // alas: gradasi terang -> redup supaya terbaca sebagai permukaan, lekukan jari di tengah.
-                // Mulai 1 px di atas tepi bawah layar supaya engselnya tidak bercelah.
                 Shape {
                     id: base
                     y: lid.height - Theme.borderThin
@@ -373,7 +331,7 @@ Column {
                     height: Theme.aboutLaptopBaseHeight + Theme.borderThin
                     preferredRendererType: Shape.CurveRenderer
 
-                    readonly property real r: Theme.radiusXs - Theme.space2      // sudut bawah
+                    readonly property real r: Theme.radiusXs - Theme.space2
                     readonly property real cx: width / 2
                     readonly property real nw: Theme.aboutLaptopNotch
                     readonly property real nd: Theme.aboutLaptopNotchDepth
@@ -440,7 +398,6 @@ Column {
             }
         }
 
-        // -- hardware: kartu 2x2, hanya garis tipis di atas tiap kartu
         SectionLabel { visible: root.statCells.length > 0; text: "HARDWARE" }
 
         Grid {
@@ -493,7 +450,6 @@ Column {
                             text: cell.modelData.sub
                             color: Theme.dim
                         }
-                        // bar pemakaian: panjang = terpakai, tanpa warna (kontrak R1)
                         Item {
                             visible: cell.modelData.ratio >= 0
                             width: parent.width
@@ -519,23 +475,16 @@ Column {
             }
         }
 
-        // -- software: tumpukan lapisan; makin ke atas makin terang
         SectionLabel { text: "SOFTWARE" }
 
-        // Hover dipegang SATU pemilik (sbHover) untuk semua baris. Baris yang menyala dihitung dari posisi
-        // kursor, bukan dari status hover tiap baris. Dengan satu sumber kebenaran, dua baris tidak bisa
-        // sama-sama menyala dan satu baris tidak bisa "nyangkut" kalau satu event keluar terlewat.
-        // hoverRow kembali -1 (semua baris normal) kalau: kursor keluar dari kolom / panel, panel ditutup,
-        // atau halaman digulir sampai baris pindah dari bawah kursor (posisi kursor ikut dikoreksi dengan
-        // selisih gulir). Baris lalu kembali lewat pegas `lift` yang sama: tidak ada animasi kedua.
         Item {
             id: swBox
             width: page.width
             height: swColumn.height
 
             readonly property real pitch: Theme.aboutLayerHeight + Theme.aboutLayerGap
-            property Item scroller: null            // Flickable pembungkus halaman, dicari sekali di bawah
-            property real anchorScroll: 0           // contentY saat posisi kursor terakhir diperbarui
+            property Item scroller: null
+            property real anchorScroll: 0
             readonly property real scrollY: scroller ? scroller.contentY : 0
 
             readonly property int hoverRow: {
@@ -570,8 +519,6 @@ Column {
                 Repeater {
                     model: root.layers
 
-                    // Penampung tidak ikut membesar (area hover tetap stabil, tidak berkedip di tepi);
-                    // yang melebar hanya latarnya. Teks tidak di-scale supaya tetap tajam.
                     delegate: Item {
                         id: layerRow
                         required property var modelData
@@ -594,8 +541,6 @@ Column {
                         Accessible.description: "Copy version"
                         Accessible.onPressAction: root.copyLayer(index, modelData.copy)
 
-                        // Kursor mulai dipakai: sorotan fokus keyboard (Tab) dilepas, supaya tidak ada baris
-                        // yang tetap menyala karena fokus lama.
                         Connections {
                             target: swBox
                             function onHoverRowChanged() {
@@ -605,9 +550,6 @@ Column {
 
                         Rectangle {
                             id: face
-                            // lift 0..1: 0 diam, 1 penuh saat hover/fokus, sepertiganya saat ditekan. Diikuti pegas, jadi
-                            // naiknya sedikit "mental" lalu menetap, dan turunnya mengalir (bukan potong lurus).
-                            // Ini SATU-SATUNYA animasi gerak baris; x/y/width/height hanya turunan lift.
                             property real lift: (swTap.pressed && layerRow.hot) ? 0.33 : (layerRow.lit ? 1 : 0)
                             x: -lift * Theme.aboutLayerGrowX
                             y: -lift * Theme.aboutLayerGrowY / 2

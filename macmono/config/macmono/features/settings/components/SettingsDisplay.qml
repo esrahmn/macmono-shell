@@ -2,10 +2,6 @@ import QtQuick
 import "../../../core"
 import "../../../shared/components"
 
-// Bagian "Monitor" di halaman Display: resolusi, refresh rate, skala, rotasi per monitor.
-// Logika ada di shared/services/DisplayService.qml (diakses lewat Sys.display).
-// Perubahan ditulis ke custom/macmono-generated.lua; setelah diterapkan ada hitung mundur
-// "Keep / Revert" supaya layar yang salah skala bisa balik sendiri.
 Column {
     id: root
     readonly property var svc: Sys.display
@@ -18,7 +14,6 @@ Column {
         { label: "Normal", v: 0 }, { label: "90°", v: 1 }, { label: "180°", v: 2 }, { label: "270°", v: 3 }
     ]
 
-    // menit sejak tengah malam -> "HH:MM" untuk status jadwal Night Light
     function clock(min) {
         const m = Math.max(0, Math.round(Number(min) || 0)) % 1440;
         return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0");
@@ -33,7 +28,6 @@ Column {
         leftPadding: Theme.settingsRowPadX
     }
 
-    // Konfirmasi setelah diterapkan
     Rectangle {
         visible: root.svc.confirmLeft > 0
         width: parent.width
@@ -94,7 +88,6 @@ Column {
                 width: card.width - Theme.settingsRowPadX * 2
                 spacing: Theme.space10
 
-                // Gambar monitor + ringkasan pilihan sekarang (ikut draft, belum perlu Apply)
                 Row {
                     width: parent.width
                     spacing: Theme.space22
@@ -188,10 +181,6 @@ Column {
         SettingsButton { label: "Reset"; onClicked: root.svc.reset() }
     }
 
-    // -- jadwal Night Light: otomatis dari sunset/sunrise lokasi Weather.
-    // Barisnya memakai SettingsRow yang sama dengan grup schema (tanpa kartu). Jam matahari
-    // tampil sebagai valueText baris ini, bukan baris teks tambahan; kalau koordinat belum
-    // diisi, valueText menjelaskan keadaannya ("No location set").
     SettingsText {
         text: "NIGHT LIGHT SCHEDULE"
         color: Theme.labelCapsText

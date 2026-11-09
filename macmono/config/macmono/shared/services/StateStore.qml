@@ -1,11 +1,5 @@
 import Quickshell
 
-// Satu-satunya tempat menyimpan state kecil shell ke ~/.local/state/macmono/.
-// Sebelumnya perintah shell-nya diduplikasi di core/system/Sys.qml dan shared/services/WallpaperService.qml,
-// jadi rawan berubah di satu tempat tapi ketinggalan di tempat lain.
-//
-// Ditulis lewat argv (bukan string yang dirangkai), jadi nama state maupun nilainya
-// tidak pernah masuk ke teks perintah.
 Scope {
     id: root
 

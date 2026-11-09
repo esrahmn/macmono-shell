@@ -5,8 +5,6 @@ import Quickshell.Hyprland
 import "../../core"
 import "../../shared/components"
 
-// Editorial command palette. Search-first, monochrome, one-line rows.
-// Open/close motion is exclusively owned by shared/components/Reveal.qml.
 Scope {
     id: root
 
@@ -138,7 +136,6 @@ Scope {
                 border.color: Theme.lineStrong
                 clip: true
 
-                // Search field
                 Row {
                     id: searchRow
                     anchors { top: parent.top; left: parent.left; right: parent.right }
@@ -180,7 +177,6 @@ Scope {
                 }
                 Rectangle { anchors.top: searchRow.bottom; width: parent.width; height: Theme.borderThin; color: Theme.line }
 
-                // Category filters — selected state is typographic, not a filled chip.
                 Row {
                     id: categoryRow
                     anchors { top: searchRow.bottom; left: parent.left; right: parent.right }
@@ -244,8 +240,6 @@ Scope {
                             bottomPadding: Theme.space6
                         }
                         Item {
-                            // Keep the hover surface inset from the panel edge so its rounded
-                            // corners never visually escape the Command Palette container.
                             x: Theme.commandPalettePadding
                             width: parent.width - Theme.commandPalettePadding * 2
                             height: Theme.commandPaletteRowHeight

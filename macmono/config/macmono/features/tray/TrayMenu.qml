@@ -6,8 +6,6 @@ import Quickshell.Widgets
 import "../../core"
 import "../../shared/components"
 
-// Menu klik-kanan ikon tray (Discord, Steam, dll.), baca langsung dari dbusmenu lewat QsMenuOpener.
-// Mendukung separator, checkbox/radio, ikon, submenu (dengan tombol Back), dan item disabled.
 Scope {
   Variants {
     model: Quickshell.screens
@@ -18,7 +16,7 @@ Scope {
     screen: modelData
 
     readonly property bool shown: Sys.trayMenuOpen && Sys.trayMenuScreen === modelData.name
-    property var stack: []                  // tumpukan handle submenu
+    property var stack: []
     readonly property var currentHandle: stack.length > 0 ? stack[stack.length - 1] : (Sys.trayMenuItem ? Sys.trayMenuItem.menu : null)
 
     visible: present
@@ -37,7 +35,6 @@ Scope {
     }
     function close() { Sys.trayMenuOpen = false; }
 
-    // klik di mana pun di luar kartu (kiri/kanan) = tutup. Klik ikon tray lagi juga menutup.
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
@@ -51,7 +48,6 @@ Scope {
 
     QsMenuOpener { id: opener; menu: root.currentHandle }
 
-    // area klip mulai di tepi bawah bar: kartu keluar seperti laci dari bar
     Item {
         x: 0
         y: Theme.barMargin + Theme.barHeight
@@ -70,14 +66,13 @@ Scope {
             border.color: Theme.lineStrong
             clip: true
 
-            MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons }   // klik di kartu jangan menutup
+            MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons }
 
             ColumnLayout {
                 id: list
                 anchors { fill: parent; margins: Theme.space8 }
                 spacing: Theme.space1
 
-                // tombol kembali (hanya di dalam submenu)
                 Rectangle {
                     visible: root.stack.length > 0
                     Layout.fillWidth: true; implicitHeight: Theme.trayBackHeight; radius: Theme.radiusXs
@@ -118,7 +113,6 @@ Scope {
                             radius: Theme.radiusXs
                             color: (ma.containsMouse && row.modelData.enabled) ? Theme.tileHover : Theme.transparent
 
-                            // checkbox / radio
                             Text {
                                 id: chk
                                 anchors { left: parent.left; leftMargin: Theme.space10; verticalCenter: parent.verticalCenter }

@@ -1,4 +1,3 @@
-# MacMono core singleton facade. Keep stable import "core" for all QML features.
 singleton Settings 1.0 settings/Settings.qml
 singleton SettingsStore 1.0 settings/SettingsStore.qml
 singleton SettingsSchema 1.0 settings/SettingsSchema.qml

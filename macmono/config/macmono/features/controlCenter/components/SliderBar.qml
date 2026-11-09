@@ -2,10 +2,9 @@ import QtQuick
 import "../../../core"
 import "../../../shared/components"
 
-// Slider ala macOS: batang tebal, isian putih, ikon di kiri
 Rectangle {
     id: root
-    property real value: 0          // 0..1
+    property real value: 0
     property string icon: ""
     signal moved(real v)
 

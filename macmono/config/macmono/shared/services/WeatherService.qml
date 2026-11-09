@@ -2,29 +2,23 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Cuaca dari Open-Meteo (tanpa API key). Event-driven: tidak ada timer di latar belakang.
-// Data diambil saat kalender dibuka (kalau sudah lebih tua dari cacheMin) atau saat lokasi/unit berubah.
-// Endpoint dicek ke docs: geocoding-api.open-meteo.com/v1/search dan api.open-meteo.com/v1/forecast
-// (current, daily, temperature_unit, timezone=auto, forecast_days).
-// Semua argumen lewat argv curl (--data-urlencode), bukan dirangkai ke string shell.
 Scope {
     id: root
 
-    // Diisi dari Settings oleh Sys
     property string placeName: ""
     property real lat: 0
     property real lon: 0
-    property string unit: "c"          // "c" | "f"
+    property string unit: "c"
     property int cacheMin: 30
 
     readonly property bool hasLocation: placeName !== ""
     property bool loading: false
     property string error: ""
-    property var current: null         // { temp, feels, code, isDay }
-    property var daily: []             // [{ date, code, max, min }]
+    property var current: null
+    property var daily: []
     property double fetchedAt: 0
-    property bool refetchPending: false   // lokasi/unit berubah saat request lama masih jalan
-    property string fetchKey: ""          // lokasi+unit yang diminta request terakhir
+    property bool refetchPending: false
+    property string fetchKey: ""
     function keyNow() { return lat + "|" + lon + "|" + unit; }
     readonly property bool available: hasLocation && current !== null
     readonly property string unitLabel: unit === "f" ? "°F" : "°C"
@@ -32,7 +26,6 @@ Scope {
     readonly property string forecastUrl: "https://api.open-meteo.com/v1/forecast"
     readonly property string geocodeUrl: "https://geocoding-api.open-meteo.com/v1/search"
 
-    // ---- teks kondisi dari kode WMO ----
     function describe(code) {
         if (code === 0) return "Clear";
         if (code === 1) return "Mostly clear";
@@ -48,7 +41,6 @@ Scope {
         return "Unknown";
     }
 
-    // ---- nama ikon Glyph dari kode WMO (isDay dipakai buat clear/partly cloudy) ----
     function iconFor(code, isDay) {
         if (code === 0) return isDay ? "sun" : "moon";
         if (code === 1 || code === 2) return isDay ? "cloud-sun" : "cloud-moon";
@@ -61,7 +53,6 @@ Scope {
         return "cloud";
     }
 
-    // ---- cuaca ----
     function ensureFresh() {
         if (!hasLocation || loading) return;
         if (current !== null && (Date.now() - fetchedAt) < cacheMin * 60000) return;
@@ -84,7 +75,6 @@ Scope {
             forecastUrl];
         fetchProc.running = true;
     }
-    // Lokasi/unit berubah -> data lama nggak berlaku lagi
     onLatChanged: invalidate()
     onLonChanged: invalidate()
     onUnitChanged: invalidate()
@@ -121,7 +111,6 @@ Scope {
         }
     }
 
-    // ---- cari kota (dipakai halaman Settings) ----
     property var results: []
     property bool searching: false
     property string searchError: ""

@@ -2,16 +2,12 @@ import QtQuick
 import "../../../core"
 import "../../../shared/components"
 
-// Pratinjau halaman Location & Weather: miniatur kartu cuaca di Calendar (ikon, suhu sekarang, kondisi).
-// Data dari Sys.weather (WeatherService). Berubah ganti kota atau satuan, karena service mengambil ulang
-// otomatis. Kartu cuma muncul kalau lokasi sudah dipilih (diatur lewat `visible` di SettingsPanel).
 Rectangle {
     id: root
     readonly property var svc: Sys.weather
     readonly property bool ready: svc.available
     readonly property bool failed: !ready && !svc.loading && svc.error !== ""
 
-    // Hari ini = indeks 0 (forecast_days=5, timezone=auto)
     readonly property var today: svc.daily.length > 0 ? svc.daily[0] : null
     readonly property string detail: {
         if (!ready) return "";
@@ -28,8 +24,6 @@ Rectangle {
     border.width: Theme.borderThin
     border.color: Theme.cardStroke
 
-    // Buka halaman -> pastikan data segar. ensureFresh() menghormati cache (cacheMin), jadi tidak
-    // menembak jaringan berulang. Teks privasi di SettingsWeather menyebut ini.
     onVisibleChanged: if (visible) svc.ensureFresh()
     Component.onCompleted: if (visible) svc.ensureFresh()
 
@@ -74,7 +68,6 @@ Rectangle {
         }
     }
 
-    // Gagal ambil data (offline / respons rusak): satu aksi, coba lagi.
     SettingsButton {
         visible: root.failed
         anchors { right: parent.right; rightMargin: Theme.settingsRowPadX; verticalCenter: parent.verticalCenter }

@@ -8,9 +8,7 @@ Item {
     property real maxValue: 1
     property real step: 0.01
     property string valueText: ""
-    property bool showValue: true      // false = nilai ditampilkan di luar (baris judul), rel melebar penuh
-    // Nilai bawaan (opsional). Kalau diisi: rel menampilkan garis tanda di posisi itu dan pegangan
-    // "menempel" di sana saat digeser (dalam Theme.settingsSliderSnapPx). Panah keyboard tetap bisa melewatinya.
+    property bool showValue: true
     property real defaultValue: NaN
     signal moved(real v)
 
@@ -58,7 +56,6 @@ Item {
             }
         }
 
-        // Garis tanda nilai bawaan. Tersembunyi saat pegangan sudah di sana (pegangan menutupinya).
         Rectangle {
             visible: root.hasDefault && root.value !== root.defaultValue
             width: Theme.settingsSliderTickW
@@ -92,7 +89,7 @@ Item {
                 const span = track.width - knob.width;
                 let r = (mx - knob.width / 2) / span;
                 if (root.hasDefault && span > 0 && Math.abs(r - root.defaultRatio) * span <= Theme.settingsSliderSnapPx)
-                    r = root.defaultRatio;   // menempel di nilai bawaan
+                    r = root.defaultRatio;
                 root.emit(root.snap(r));
             }
             onPressed: mouse => update(mouse.x)
@@ -113,7 +110,6 @@ Item {
         color: Theme.textSoft
     }
 
-    // Cincin fokus keyboard, sama dengan toggle: fokus harus kelihatan.
     Rectangle {
         anchors.fill: parent
         anchors.margins: -Theme.space3

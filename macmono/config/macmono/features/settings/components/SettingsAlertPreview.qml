@@ -1,9 +1,6 @@
 import QtQuick
 import "../../../core"
 
-// Pratinjau grup "Battery alerts" (halaman Power): batang baterai 0..100% dengan tanda tiap level
-// peringatan dan zona "urgent". Dibaca dari draft (belum di-Apply).
-// Dipasang tepat di atas pengaturannya lewat `preview: "alert"` di SettingsSchema (bukan di level halaman).
 Rectangle {
     id: root
     property var warnLevels: [5, 10, 20]
@@ -33,14 +30,12 @@ Rectangle {
         width: root.width - Theme.settingsRowPadX * 2
         height: Theme.settingsBatBar + Theme.space8 + Theme.fontBody + Theme.space8 + Theme.fontCaption
 
-        // batang 0..100%
         Rectangle {
             id: bar
             width: parent.width
             height: Theme.settingsBatBar
             radius: height / 2
             color: Theme.tileHover
-            // zona urgent: dari 0 sampai level kritis
             Rectangle {
                 width: parent.width * Math.max(0, Math.min(100, root.criticalLevel)) / 100
                 height: parent.height
@@ -48,7 +43,6 @@ Rectangle {
                 color: Theme.text
             }
         }
-        // tanda tiap level peringatan
         Repeater {
             model: root.levels
             delegate: Item {

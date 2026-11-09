@@ -1,8 +1,6 @@
 import QtQuick
 import "../../../core"
 
-// Pratinjau Key repeat: tombol "A" ditahan, huruf pertama muncul, lalu jeda (delay), lalu huruf berikutnya
-// muncul sesuai kecepatan repeat. Pakai nilai draft; sistem baru memakainya setelah Apply.
 Rectangle {
     id: root
     property int rate: 25
@@ -41,7 +39,6 @@ Rectangle {
             width: parent.width
             spacing: Theme.space12
 
-            // keycap
             Rectangle {
                 width: Theme.settingsKeycap
                 height: width
@@ -53,7 +50,6 @@ Rectangle {
                 SettingsText { anchors.centerIn: parent; text: "A"; font.weight: Font.DemiBold }
             }
 
-            // kolom teks
             Rectangle {
                 width: parent.width - Theme.settingsKeycap - Theme.space12
                 height: Theme.settingsKeycap

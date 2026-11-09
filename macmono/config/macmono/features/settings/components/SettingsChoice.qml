@@ -1,7 +1,6 @@
 import QtQuick
 import "../../../core"
 
-// Chip pilihan (satu dari beberapa) untuk bagian Pengaturan buatan sendiri (Display, Weather).
 Rectangle {
     id: chip
     property string label

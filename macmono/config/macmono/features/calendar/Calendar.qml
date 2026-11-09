@@ -5,7 +5,6 @@ import Quickshell.Wayland
 import "../../core"
 import "../../shared/components"
 
-// Klik jam di bar -> kalender bulan + riwayat notifikasi (ala Notification Center macOS).
 Scope {
     Variants {
         model: Quickshell.screens
@@ -28,9 +27,6 @@ Scope {
                 selectedDate = d;
             }
 
-            // Window penuh di bawah bar (nggak di-resize tiap frame); yang bergerak cuma kartunya.
-            // Saat terbuka seluruh window menangkap klik: klik di luar kartu = tutup (pola yang sama
-            // dengan ControlCenter, tanpa HyprlandFocusGrab). Saat menutup cuma area kartu yang menangkap klik.
             visible: present
             anchors { top: true; bottom: true; left: true; right: true }
             margins { top: Theme.barMargin + Theme.barHeight }
@@ -41,7 +37,6 @@ Scope {
             WlrLayershell.namespace: "macmono:calendar"
             WlrLayershell.layer: WlrLayer.Overlay
 
-            // Klik di luar kartu = tutup. Dimatiin selama screenshot (pemilih area).
             MouseArea {
                 anchors.fill: parent
                 acceptedButtons: Qt.AllButtons
@@ -49,16 +44,14 @@ Scope {
                 onPressed: Sys.calendarOpen = false
             }
 
-            // ---------------- data kalender ----------------
             property int viewYear: new Date().getFullYear()
-            property int viewMonth: new Date().getMonth()     // 0..11
+            property int viewMonth: new Date().getMonth()
             function shiftMonth(n) {
                 let m = viewMonth + n, y = viewYear;
                 while (m < 0) { m += 12; y--; }
                 while (m > 11) { m -= 12; y++; }
                 viewMonth = m; viewYear = y;
             }
-            // 42 sel (6 minggu), minggu mulai Senin
             readonly property var cells: {
                 const first = new Date(viewYear, viewMonth, 1);
                 const offset = (first.getDay() + 6) % 7;
@@ -95,7 +88,6 @@ Scope {
                 anchors { top: parent.top; horizontalCenter: parent.horizontalCenter; topMargin: Theme.drawerGap }
                 width: Theme.calendarWidth
                 height: card.height
-                // laci: kartu keluar dari tepi bawah bar (bagian di atas window terpotong otomatis)
                 transform: Translate { y: -(body.height + Theme.drawerGap) * (1 - Math.min(1, win.anim)) }
 
                 Rectangle {
@@ -106,7 +98,6 @@ Scope {
                     color: Theme.panel
                     border.width: Theme.borderThin
                     border.color: Theme.line
-                    // klik di bagian kartu yang kosong jangan tembus ke penangkap klik di bawahnya
                     MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons }
                 }
 
@@ -123,7 +114,6 @@ Scope {
                         width: flick.width
                         spacing: Theme.space14
 
-                        // ---- tanggal besar ----
                         ColumnLayout {
                             spacing: Theme.space0
                             Text {
@@ -138,7 +128,6 @@ Scope {
                             }
                         }
 
-                        // ---- cuaca (hanya kalau lokasi sudah dipilih di Pengaturan > Weather) ----
                         Rectangle {
                             Layout.fillWidth: true
                             visible: Sys.weather.hasLocation
@@ -186,8 +175,6 @@ Scope {
                                     }
                                 }
 
-                                // Lebar tiap kolom dihitung eksplisit (bukan fillWidth di Layout): sebelumnya
-                                // Sat/Sun/Mon... numpuk karena kolom cuma selebar teksnya.
                                 Row {
                                     id: wxRow
                                     Layout.fillWidth: true
@@ -240,7 +227,6 @@ Scope {
                             }
                         }
 
-                        // ---- kalender ----
                         Rectangle {
                             Layout.fillWidth: true
                             implicitHeight: calCol.implicitHeight + 28
@@ -259,7 +245,7 @@ Scope {
                                         text: Qt.formatDate(new Date(win.viewYear, win.viewMonth, 1), "MMMM yyyy")
                                         color: Theme.text
                                         font.family: Theme.font; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold
-                                        MouseArea {   // klik judul bulan -> balik ke bulan ini
+                                        MouseArea {
                                             anchors.fill: parent
                                             onClicked: {
                                                 const d = new Date();
@@ -341,7 +327,6 @@ Scope {
                             }
                         }
 
-                        // ---- notifikasi ----
                         RowLayout {
                             Layout.fillWidth: true
                             Text {
@@ -351,7 +336,6 @@ Scope {
                                 font.family: Theme.font; font.pixelSize: Theme.labelCapsSize; font.weight: Font.DemiBold
                                 font.letterSpacing: Theme.labelCapsTracking
                             }
-                            // Do Not Disturb cepat
                             MouseArea {
                                 id: dndBtn
                                 Layout.preferredWidth: Theme.calendarSmallButton; Layout.preferredHeight: Theme.calendarSmallButton
@@ -442,7 +426,7 @@ Scope {
                                         font.family: Theme.font; font.pixelSize: Theme.fontBody
                                     }
                                 }
-                                MouseArea {   // klik = hapus dari riwayat
+                                MouseArea {
                                     id: nArea
                                     anchors.fill: parent
                                     hoverEnabled: true

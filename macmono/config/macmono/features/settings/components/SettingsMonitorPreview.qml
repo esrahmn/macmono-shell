@@ -1,7 +1,6 @@
 import QtQuick
 import "../../../core"
 
-// Gambar monitor mini: bentuknya ikut resolusi dan rotasi yang dipilih (draft), isinya wallpaper aktif.
 Item {
     id: root
     property int resW: 1920
@@ -16,7 +15,6 @@ Item {
     implicitWidth: Theme.settingsMonitorMaxW
     implicitHeight: Theme.settingsMonitorHeight + Theme.settingsMonitorNeckH + Theme.settingsMonitorStandH
 
-    // layar + bezel
     Rectangle {
         id: screen
         x: (root.width - width) / 2
@@ -38,7 +36,6 @@ Item {
         }
     }
 
-    // kaki: leher + alas
     Rectangle {
         x: (root.width - width) / 2
         y: Theme.settingsMonitorHeight

@@ -7,8 +7,6 @@ Rectangle {
     property real minValue: 0
     property real maxValue: 100
     property real step: 1
-    // Jumlah digit minimum untuk angka yang ditampilkan (0 = apa adanya).
-    // Dipakai kolom jam/menit supaya "0" tampil sebagai "00".
     property int pad: 0
     signal moved(real v)
 
@@ -16,7 +14,6 @@ Rectangle {
     implicitHeight: Theme.settingsStepperHeight
     radius: Theme.radiusXs
 
-    // Tombol +/- juga bisa dijangkau Tab dan diubah panah kiri/kanan, sama seperti slider.
     activeFocusOnTab: true
     Keys.onLeftPressed: nudge(-1)
     Keys.onRightPressed: nudge(1)
@@ -41,7 +38,6 @@ Rectangle {
         opacity: atLimit ? Theme.opacityDisabled : 1
         Behavior on color { ColorAnimation { duration: Theme.animHover } }
 
-        // + dan − digambar dari dua garis, bukan huruf: selalu tepat di tengah dan setebal sama.
         Rectangle {
             anchors.centerIn: parent
             width: Theme.space12
@@ -84,7 +80,6 @@ Rectangle {
     StepButton { id: minus; x: Theme.borderThin; y: Theme.borderThin; dir: -1 }
     StepButton { id: plus; x: root.width - width - Theme.borderThin; y: Theme.borderThin; dir: 1 }
 
-    // Cincin fokus keyboard.
     Rectangle {
         anchors.fill: parent
         anchors.margins: -Theme.space3
@@ -95,7 +90,6 @@ Rectangle {
         visible: root.activeFocus
     }
 
-    // Angka pakai Inter dengan fitur tnum (lebar tiap angka sama), bukan font monospace yang bentuknya beda.
     SettingsText {
         anchors.centerIn: parent
         text: root.pad > 0 ? String(Math.round(root.value)).padStart(root.pad, "0")

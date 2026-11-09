@@ -2,12 +2,6 @@ import Quickshell
 import Quickshell.Io
 import "../../core"
 
-// IPC fasad macmono — selaras dengan Shortcuts.qml + record.sh
-//
-// qs -c macmono ipc call shell toggleLauncher
-// qs -c macmono ipc call capture region
-// qs -c macmono ipc call record start area none
-// qs -c macmono ipc call control recordingStarted   (dipakai record.sh)
 Scope {
     IpcHandler {
         target: "shell"
@@ -37,7 +31,6 @@ Scope {
         function focusedScreen(): string { return Sys.focusedScreenName(); }
     }
 
-    // record.sh memanggil: qs -c macmono ipc call control recordingStarted
     IpcHandler {
         target: "control"
         function toggle(): void { Sys.toggleCC(Sys.focusedScreenName()); }
@@ -47,17 +40,14 @@ Scope {
 
     IpcHandler {
         target: "capture"
-        // Region selector (layar dibekukan dulu)
         function region(): void { Sys.screenshot("copy", false); }
         function ocr(): void { Sys.screenshot("ocr", false); }
-        // Dari panel (tutup panel dulu biar tidak ikut ter-capture)
         function regionFromPanel(): void { Sys.screenshot("copy", true); }
         function ocrFromPanel(): void { Sys.screenshot("ocr", true); }
     }
 
     IpcHandler {
         target: "record"
-        // mode: full | area ; audio: none | system | mic
         function start(mode: string, audio: string): void {
             const m = (mode === "area" || mode === "full") ? mode : "full";
             const a = (audio === "system" || audio === "mic") ? audio : "none";

@@ -1,9 +1,6 @@
 import QtQuick
 import "../../../core"
 
-// Kolom cari di dalam halaman (bukan kolom cari header). Tampilannya sama dengan kolom cari
-// picker di Apps & Startup. Esc: kosongkan dulu; kalau sudah kosong, Esc diteruskan ke panel
-// (urutan panel: cari -> draft -> tutup).
 Rectangle {
     id: box
     property alias text: input.text

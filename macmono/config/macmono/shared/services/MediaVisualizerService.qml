@@ -8,10 +8,10 @@ Item {
 
     readonly property var activePlayer: Mpris.players.values.find(player => player.isPlaying) ?? null
     readonly property bool active: activePlayer !== null
-    property bool enabled: true    // diisi Sys dari Settings.visualizerEnabled
-    property bool wanted: true     // bar atau popup butuh gelombang (diisi Sys)
-    property bool forceRun: false  // pratinjau di Settings > Sound: jalan walau tidak ada pemutar musik
-    property real gain: 1.0       // diisi Sys dari Settings.visualizerGain
+    property bool enabled: true
+    property bool wanted: true
+    property bool forceRun: false
+    property real gain: 1.0
     property var levels: Array(32).fill(0)
 
     function updateLevels(frame) {

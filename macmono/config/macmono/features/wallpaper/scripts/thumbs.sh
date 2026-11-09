@@ -1,6 +1,4 @@
 #!/bin/sh
-# macmono: bikin thumbnail wallpaper sekali saja (~/.cache/macmono/thumbs/<md5 path>.jpg)
-# supaya picker langsung tampil tanpa decode gambar resolusi penuh. Argumen = daftar file.
 out="$HOME/.cache/macmono/thumbs"
 mkdir -p "$out"
 im=magick; command -v magick >/dev/null || im=convert

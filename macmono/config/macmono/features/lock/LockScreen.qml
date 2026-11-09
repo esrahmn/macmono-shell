@@ -6,10 +6,6 @@ import Quickshell.Wayland
 import Quickshell.Services.Pam
 import "../../core"
 
-// Lock screen native Quickshell (ext-session-lock lewat WlSessionLock).
-// Shell sudah hidup -> wallpaper, font, Mpris, UPower semua sudah ke-load,
-// jadi pas Sys.locked = true surface langsung tampil tanpa spawn proses baru.
-// State password dipakai bareng semua monitor.
 Scope {
     id: root
 
@@ -70,9 +66,6 @@ Scope {
         }
     }
 
-    // PAM bisa menggantung (modul pam lambat, home NFS mati, dsb). Tanpa timeout,
-    // busy tetap true sehingga input terkunci tanpa jalan keluar. Batalkan saja;
-    // abort() memicu completed(PamResult.Error) yang sudah menangani reset.
     Timer {
         interval: Settings.lockPamTimeoutMs
         running: root.busy
@@ -82,7 +75,6 @@ Scope {
         }
     }
 
-    // password yang diketik lalu ditinggal -> hapus otomatis
     Timer {
         interval: Settings.lockClearPasswordMs
         running: Sys.locked && root.password !== "" && !root.busy
@@ -105,7 +97,6 @@ Scope {
         }
     }
 
-    // nama lengkap dari GECOS, dibaca sekali saat shell start (bukan saat lock)
     Process {
         running: true
         command: ["sh", "-c", "getent passwd \"$USER\" | cut -d: -f5 | cut -d, -f1"]

@@ -1,9 +1,6 @@
 import QtQuick
 import "../../../core"
 
-// Halaman Weather: pilih kota (dicari lewat Open-Meteo) dan satuan suhu.
-// Logika + request ada di shared/services/WeatherService.qml (Sys.weather).
-// Pilihan langsung tersimpan ke SettingsStore (tanpa tombol Apply).
 Column {
     id: root
     readonly property var svc: Sys.weather
@@ -53,7 +50,6 @@ Column {
         }
     }
 
-    // Kolom cari
     Rectangle {
         width: parent.width
         height: Theme.settingsSearchHeight

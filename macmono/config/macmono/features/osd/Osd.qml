@@ -4,13 +4,12 @@ import Quickshell.Wayland
 import "../../core"
 import "../../shared/components"
 
-// OSD volume / kecerahan: pill di bawah bar (tengah atas), masuk dari atas lalu turun, keluar naik lagi.
 Scope {
     id: root
-    property string kind: "volume"      // "volume" | "brightness"
+    property string kind: "volume"
     property string screenName: ""
     property bool shown: false
-    property bool ready: false          // abaikan perubahan nilai awal saat shell baru start
+    property bool ready: false
 
     readonly property real level: kind === "volume" ? (Sys.muted ? 0 : Math.min(1, Sys.volume)) : Sys.brightness
 
@@ -49,7 +48,7 @@ Scope {
             implicitHeight: Theme.osdHeight
             exclusionMode: ExclusionMode.Ignore
             color: Theme.transparent
-            mask: Region {}          // klik tembus
+            mask: Region {}
             WlrLayershell.namespace: "macmono:osd"
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.None

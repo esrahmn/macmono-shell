@@ -3,7 +3,6 @@ import QtQuick.Layouts
 import "../../../core"
 import "../../../shared/components"
 
-// Kartu jaringan kiri di Control Center: Wi-Fi / Bluetooth / Keep Awake.
 Rectangle {
     id: root
     property string expanded: ""
@@ -14,7 +13,6 @@ Rectangle {
     Layout.fillHeight: true
     implicitHeight: netCol.implicitHeight + Theme.space16
     radius: Theme.radiusCard
-    // Kartu terangkat: latar lebih terang dari panel + garis tipis supaya batasnya jelas.
     color: Theme.tile
     border.width: Theme.borderThin; border.color: Theme.cardStroke
 

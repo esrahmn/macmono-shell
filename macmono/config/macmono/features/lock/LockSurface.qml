@@ -8,7 +8,6 @@ import "../../core"
 import "../../shared/components"
 import "../media"
 
-// Tampilan satu monitor: wallpaper blur, jam, media card, kartu login.
 Item {
     id: root
 
@@ -19,8 +18,6 @@ Item {
     readonly property var player: Sys.mediaPlayer(Mpris.players.values, -1)
     readonly property string userName: lock.fullName || (Quickshell.env("USER") ?? "")
 
-    // ---------------- latar ----------------
-    // sourceSize kecil = decode cepat + blur murah; cache: true -> lock berikutnya instan
     Image {
         id: wall
         anchors.fill: parent
@@ -56,7 +53,6 @@ Item {
         Component.onCompleted: opacity = 1
         Behavior on opacity { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
 
-        // ---------------- status kanan atas ----------------
         RowLayout {
             anchors.top: parent.top
             anchors.right: parent.right
@@ -94,7 +90,6 @@ Item {
             }
         }
 
-        // ---------------- tanggal + jam ----------------
         ColumnLayout {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
@@ -121,7 +116,6 @@ Item {
             }
         }
 
-        // ---------------- media + login (bawah tengah) ----------------
         ColumnLayout {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
@@ -139,7 +133,7 @@ Item {
                 id: loginCard
                 Layout.preferredWidth: root.cardWidth
                 Layout.preferredHeight: loginCol.implicitHeight + Theme.space16 * 2
-                color: Theme.transparent   // tanpa kartu: login mengambang di atas wallpaper
+                color: Theme.transparent
 
                 transform: Translate { id: shakeT }
                 SequentialAnimation {
@@ -219,7 +213,6 @@ Item {
                         Layout.preferredHeight: Settings.lockPasswordFieldHeight
                         opacity: root.lock.busy ? Theme.opacityDim : 1
 
-                        // kolom password = garis tipis; terang saat fokus atau gagal
                         Rectangle {
                             anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
                             height: Theme.borderThin

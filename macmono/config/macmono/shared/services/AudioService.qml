@@ -3,14 +3,9 @@ import Quickshell
 import Quickshell.Io
 import Quickshell.Services.Pipewire
 
-// Subsistem audio macmono (PipeWire). UI nggak memakai ini langsung:
-// Sys.qml membuka fasadnya (Sys.volume, Sys.setVolume, Sys.outputDevices, ...).
-// Pakai Scope (bukan QtObject) karena Scope punya default property `children`,
-// jadi boleh berisi PwObjectTracker dkk.
 Scope {
-    id: root   // wajib: handler Process/Timer dan binding di bawah memanggil lewat root.*
+    id: root
 
-    // Tracker wajib supaya properti .audio dan metadata node terisi.
     PwObjectTracker { objects: [Pipewire.defaultAudioSink, Pipewire.defaultAudioSource] }
     PwObjectTracker { objects: Pipewire.nodes.values }
 
@@ -21,19 +16,12 @@ Scope {
     readonly property bool micMuted: source?.audio?.muted ?? false
     readonly property real sourceVolume: source?.audio?.volume ?? 0
 
-    // Perangkat yang bisa dipilih. Output = sink, input = audio yang bukan sink dan bukan stream.
-    // PwNode 0.3.2 nggak punya isSource, jadi arah input disimpulkan dari isSink.
-    // Sink/source virtual Easy Effects ("easyeffects_sink" / "easyeffects_source") disembunyikan dari daftar
-    // pilihan: README Easy Effects menyuruh hardware tetap jadi default, dan baris itu kelihatan seperti
-    // device sungguhan. Tetap muncul kalau memang sedang jadi default.
     function isEffectsNode(n) { return String(n?.name ?? "").indexOf("easyeffects_") === 0; }
     readonly property var outputDevices: Pipewire.nodes.values.filter(n => n.isSink && !n.isStream && n.audio
         && (!isEffectsNode(n) || n === sink))
     readonly property var inputDevices: Pipewire.nodes.values.filter(n => !n.isSink && !n.isStream && n.audio
         && (!isEffectsNode(n) || n === source))
 
-    // Stream aplikasi pemutar musik/video. Stream capture (rekaman) sengaja tidak ikut:
-    // media.class "Stream/Input/Audio" bukan playback.
     readonly property var streams: Pipewire.nodes.values.filter(n => n.isStream && n.audio
         && mediaClass(n).indexOf("Stream/Output") === 0)
 
@@ -70,7 +58,6 @@ Scope {
         return n.nickname || n.description || n.name || "Unknown";
     }
 
-    // Nama aplikasi pemilik stream; fallback ke media.name lalu description.
     function streamName(n) {
         const p = n?.properties ?? ({});
         return p["application.name"] || p["media.name"] || n?.description || n?.name || "Application";
@@ -94,25 +81,11 @@ Scope {
         if (n?.audio) n.audio.muted = m;
     }
 
-    // =====================================================================
-    //  Tes suara (halaman Sound > Output)
-    //  Diputar ke default sink lewat pw-play/paplay. Urutannya: file tema suara freedesktop,
-    //  canberra-gtk-play, lalu nada 880 Hz 0,3 detik yang dibuat sendiri (WAV dari awk, ditulis ke
-    //  XDG_RUNTIME_DIR) kalau tema suara tidak terpasang.
-    //  Tiap cabang memakai `exec`, jadi proses yang dipegang Quickshell adalah pemutarnya sendiri:
-    //  menekan Stop benar-benar mematikan bunyi, bukan cuma shell pembungkusnya.
-    //  Tidak ada cabang yang berjalan tanpa batas (dulu speaker-test -t sine bisa nyangkut), dan
-    //  Timer di bawah jadi jaring pengaman terakhir supaya tombol tidak tertahan di "Stop".
-    //  Status: "" (siap / selesai), "failed" (tidak ada pemutar atau gagal memutar).
-    // =====================================================================
     property string testStatus: ""
-    property bool testRunning: false    // disinkronkan dari testProc.running (bukan binding ke id anak,
-                                        // supaya tidak dievaluasi sebelum Process-nya dibuat)
-    property bool testStopping: false   // true = dihentikan dari tombol, jadi bukan kegagalan
+    property bool testRunning: false
+    property bool testStopping: false
 
     readonly property string testScript:
-        // Nada pengganti: header WAV 8 kHz mono 16-bit ditulis apa adanya. LC_ALL=C wajib supaya
-        // printf "%c" pada awk mengeluarkan satu byte, bukan karakter multibyte.
         "tone() { d=${XDG_RUNTIME_DIR:-/tmp}/macmono-test-tone.wav; " +
         "LC_ALL=C awk 'BEGIN{rate=8000; n=rate*3/10; data=n*2; " +
         "printf \"RIFF\"; printf \"%c%c%c%c\", (36+data)%256, int((36+data)/256)%256, 0, 0; " +
@@ -134,7 +107,6 @@ Scope {
         "if command -v paplay >/dev/null 2>&1; then exec paplay $t; fi; " +
         "exit 1"
 
-    // Satu fungsi untuk dua keadaan: mulai memutar, atau hentikan yang sedang berbunyi.
     function toggleTestSound() {
         if (testProc.running) {
             testStopping = true;
@@ -159,24 +131,15 @@ Scope {
         }
     }
 
-    // Jaring pengaman: apa pun yang terjadi pada pemutarnya, tombol kembali ke "Play" sendiri.
     Timer {
         interval: 8000
         running: testProc.running
         onTriggered: if (testProc.running) root.toggleTestSound()
     }
 
-    // =====================================================================
-    //  Meter level mikrofon (halaman Sound > Input)
-    //  Hanya jalan selama halaman Sound terbuka (`meterWanted`), jadi tidak ada proses
-    //  perekam yang hidup di latar belakang.
-    //  pw-record (PipeWire) merekam default source sebagai PCM s16 mono 8 kHz ke stdout
-    //  (FILE "-" = stdout, lihat pw-cat(1)); parec dipakai kalau pw-record tidak ada.
-    //  od memecah sample, awk mengambil peak tiap 200 sample (~25 ms) dan mencetak 0..100.
-    // =====================================================================
     property bool meterWanted: false
-    property bool meterAvailable: true   // false = tidak ada pw-record/parec di sistem ini
-    property real inputLevel: 0          // 0..1
+    property bool meterAvailable: true
+    property real inputLevel: 0
 
     readonly property string meterScript:
         "if command -v pw-record >/dev/null 2>&1; then rec='pw-record --raw --rate 8000 --channels 1 --format s16 -'; " +

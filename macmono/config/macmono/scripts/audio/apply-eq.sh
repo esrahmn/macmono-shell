@@ -1,10 +1,4 @@
 #!/usr/bin/env bash
-# Equalizer sistem lewat Easy Effects (CLI -b dan -l dicek ke wiki "Command Line Options" dan
-# source command_line_parser.cpp Easy Effects 8.x).
-#   enable   baca preset JSON dari stdin, simpan sebagai preset output "macmono-eq", matikan
-#            bypass global, lalu muat preset itu. MENGGANTI preset output yang sedang aktif.
-#   disable  nyalakan bypass global (semua efek mati). File preset di disk tidak diubah.
-# Exit: 0 ok | 2 salah pakai | 3 Easy Effects belum jalan | 4 belum terpasang | 1 gagal lain
 set -u
 umask 077
 NAME="macmono-eq"

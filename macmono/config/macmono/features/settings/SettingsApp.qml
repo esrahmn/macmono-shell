@@ -5,9 +5,6 @@ import "../../core"
 import "../../shared/components"
 import "components"
 
-// Settings mengikuti pola drawer MacMono (Launcher/Calendar/Control Center):
-// window transparan dimulai tepat di bawah bar, kartu berada di tengah horizontal,
-// lalu turun dari balik bar memakai Reveal bersama. Tidak ada animasi khusus Settings.
 Scope {
     Variants {
         model: Quickshell.screens
@@ -24,7 +21,6 @@ Scope {
 
             visible: present
             anchors { top: true; bottom: true; left: true; right: true }
-            // Sama persis dengan drawer Launcher, Calendar, dan Control Center.
             margins { top: Theme.barMargin + Theme.barHeight }
             exclusionMode: ExclusionMode.Ignore
             color: Theme.transparent
@@ -33,7 +29,6 @@ Scope {
             WlrLayershell.keyboardFocus: (shown && !Sys.capturing)
                 ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-            // Klik di luar kartu menutup Settings; klik di dalam kartu ditahan oleh panel.
             MouseArea {
                 anchors.fill: parent
                 enabled: win.shown && !Sys.capturing
@@ -48,7 +43,6 @@ Scope {
                 width: Math.min(Theme.settingsWidth, Math.max(320, win.width - Theme.space16 * 2))
                 height: Math.min(Theme.settingsHeight, Math.max(360, win.height - Theme.space16 * 2))
 
-                // Identik dengan gerakan drawer Launcher: kartu turun dari balik bar.
                 transform: Translate {
                     y: -(body.height + Theme.drawerGap) * (1 - Math.min(1, win.anim))
                 }

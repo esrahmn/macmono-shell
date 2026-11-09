@@ -1,7 +1,6 @@
 import QtQuick
 import "../../core"
 
-// Ikon vektor digambar manual (monochrome, ikut properti `color`). Nggak butuh icon font.
 Canvas {
     id: root
     property string name: ""
@@ -9,7 +8,6 @@ Canvas {
     property real thickness: 1.8
     property bool customReady: false
 
-    // Logo enso pakai assets/custom.png. Load on-demand biar Glyph biasa nggak bawa image cache.
     function ensureCustomImage() {
         if (customReady)
             return;
@@ -56,7 +54,6 @@ Canvas {
 
         const PI = Math.PI;
 
-        // ---- helper ikon cuaca: awan = bawah datar + tiga bonggol (kiri, atas, kanan) ----
         const cloudPath = () => {
             ctx.beginPath();
             ctx.moveTo(7, 18);
@@ -66,7 +63,6 @@ Canvas {
             ctx.arc(17, 14, 4, -PI / 2, PI / 2);
             ctx.closePath();
         };
-        // tx,ty = geser; k = skala. knock=true: hapus isi di bawah awan dulu supaya ikon di belakangnya (matahari/bulan) terpotong rapi
         const drawCloud = (tx, ty, k, knock) => {
             ctx.save();
             ctx.translate(tx, ty);
@@ -115,7 +111,6 @@ Canvas {
         case "wifi-1":
         case "wifi-none":
         case "wifi-off": {
-            // wifi-1/2 = sinyal lemah/sedang (busur sisanya tipis), wifi-none = nyala tapi belum konek
             const lit = root.name === "wifi" ? 3 : root.name === "wifi-2" ? 2 : root.name === "wifi-1" ? 1 : 0;
             for (let i = 1; i <= 3; i++) {
                 ctx.globalAlpha = i <= lit ? 1 : 0.3;
@@ -133,7 +128,6 @@ Canvas {
             ctx.stroke();
             break;
         case "lock":
-            // gembok: badan terisi + sangkutan (shackle) di atas
             ctx.beginPath();
             ctx.moveTo(8, 11); ctx.lineTo(8, 8); ctx.arc(12, 8, 4, PI, 0); ctx.lineTo(16, 11);
             ctx.stroke();
@@ -252,7 +246,7 @@ Canvas {
             ctx.beginPath(); ctx.moveTo(12, 19); ctx.lineTo(12, 22); ctx.stroke();
             if (root.name === "mic-off") { ctx.beginPath(); ctx.moveTo(4, 4); ctx.lineTo(20, 20); ctx.stroke(); }
             break;
-        case "mic-fill":   // mic solid, dipakai di pil privasi (jelas di ukuran kecil)
+        case "mic-fill":
             ctx.beginPath();
             ctx.arc(12, 6.5, 3.5, PI, 0); ctx.lineTo(15.5, 11.5); ctx.arc(12, 11.5, 3.5, 0, PI); ctx.closePath();
             ctx.fill();
@@ -294,10 +288,10 @@ Canvas {
         case "check":
             ctx.beginPath(); ctx.moveTo(5, 12.5); ctx.lineTo(10, 17.5); ctx.lineTo(19, 7); ctx.stroke();
             break;
-        case "more":     // tiga titik
+        case "more":
             for (let i = 0; i < 3; i++) { ctx.beginPath(); ctx.arc(5.5 + i * 6.5, 12, 1.9, 0, 2 * PI); ctx.fill(); }
             break;
-        case "record":   // cincin + titik
+        case "record":
             ctx.beginPath(); ctx.arc(12, 12, 8.5, 0, 2 * PI); ctx.stroke();
             ctx.beginPath(); ctx.arc(12, 12, 4.5, 0, 2 * PI); ctx.fill();
             break;
@@ -331,8 +325,8 @@ Canvas {
             ctx.stroke();
             break;
         case "link":
-            ctx.beginPath(); ctx.arc(8.5, 15.5, 3.5, 0, PI * 1.5, false); ctx.stroke();       // celah di kanan atas
-            ctx.beginPath(); ctx.arc(15.5, 8.5, 3.5, PI, PI * 2.5, false); ctx.stroke();      // celah di kiri bawah
+            ctx.beginPath(); ctx.arc(8.5, 15.5, 3.5, 0, PI * 1.5, false); ctx.stroke();
+            ctx.beginPath(); ctx.arc(15.5, 8.5, 3.5, PI, PI * 2.5, false); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(9.5, 14.5); ctx.lineTo(14.5, 9.5); ctx.stroke();
             break;
         case "trash":
@@ -351,7 +345,6 @@ Canvas {
             break;
 
         case "enso": {
-            // Gambar di koordinat piksel Canvas (bukan skala 24), biar tajam di menubar.
             ctx.save();
             ctx.resetTransform();
             const src = Qt.resolvedUrl("../assets/custom.png");
@@ -363,7 +356,6 @@ Canvas {
             break;
         }
 
-        // ---- ikon cuaca (kode WMO dipetakan di WeatherService.iconFor) ----
         case "cloud":
             drawCloud(0, 0, 1, false);
             break;
@@ -455,7 +447,6 @@ Canvas {
             break;
 
         case "eq": {
-            // tiga slider vertikal dengan knob (ikon halaman Equalizer)
             const ex = [6, 12, 18], ek = [14.5, 8.5, 16];
             for (let i = 0; i < 3; i++) {
                 ctx.beginPath();

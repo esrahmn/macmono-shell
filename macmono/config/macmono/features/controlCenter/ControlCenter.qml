@@ -26,14 +26,7 @@ Scope {
             readonly property real anim: reveal.progress
             readonly property bool present: reveal.present
 
-            // Buka & tutup: animasi di QML (shared/components/Reveal.qml), sama untuk semua panel laci.
-            // Animasi layer Hyprland dimatiin lewat no_anim.
             visible: present
-            // Window TETAP seukuran layar di bawah bar (nggak di-resize tiap frame, itu yang bikin animasi
-            // patah-patah); yang berubah cuma kartu di dalamnya. Saat terbuka, seluruh window menangkap klik:
-            // klik di luar kartu = tutup (pola yang sama dengan launcher/clipboard). Nggak pakai
-            // HyprlandFocusGrab lagi: grab itu kadang ke-clear sendiri oleh compositor, dan CC ikut nutup
-            // padahal nggak ada klik di luar. Saat menutup, cuma area kartu yang menangkap klik.
             anchors { top: true; bottom: true; left: true; right: true }
             margins { top: Theme.barMargin + Theme.barHeight }
             mask: win.shown ? null : cardMask
@@ -42,24 +35,19 @@ Scope {
             color: Theme.transparent
             WlrLayershell.namespace: "macmono:cc"
             WlrLayershell.layer: WlrLayer.Overlay
-            // Fokus keyboard on-demand saat terbuka, exclusive saat mengetik password.
             WlrLayershell.keyboardFocus: !shown ? WlrKeyboardFocus.None
                 : wifiList.typing ? WlrKeyboardFocus.Exclusive
                 : WlrKeyboardFocus.OnDemand
 
-            property string expanded: ""   // "", "wifi", "bt", "sound", "tools", "power", "profile"
+            property string expanded: ""
             function toggleExpand(name) {
                 expanded = expanded === name ? "" : name;
                 if (expanded === "wifi") Sys.scanWifi();
             }
             onVisibleChanged: if (!visible) expanded = ""
 
-            // Selama ngetik password / nyambung Wi-Fi, klik di luar kartu nggak nutup CC (nmcli bisa
-            // munculin dialog secret agent yang nyolong fokus).
             readonly property bool holdOpen: wifiList.typing || Sys.wifiConnecting !== ""
 
-            // Klik di luar kartu = tutup. Dimatiin selama screenshot (pemilih area) dan saat ngetik
-            // password / nyambung Wi-Fi, biar CC nggak nutup di tengah proses.
             MouseArea {
                 anchors.fill: parent
                 acceptedButtons: Qt.AllButtons
@@ -67,18 +55,14 @@ Scope {
                 onPressed: Sys.closeCC()
             }
 
-            // Pemain yang sedang diputar dipilih dulu; tombol media dapat menggantinya.
             property int playerIndex: -1
             readonly property var player: Sys.mediaPlayer(Mpris.players.values, playerIndex)
 
-            // Panel turun sedikit + mengecil dari pojok kanan atas. Latar nggak di-fade sampai 0
-            // (alpha minimal ~0.25 > ignore_alpha 0.2), jadi blur Hyprland nggak ketinggalan.
             Item {
                 id: body
                 anchors { top: parent.top; right: parent.right; topMargin: Theme.drawerGap; rightMargin: Theme.space8 }
                 width: Theme.ccWidth
                 height: card.height
-                // laci: kartu keluar dari tepi bawah bar (bagian di atas window terpotong otomatis)
                 transform: Translate { y: -(body.height + Theme.drawerGap) * (1 - Math.min(1, win.anim)) }
 
                 Rectangle {
@@ -92,7 +76,6 @@ Scope {
                     color: Theme.panel
                     border.width: Theme.borderThin
                     border.color: Theme.line
-                    // klik di bagian kartu yang kosong (padding, border) jangan tembus ke penangkap klik di bawahnya
                     MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons }
                 }
 
@@ -109,12 +92,10 @@ Scope {
                         width: flick.width
                         spacing: Theme.space12
 
-                        // ============ header: profil + tools + power ============
                         RowLayout {
                             Layout.fillWidth: true
                             spacing: Theme.space6
 
-                            // profil: lingkaran inisial + nama + tanggal
                             Rectangle {
                                 implicitWidth: Theme.ccAvatarSize; implicitHeight: Theme.ccAvatarSize; radius: Math.min(width, height) / 2
                                 color: Theme.tile
@@ -167,7 +148,6 @@ Scope {
                                 }
                             }
 
-                            // tombol ⋯ (tools) dan power: dua lingkaran sama besar
                             Repeater {
                                 model: [ { key: "tools", glyph: "more" }, { key: "power", glyph: "power" } ]
                                 delegate: Rectangle {
@@ -198,7 +178,6 @@ Scope {
                         ToolsPanel { open: win.expanded === "tools" }
                         PowerActions { open: win.expanded === "power" }
 
-                        // ============ toggle: kartu jaringan (kiri) + Focus / Night / Mic (kanan) ============
                         GridLayout {
                             Layout.fillWidth: true
                             columns: 2
@@ -236,7 +215,7 @@ Scope {
                         BatteryStatus {}
                     }
                 }
-            } // body
+            }
         }
     }
 }

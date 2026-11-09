@@ -1,8 +1,6 @@
 import QtQuick
 import "../../../core"
 
-// Pratinjau Touchpad: jari bergeser ke atas di touchpad mini, halaman mini mengikuti (natural) atau
-// berlawanan arah (tradisional). Kecepatan animasi ikut "Scroll speed". Hanya jalan saat Settings terbuka.
 Rectangle {
     id: root
     property bool natural: true
@@ -29,7 +27,6 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         spacing: Theme.space22
 
-        // touchpad + jari
         Rectangle {
             id: pad
             width: Theme.settingsDemoPadW
@@ -50,7 +47,6 @@ Rectangle {
             }
         }
 
-        // halaman mini
         Rectangle {
             id: page
             width: Theme.settingsDemoPageW
@@ -65,7 +61,6 @@ Rectangle {
                 x: Theme.space12
                 width: parent.width - Theme.space12 * 2
                 spacing: Theme.space10
-                // natural: halaman naik bersama jari. Tradisional: halaman turun.
                 y: -Theme.settingsDemoTravel + (root.natural ? -1 : 1) * (root.t - 0.5) * Theme.settingsDemoTravel
                 Repeater {
                     model: 12

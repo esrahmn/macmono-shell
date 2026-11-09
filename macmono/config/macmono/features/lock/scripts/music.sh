@@ -1,6 +1,4 @@
 #!/usr/bin/env bash
-# Helper media card di lock screen. Dipanggil hyprlock: music.sh title|artist|bar|art
-# Butuh: playerctl. Opsional: imagemagick (resize + mode abu-abu cover), curl (cover dari URL).
 state="$HOME/.local/state/macmono"
 mkdir -p "$state"
 

@@ -2,18 +2,12 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Wi‑Fi subsystem (NetworkManager via nmcli).
-// - Status menubar: ringan, event-driven lewat nmcli monitor
-// - Scan/list: on-demand + ikut refresh setelah status berubah
-// - Connect: password lewat stdin (bukan argv)
 Scope {
     id: root
 
-    // Diisi Sys dari Settings.wifi*
-    property int statusPollMs: 30000       // cek ulang status & sinyal (cadangan, nmcli monitor sudah event-driven)
-    property int connectTimeoutMs: 45000   // batas waktu menyambung
-    property int maxNetworks: 16           // maks. jaringan di daftar
-    // Internal (nggak perlu diubah): jeda gabung event beruntun & jeda restart nmcli monitor
+    property int statusPollMs: 30000
+    property int connectTimeoutMs: 45000
+    property int maxNetworks: 16
     readonly property int statusDebounceMs: 400
     readonly property int listDebounceMs: 600
     readonly property int monitorRestartMs: 5000
@@ -39,7 +33,6 @@ Scope {
         return wifiProfile(ssid) !== null;
     }
 
-    // Samakan flag active di cache list dengan SSID yang lagi aktif (tanpa nunggu rescan).
     function syncListActive() {
         if (!wifiList || wifiList.length === 0)
             return;
@@ -64,7 +57,6 @@ Scope {
 
     function toggleWifi() {
         Quickshell.execDetached(["nmcli", "radio", "wifi", wifiOn ? "off" : "on"]);
-        // Optimistic: radio off → anggap putus
         if (wifiOn) {
             wifiOn = false;
             wifiName = "";
@@ -77,10 +69,8 @@ Scope {
     }
 
     function scanWifi() {
-        // tampilin cache dulu biar UI nggak kosong
         if (!wifiListGet.running)
             wifiListGet.running = true;
-        // minta scan baru (error "too soon" aman diabaikan)
         if (wifiOn && !wifiRescanProc.running)
             wifiRescanProc.running = true;
     }
@@ -109,7 +99,6 @@ Scope {
 
     function disconnectWifi() {
         const uuid = wifiActiveUuid;
-        // Optimistic UI: jangan nunggu nmcli selesai
         wifiName = "";
         wifiSignal = 0;
         wifiActiveUuid = "";
@@ -139,11 +128,6 @@ Scope {
             wifiListGet.running = true;
     }
 
-    // ---- status ringan (sumber kebenaran = koneksi aktif, bukan IN-USE stale) ----
-    // Format stdout:
-    //   line0: enabled|disabled
-    //   line1: NAME\tUUID   (kosong kalau nggak nyambung)
-    //   line2: SIGNAL       (opsional, dari AP bertanda *)
     Process {
         id: wifiStatusGet
         command: ["sh", "-c",
@@ -182,7 +166,6 @@ Scope {
                     root.wifiError = "";
 
                 root.syncListActive();
-                // Kalau SSID berubah (connect/disconnect), refresh list biar section Connected ikut
                 if (root.wifiName !== prevName)
                     listDebounce.restart();
             }
@@ -201,7 +184,6 @@ Scope {
         onTriggered: if (!wifiListGet.running) wifiListGet.running = true
     }
 
-    // Fallback pelan + update kekuatan sinyal
     Timer {
         interval: root.statusPollMs
         running: true
@@ -228,7 +210,6 @@ Scope {
         onTriggered: nmMonitor.running = true
     }
 
-    // ---- rescan (minta scan baru, lalu baca ulang list) ----
     Process {
         id: wifiRescanProc
         command: ["nmcli", "device", "wifi", "rescan"]
@@ -237,11 +218,10 @@ Scope {
 
     Timer {
         id: rescanListDelay
-        interval: 2500   // kasih waktu scan selesai
+        interval: 2500
         onTriggered: if (!wifiListGet.running) wifiListGet.running = true
     }
 
-    // ---- list / scan ----
     Process {
         id: wifiListGet
         command: ["sh", "-c",
@@ -277,7 +257,6 @@ Scope {
                     const line = lines[i].trim();
                     if (!line)
                         continue;
-                    // IN-USE:SSID:SIGNAL:SECURITY  (*:MyNet:80:WPA2)
                     const raw = line.replace(/\\:/g, "\u0001").split(":");
                     if (raw.length < 4)
                         continue;
@@ -290,7 +269,6 @@ Scope {
                     seen[ssid] = true;
                     const sec = String(security || "").toLowerCase();
                     const secure = !(sec === "" || sec === "--" || sec === "none" || sec.indexOf("open") !== -1);
-                    // Utamakan SSID aktif dari status; IN-USE cuma fallback
                     const active = activeName !== "" ? (ssid === activeName) : (inUse === "*");
                     list.push({
                         ssid: ssid,
@@ -307,7 +285,6 @@ Scope {
         }
     }
 
-    // ---- connect ----
     Process {
         id: wifiConnectProc
         environment: ({ LANG: "C", LC_ALL: "C" })

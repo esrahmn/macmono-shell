@@ -2,9 +2,6 @@ import QtQuick
 import QtQuick.Effects
 import "../../../core"
 
-// Gambar wallpaper dengan sudut membulat. Ikut mode hitam-putih (Sys.wallpaperMono),
-// jadi pratinjau di Settings selalu sama dengan yang tampil di desktop.
-//   thumb: true  -> pakai thumbnail kecil dari cache (untuk grid); jatuh ke file asli kalau thumbnail belum ada.
 Item {
     id: root
     property string path: ""
@@ -39,6 +36,5 @@ Item {
         maskSpreadAtMin: 1.0
     }
 
-    // Latar saat gambar belum siap
     Rectangle { anchors.fill: parent; radius: root.cornerRadius; color: Theme.tile; visible: img.status !== Image.Ready; z: -1 }
 }

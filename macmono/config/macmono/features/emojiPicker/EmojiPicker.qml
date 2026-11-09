@@ -112,10 +112,8 @@ Scope {
                 grid.positionViewAtIndex(grid.currentIndex, GridView.Contain);
             }
 
-            // Buka & tutup: animasi di QML (shared/components/Reveal.qml), laci dari bawah bar seperti control center.
             visible: present
             anchors { top: true; bottom: true; left: true; right: true }
-            // window mulai di tepi bawah bar: panel keluar dari balik bar (bagian di atasnya terpotong)
             margins { top: Theme.barMargin + Theme.barHeight }
             exclusionMode: ExclusionMode.Ignore
             color: Theme.transparent
@@ -147,7 +145,6 @@ Scope {
                 color: Theme.panel
                 border.width: Theme.borderThin
                 border.color: Theme.line
-                // laci: panel keluar dari tepi bawah bar (tetap berakhir di tengah); isi di-fade di dalamnya
                 transform: Translate { y: -(panel.y + panel.height) * (1 - win.anim) }
 
                 MouseArea { anchors.fill: parent }

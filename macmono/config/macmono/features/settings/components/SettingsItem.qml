@@ -2,15 +2,12 @@ import QtQuick
 import Quickshell
 import "../../../core"
 
-// Memilih kontrol yang sesuai dengan tipe item di SettingsSchema.
-// Tipe read-only dipakai halaman About: "info" (nilai di ujung kanan baris) dan "action" (tombol kecil).
 SettingsRow {
     id: root
     required property var item
     property var value
     signal edit(var v)
 
-    // Jangan diberi nama `readonly`: itu kata kunci QML, deklarasinya bisa gagal di-parse.
     readonly property bool isReadOnly: item.ro === true
 
     title: item.label
@@ -21,9 +18,6 @@ SettingsRow {
     resettable: !isReadOnly && !item.live && JSON.stringify(value) !== JSON.stringify(item.def)
     onResetRequested: edit(item.def)
 
-    // Timer ini hidup hanya di baris uptime (halaman About sedang terbuka), jadi tidak ada
-    // denyut latar saat panel ditutup. Nilai uptime sendiri dihitung dari selisih jam di
-    // shared/services/SystemInfoService.qml, bukan dengan memanggil proses tiap 30 detik.
     property int uptimeTick: 0
     Timer {
         interval: 30000
@@ -32,9 +26,6 @@ SettingsRow {
         onTriggered: root.uptimeTick++
     }
 
-    // Nilai informasi halaman About dihitung di sini, bukan disimpan di schema:
-    // SettingsSchema tetap cuma berisi daftar halaman, tanpa ketergantungan ke SettingsStore.
-    // `tick` tidak dibaca langsung; dia cuma jadi alasan binding `valueText` dihitung ulang.
     function infoText(name, tick) {
         switch (name) {
         case "os":           return Sys.osName;
@@ -48,10 +39,6 @@ SettingsRow {
         }
     }
 
-    // Detik -> teks. Aturan yang dipakai:
-    //  - jamak/tunggal ikut angka ("1 hour", bukan "1 hours");
-    //  - satuan yang nilainya 0 tidak ditulis ("1 hour", bukan "1 hour, 0 minutes");
-    //  - hari cuma muncul kalau memang sudah lewat sehari.
     function formatUptime(seconds) {
         const s = Math.max(0, Math.floor(Number(seconds) || 0));
         const days = Math.floor(s / 86400);
@@ -73,7 +60,7 @@ SettingsRow {
         active: root.item.type === "slider"
         width: root.stacked ? parent.width : 0
         sourceComponent: SettingsSlider {
-            showValue: false   // nilai sudah tampil di ujung kanan baris judul
+            showValue: false
             value: root.value
             minValue: root.item.min
             maxValue: root.item.max
@@ -114,8 +101,6 @@ SettingsRow {
         }
     }
 
-    // Tombol aksi (halaman About). Pakai Loader (bukan visible: false): Rectangle yang
-    // tersembunyi masih ikut terhitung di childrenRect, jadi lebar slot baris lain bisa melar.
     Loader {
         active: root.item.type === "action"
 

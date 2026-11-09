@@ -2,27 +2,13 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Backup & Reset untuk halaman Settings.
-//
-// Yang disalin: settings.json (semua override Settings) dan
-// hypr/custom/macmono-generated.lua (blok monitors + input). Dua file ini yang
-// menentukan tampilan dan input, jadi membackup salah satunya saja tidak cukup.
-//
-// Backup disimpan sebagai folder bertanggal di ~/.local/state/macmono/backups/,
-// bukan satu file arsip: tidak butuh tar/zip, gampang diperiksa dengan `ls`, dan
-// memulihkan satu file tertentu jadi mungkin tanpa membongkar apa pun.
-//
-// Restore settings.json langsung terbaca karena SettingsStore memakai
-// FileView watchChanges; config Hyprland diterapkan dengan `hyprctl reload`.
 Scope {
     id: root
 
     property var backups: []
     property bool busy: false
     property string status: ""
-    property string lastAction: ""   // "create" | "restore" | "reset" | "remove" | "clear": aksi yang menghasilkan `status` (halaman menampilkannya di zona aksi itu)
-    // Dipancarkan setelah settings.json kembali ke default: halaman Settings memakainya untuk menulis ulang
-    // config Hyprland (input) dan hypridle, supaya yang dipakai sistem sama dengan yang ditampilkan halaman.
+    property string lastAction: ""
     signal resetApplied()
 
     readonly property string settingsPath: Quickshell.env("HOME") + "/.config/macmono/settings.json"
@@ -32,7 +18,6 @@ Scope {
     property string pending: ""
 
     function pretty(stamp) {
-        // Akhiran "-N" cuma muncul kalau dua backup lahir di detik yang sama (jaring pengaman Restore/Reset).
         const m = /^(\d{4})(\d{2})(\d{2})-(\d{2})(\d{2})(\d{2})(?:-\d+)?$/.exec(String(stamp));
         if (!m) return String(stamp);
         const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -63,14 +48,12 @@ Scope {
             "sh", backupDir, settingsPath, generatedPath], "create");
     }
 
-    // Jaring pengaman: sebelum apa pun ditimpa, keadaan sekarang disalin ke backup bertanggal.
-    // Kalau salah pilih backup, Restore yang keliru itu masih bisa dibatalkan.
     function restore(entry) {
         if (!entry) return;
         run(["sh", "-c",
             "d=\"$1\"; [ -d \"$d\" ] || exit 1; " +
             "ts=$(date +%Y%m%d-%H%M%S); b=\"$4/$ts\"; i=1; " +
-            "while [ -d \"$b\" ]; do b=\"$4/$ts-$i\"; i=$((i+1)); done; " +   // jangan menimpa backup yang lahir di detik yang sama
+            "while [ -d \"$b\" ]; do b=\"$4/$ts-$i\"; i=$((i+1)); done; " +
             "mkdir -p \"$b\" || exit 1; " +
             "{ [ -f \"$2\" ] && cp \"$2\" \"$b/settings.json\"; } || :; " +
             "{ [ -f \"$3\" ] && cp \"$3\" \"$b/macmono-generated.lua\"; } || :; " +
@@ -81,10 +64,6 @@ Scope {
             "sh", entry.dir, settingsPath, generatedPath, backupDir], "restore");
     }
 
-    // Menulis ulang settings.json sebagai objek kosong: semua nilai kembali ke default di Settings.qml.
-    // Keadaan sekarang dibackup dulu (sama seperti Restore), jadi Reset tetap bisa dibatalkan.
-    // File generated TIDAK dikosongkan di sini; halaman Settings menulis ulang nilainya lewat
-    // Sys.hyprSync (sinyal resetApplied) setelah file settings terbaca lagi.
     function resetSettings() {
         run(["sh", "-c",
             "ts=$(date +%Y%m%d-%H%M%S); b=\"$2/$ts\"; i=1; " +
@@ -96,8 +75,6 @@ Scope {
             "sh", settingsPath, backupDir, generatedPath], "reset");
     }
 
-    // Hapus satu backup. Nama folder harus berupa stamp (angka dan "-" saja), jadi tidak mungkin
-    // menunjuk ke luar backupDir lewat "/" atau "..".
     function remove(entry) {
         if (!entry) return;
         run(["sh", "-c",
@@ -107,7 +84,6 @@ Scope {
             "sh", backupDir, entry.stamp], "remove");
     }
 
-    // Hapus semua backup. Hanya folder ber-stamp yang dihapus; apa pun selain itu di backupDir dibiarkan.
     function clearAll() {
         run(["sh", "-c",
             "d=\"$1\"; [ -d \"$d\" ] || exit 0; " +
@@ -157,7 +133,7 @@ Scope {
                 root.refresh();
             } else if (action === "restore") {
                 root.status = "Backup restored.";
-                root.refresh();   // backup jaring pengaman yang baru dibuat ikut tampil di daftar
+                root.refresh();
             } else if (action === "reset") {
                 root.status = "Settings reset to defaults.";
                 root.refresh();

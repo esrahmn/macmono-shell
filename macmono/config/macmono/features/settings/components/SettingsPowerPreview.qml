@@ -1,9 +1,6 @@
 import QtQuick
 import "../../../core"
 
-// Dua pratinjau halaman Power, dibaca dari draft (belum di-Apply):
-//   Sleep timeline : kapan layar terkunci, mati, dan komputer tidur kalau lu diam saja.
-//   Alert levels   : batang baterai 0..100% dengan tanda tiap level peringatan dan zona "urgent".
 Column {
     id: root
     property int lockMin: 5
@@ -22,7 +19,6 @@ Column {
         leftPadding: Theme.settingsRowPadX
     }
 
-    // ---- timeline tidur ----
     readonly property var events: {
         const all = [
             { label: "Lock", m: lockMin },
@@ -70,7 +66,6 @@ Column {
                     anchors.fill: parent
                     readonly property real trackW: width - Theme.settingsMarkSize
 
-                    // rel
                     Rectangle {
                         x: Theme.settingsMarkSize / 2
                         y: Theme.settingsMarkSize / 2 - height / 2
@@ -79,7 +74,6 @@ Column {
                         radius: height / 2
                         color: Theme.tileHover
                     }
-                    // titik awal: "sekarang"
                     Rectangle { x: 0; y: 0; width: Theme.settingsMarkSize; height: width; radius: width / 2; color: Theme.dim }
                     SettingsText { x: 0; y: Theme.settingsMarkSize + Theme.space4; text: "Idle"; color: Theme.dim; font.pixelSize: Theme.fontCaption }
 
@@ -99,7 +93,6 @@ Column {
                                 color: Theme.text
                             }
                             SettingsText {
-                                // dua baris label bergantian supaya titik yang berdekatan tidak saling tindih
                                 x: Math.max(0, Math.min(ev.parent.width - width, ev.cx - width / 2))
                                 y: Theme.settingsMarkSize + Theme.space4 + (ev.index % 2) * (Theme.fontBody + Theme.space6)
                                 text: ev.modelData.label + " · " + ev.modelData.m + " min"
@@ -112,7 +105,6 @@ Column {
         }
     }
 
-    // ---- level peringatan baterai ----
     readonly property var levels: {
         const seen = {};
         const out = [];
@@ -144,14 +136,12 @@ Column {
                 width: parent.width - Theme.settingsRowPadX * 2
                 height: Theme.settingsBatBar + Theme.space8 + Theme.fontBody + Theme.space8 + Theme.fontCaption
 
-                // batang 0..100%
                 Rectangle {
                     id: bar
                     width: parent.width
                     height: Theme.settingsBatBar
                     radius: height / 2
                     color: Theme.tileHover
-                    // zona urgent: dari 0 sampai level kritis
                     Rectangle {
                         width: parent.width * Math.max(0, Math.min(100, root.criticalLevel)) / 100
                         height: parent.height
@@ -159,7 +149,6 @@ Column {
                         color: Theme.text
                     }
                 }
-                // tanda tiap level peringatan
                 Repeater {
                     model: root.levels
                     delegate: Item {

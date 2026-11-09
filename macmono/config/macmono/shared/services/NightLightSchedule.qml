@@ -1,16 +1,6 @@
 import QtQuick
 import Quickshell
 
-// Jadwal Night Light: nyala saat matahari terbenam, mati saat matahari terbit.
-// Koordinat diambil dari halaman Location & Weather (Settings.weatherLat/Lon).
-//
-// Posisi matahari dihitung dengan algoritma NOAA yang disederhanakan (deklinasi +
-// equation of time). Akurasinya beberapa menit — bukan tabel astronomi, tapi cukup
-// untuk kenyamanan mata. Kutub (matahari tidak terbit/terbenam) sengaja tidak
-// dipaksakan: `valid` jadi false dan state tidak disentuh.
-//
-// Sama seperti DndSchedule: dipolling tiap 60 detik, bukan timer ke batas berikutnya,
-// supaya jam yang diubah manual, suspend, dan restart shell selalu mengoreksi diri.
 Scope {
     id: root
 
@@ -18,10 +8,10 @@ Scope {
     property real lat: 0
     property real lon: 0
 
-    property bool valid: false        // koordinat ada dan hari ini ada terbit/terbenam
-    property int sunriseMin: -1       // menit lokal sejak tengah malam
+    property bool valid: false
+    property int sunriseMin: -1
     property int sunsetMin: -1
-    property bool active: false       // true = sekarang seharusnya Night Light nyala
+    property bool active: false
 
     signal windowChanged(bool active)
 
@@ -36,23 +26,22 @@ Scope {
         sunriseMin = -1;
         sunsetMin = -1;
 
-        // 0,0 = belum ada lokasi dipilih (default Settings.weatherLat/Lon).
         if (!isFinite(la) || !isFinite(lo) || (Math.abs(la) < 0.0001 && Math.abs(lo) < 0.0001))
             return;
 
         const rad = Math.PI / 180;
         const n = dayOfYear(d);
         const B = (360 / 364) * (n - 81) * rad;
-        const eot = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);   // menit
-        const decl = 23.44 * rad * Math.sin(2 * Math.PI * (284 + n) / 365);            // rad
+        const eot = 9.87 * Math.sin(2 * B) - 7.53 * Math.cos(B) - 1.5 * Math.sin(B);
+        const decl = 23.44 * rad * Math.sin(2 * Math.PI * (284 + n) / 365);
         const cosW = (Math.sin(-0.833 * rad) - Math.sin(la * rad) * Math.sin(decl))
                    / (Math.cos(la * rad) * Math.cos(decl));
         if (!isFinite(cosW) || cosW >= 1 || cosW <= -1)
-            return;                                             // kutub: tidak ada terbit/terbenam
+            return;
 
-        const half = Math.acos(cosW) / rad * 4;                  // setengah panjang hari (menit)
-        const noonUtc = 720 - 4 * lo - eot;                      // tengah hari matahari (menit UTC)
-        const tz = -d.getTimezoneOffset();                       // menit lokal = UTC + tz
+        const half = Math.acos(cosW) / rad * 4;
+        const noonUtc = 720 - 4 * lo - eot;
+        const tz = -d.getTimezoneOffset();
         sunriseMin = Math.round((noonUtc - half + tz + 1440) % 1440);
         sunsetMin = Math.round((noonUtc + half + tz + 1440) % 1440);
         valid = true;
@@ -62,11 +51,10 @@ Scope {
         const d = new Date();
         computeSun(d);
 
-        // Tanpa lokasi (atau hari kutub): jangan sentuh Night Light sama sekali.
         if (!valid) {
             if (active) {
                 active = false;
-                root.windowChanged(false);   // jadwal tadi yang nyalain: matiin juga, jangan cuma reset flag
+                root.windowChanged(false);
             }
             return;
         }

@@ -1,14 +1,10 @@
 import QtQuick
 import "../../../core"
 
-// Bagian atas halaman Wallpaper: wallpaper sekarang (besar), saklar hitam-putih, dan grid pilihan.
-// Semua langsung berlaku (tanpa Apply), lewat Sys.setWallpaper / Sys.setWallpaperMono.
 Column {
     id: root
     spacing: Theme.settingsGroupSpacing
 
-    // Wallpaper aktif ditaruh paling depan. Urutan dihitung saat halaman dibuka / daftar berubah,
-    // bukan tiap klik, supaya grid tidak loncat di bawah kursor.
     property var shown: []
     function rebuild() {
         const cur = Sys.wallpaper;
@@ -22,9 +18,6 @@ Column {
 
     function nameOf(p) { return String(p).split("/").pop(); }
 
-    // Pratinjau hover: kursor (atau fokus keyboard) di thumbnail menampilkannya di kartu atas tanpa menerapkan.
-    // Diberi jeda kecil: kursor yang cuma lewat tidak bikin kartu kedip, dan pindah dari satu thumbnail
-    // ke thumbnail sebelahnya tidak sempat balik ke wallpaper sekarang.
     property string hoverPath: ""
     property string pendingHover: ""
     readonly property string heroPath: hoverPath !== "" ? hoverPath : Sys.wallpaper
@@ -47,7 +40,6 @@ Column {
         leftPadding: Theme.settingsRowPadX
     }
 
-    // ---- wallpaper sekarang ----
     Column {
         width: parent.width
         spacing: Theme.space8
@@ -57,11 +49,8 @@ Column {
             width: parent.width
             height: Theme.settingsHeroHeight
 
-            // Saat pratinjau, hero memakai thumbnail yang sama dengan grid (sudah ada di cache, jadi muncul
-            // seketika tanpa kedip). Begitu dipilih / kursor pergi, balik ke gambar penuh.
             SettingsWallpaperImage { anchors.fill: parent; path: root.heroPath; thumb: root.previewing; cornerRadius: Theme.radius }
 
-            // Bayangan tipis di bawah supaya nama file terbaca di atas gambar terang
             Rectangle {
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
                 height: Theme.settingsHeroScrimHeight
@@ -86,7 +75,6 @@ Column {
             Rectangle { anchors.fill: parent; radius: Theme.radius; color: Theme.transparent; border.width: Theme.borderThin; border.color: Theme.cardStroke }
         }
 
-        // Saklar hitam-putih
         Rectangle {
             width: parent.width
             height: monoCol.height + Theme.settingsRowPadY * 2
@@ -111,7 +99,6 @@ Column {
         }
     }
 
-    // ---- grid pilihan ----
     Column {
         width: parent.width
         spacing: Theme.space8
@@ -183,7 +170,6 @@ Column {
             }
             SettingsButton {
                 label: "See all"
-                // Settings ditutup dulu supaya dua panel tidak bertumpuk.
                 onClicked: { Sys.settingsOpen = false; Sys.openWallpaper(); }
             }
         }

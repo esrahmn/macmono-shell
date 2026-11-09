@@ -1,4 +1,3 @@
-//@ pragma Env QS_NO_RELOAD_POPUP=1
 
 import Quickshell
 import "core"
@@ -26,17 +25,9 @@ import "features/tools"
 import "features/tray"
 import "features/wallpaper"
 
-// macmono: modular desktop shell.
-//  - core/ owns settings, theme, system facade, and shortcuts
-//  - features/ owns feature surfaces and feature-private components/resources
-//  - shared/ owns reusable UI components, system services, and assets
-//  - scripts/ owns session, capture, and development utilities
-//  IPC remains exposed through `qs ipc call shell <fn>`.
 ShellRoot {
-    // Services (singleton-ish, hidup sepanjang shell)
     Ipc {}
 
-    // Surfaces
     Wallpaper {}
     MenuBar {}
     TrayMenu {}

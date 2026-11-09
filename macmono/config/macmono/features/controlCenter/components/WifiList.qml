@@ -2,11 +2,10 @@ import QtQuick
 import "../../../core"
 import "../../../shared/components"
 
-// Daftar Wi-Fi di Control Center: connect / putus, password untuk jaringan baru, tombol pengaturan.
 Rectangle {
     id: root
     property bool open: false
-    property string pwFor: ""                 // SSID yang lagi minta password
+    property string pwFor: ""
     readonly property bool typing: pwFor !== ""
 
     readonly property real fullHeight: col.implicitHeight + 12
@@ -16,13 +15,12 @@ Rectangle {
     Behavior on opacity { NumberAnimation { duration: Theme.animFade } }
     visible: implicitHeight > 0.5
     radius: Theme.radiusCard
-    // Daftar = kotak cekung di dalam panel, bukan kartu terangkat: kontennya terasa masuk.
     color: Theme.well
     border.width: Theme.borderThin; border.color: Theme.cardStroke
     clip: true
 
     onOpenChanged: if (!open) pwFor = ""
-    Connections {   // password salah -> buka lagi kolom password-nya
+    Connections {
         target: Sys
         function onWifiErrorChanged() {
             if (Sys.wifiError !== "" && Sys.wifiError !== Sys.wifiName) {
@@ -60,8 +58,6 @@ Rectangle {
                 required property var modelData
                 required property int index
                 readonly property bool asking: root.pwFor === modelData.ssid
-                // Pakai Sys.wifiName sebagai sumber kebenaran, bukan flag active di cache list
-                // (cache bisa stale setelah disconnect sampai scan berikutnya).
                 readonly property bool isActive: Sys.wifiName !== "" && modelData.ssid === Sys.wifiName
                 readonly property string section: isActive ? "Connected"
                 : ((index === 0 || (Sys.wifiList[index - 1] && Sys.wifiList[index - 1].ssid === Sys.wifiName)) ? "Other networks" : "")
@@ -110,7 +106,7 @@ Rectangle {
                         color: entry.isActive && area.containsMouse ? Theme.dim : Theme.text
                         font.family: Theme.font; font.pixelSize: entry.isActive && area.containsMouse ? Theme.fontSmall : Theme.fontBody
                     }
-                    Glyph {   // jaringan baru yang butuh password
+                    Glyph {
                         visible: !entry.isActive && entry.modelData.secure && !entry.modelData.known
                         anchors { right: parent.right; rightMargin: Theme.space10; verticalCenter: parent.verticalCenter }
                         width: Theme.icon13; height: Theme.icon13
@@ -126,7 +122,6 @@ Rectangle {
                     }
                 }
 
-                // kolom password (cuma untuk jaringan yang dipilih)
                 Item {
                     visible: entry.asking
                     width: parent.width; height: visible ? Settings.wifiPasswordRowHeight : 0
@@ -155,7 +150,7 @@ Rectangle {
                                 font: pw.font
                             }
                         }
-                        MouseArea {   // tampilkan / sembunyikan password
+                        MouseArea {
                             id: showPw
                             property bool checked: false
                             anchors { right: parent.right; rightMargin: Theme.space4; verticalCenter: parent.verticalCenter }
@@ -190,7 +185,6 @@ Rectangle {
             }
         }
 
-        // footer: scan ulang + pengaturan jaringan
         Item {
             width: col.width; height: Theme.listFooterHeight
             Rectangle { anchors { left: parent.left; right: parent.right; top: parent.top; leftMargin: Theme.space6; rightMargin: Theme.space6 } height: 1; color: Theme.line }

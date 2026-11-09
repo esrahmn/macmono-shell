@@ -1,8 +1,6 @@
 import QtQuick
 import "../../core"
 
-// Ikon baterai monokrom (badan + isi + kepala). Lebar isi mengikuti Sys.batPercent.
-// Dipakai MenuBar dan kartu baterai di Control Center. Geometri 27x12 adalah ukuran glyph, bukan ukuran tema.
 Item {
     implicitWidth: 27
     implicitHeight: 12
@@ -21,6 +19,5 @@ Item {
         }
     }
 
-    // kepala baterai
     Rectangle { x: 25; y: 4; width: 2; height: 4; radius: Math.min(width, height) / 2; color: Theme.dim }
 }

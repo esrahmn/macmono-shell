@@ -2,42 +2,24 @@ import QtQuick
 import "../../../core"
 import "../../../shared/components"
 
-// Isi panel Pengaturan Sistem. Satu tata letak dua-panel: sidebar halaman (selalu tampak) + isi halaman.
-// Tidak ada layar utama dan tombol kembali; halaman terakhir yang dibuka diingat selama shell hidup.
-// Pencarian selalu ada di atas dan mencari lintas semua halaman (judul halaman ikut dicocokkan,
-// jadi "Advanced" atau "Top Bar" tetap ketemu walau tak ada item yang memuat kata itu).
-// Tidak tahu apa-apa soal window; features/settings/SettingsApp.qml yang membungkusnya.
-//
-// Alur: perubahan masuk ke `draft` dulu. Bar "Apply" muncul melayang di bawah hanya saat ada draft;
-// "Apply" menulis ke SettingsStore (langsung berlaku tanpa reload shell, tersimpan di
-// ~/.config/macmono/settings.json), "Cancel" membuang draft. Setelah Apply bar berganti jadi
-// status "Saved" sebentar, supaya jelas perubahan sudah masuk.
-//
-// Keyboard: Up/Down (di kolom cari) pindah halaman, Esc mundur satu tingkat
-// (cari -> draft -> tutup), Ctrl+S terapkan, Ctrl+F fokus ke kolom cari.
 FocusScope {
     id: root
     signal closeRequested()
-    signal navMoved()   // halaman pindah lewat keyboard (supaya baris sidebar yang aktif ikut tergulung masuk)
+    signal navMoved()
 
-    // Id halaman yang sedang dibuka. Selalu terisi (tidak ada layar utama); awalnya halaman pertama.
     property string pageId: SettingsSchema.pages[0].id
     property var draft: ({})
 
-    // "Saved" kecil setelah Apply. Hilang sendiri; sembunyi lagi begitu ada editan baru.
     property bool savedFlash: false
     Timer { id: savedTimer; interval: Theme.settingsSavedMs; onTriggered: root.savedFlash = false }
 
     readonly property string query: searchInput.text
     readonly property bool searching: query.trim() !== ""
-    readonly property bool atPage: !searching   // isi halaman tampil (bukan hasil cari)
+    readonly property bool atPage: !searching
     readonly property int dirtyCount: Object.keys(draft).length
     readonly property bool dirty: dirtyCount > 0
-    // Bar bawah dipakai bergantian: bar Apply saat ada draft, status "Saved" sesudahnya, sisanya footer hint.
     readonly property bool barShown: dirty || savedFlash
 
-    // Pengelompokan layar utama. Halaman yang belum disebut di sini otomatis masuk grup "More",
-    // jadi setiap halaman baru harus didaftarkan di sini — kalau lupa, grup "More" bermunculan sendiri.
     readonly property var navSections: [
         { title: "Personalization", ids: ["appearance", "display", "wallpaper"] },
         { title: "Devices & Input", ids: ["input", "sound", "eq"] },
@@ -80,8 +62,6 @@ FocusScope {
         if (q === "") return [];
         const hit = (s) => String(s ?? "").toLowerCase().indexOf(q) >= 0;
 
-        // Halaman cocok kalau nama, deskripsi, atau nama salah satu grupnya memuat kata kunci.
-        // Ini yang bikin "Advanced"/"Top Bar"/"Display" tidak lagi berakhir di "No results".
         const pageHits = [];
         for (const p of SettingsSchema.pages) {
             let groupHit = false;
@@ -111,8 +91,6 @@ FocusScope {
     }
     readonly property var shownGroups: searching ? searchGroups : (currentPage ? currentPage.groups : [])
 
-    // Kolom isi dibatasi lebarnya dan diletakkan di tengah area kanan. Judul halaman ikut
-    // sejajar dengan tepi kiri kolom isi, jadi judul dan isi tetap satu garis.
     readonly property real contentW: Math.min(Theme.settingsContentMax, flick.width - Theme.settingsGutter * 2)
     readonly property real contentX: Math.max(Theme.settingsGutter, (flick.width - contentW) / 2)
 
@@ -124,14 +102,13 @@ FocusScope {
     }
 
     function setValue(item, v) {
-        savedFlash = false;   // editan baru membatalkan status "Saved"
+        savedFlash = false;
         const next = Object.assign({}, draft);
         if (same(v, SettingsStore.v(item.key, item.def))) delete next[item.key];
         else next[item.key] = v;
         draft = next;
     }
 
-    // Halaman read-only (Keyboard Shortcuts, About) tak punya draft, jadi "Reset page" disembunyikan.
     function pageResettable(page) {
         if (!page || !page.groups) return false;
         for (const g of page.groups)
@@ -140,8 +117,6 @@ FocusScope {
         return false;
     }
 
-    // Jumlah opsi di halaman yang nilainya (draft ikut dihitung) beda dari bawaan.
-    // Dipakai zona "Reset this page": 0 = tombol mati, tidak ada yang perlu di-reset.
     function pageChangedCount(page) {
         if (!page || !page.groups) return 0;
         let n = 0;
@@ -152,7 +127,7 @@ FocusScope {
     }
 
     function pageDirty(page) {
-        if (!page || !page.groups) return false;   // baris hasil cari "Pages" cuma bawa id/label/desc/icon
+        if (!page || !page.groups) return false;
         for (const g of page.groups)
             for (const it of g.items)
                 if (draft.hasOwnProperty(it.key)) return true;
@@ -186,7 +161,6 @@ FocusScope {
             if (it && same(draft[k], it.def)) removes.push(k);
             else sets[k] = draft[k];
         }
-        // Opsi yang harus ikut ditulis ke config sistem (Input -> Hyprland, Power -> hypridle).
         const syncs = ({});
         for (const k in draft) {
             const it = SettingsSchema.find(k);
@@ -205,17 +179,15 @@ FocusScope {
         pageId = id;
     }
 
-    // ---- lompat dari hasil pencarian: buka halamannya, gulir ke barisnya, sorot sebentar ----
-    property string flashKey: ""        // key baris yang sedang dituju; kosong = tidak ada
-    property var pendingReveal: null    // baris yang menunggu animasi masuk halaman selesai
+    property string flashKey: ""
+    property var pendingReveal: null
 
     function jumpTo(id, key) {
-        flashKey = "";          // dikosongkan dulu supaya lompat ke key yang sama dua kali tetap memicu
+        flashKey = "";
         openPage(id);
         flashKey = key;
     }
 
-    // Enter di kolom cari: lompat ke baris pertama yang cocok; kalau yang cocok cuma halaman, buka halamannya.
     function jumpToFirstResult() {
         for (const g of searchGroups)
             if (!g.pageRows && g.items.length > 0) { jumpTo(g.pageId, g.items[0].key); return; }
@@ -223,7 +195,6 @@ FocusScope {
             if (g.pageRows && g.items.length > 0) { openPage(g.items[0].id); return; }
     }
 
-    // Dipanggil baris yang dituju. Gulir baru jalan setelah animasi masuk selesai, supaya posisi baris sudah final.
     function revealRow(entry) {
         pendingReveal = entry;
         if (!pageIntro.running) Qt.callLater(doReveal);
@@ -240,7 +211,6 @@ FocusScope {
         e.pulse();
     }
 
-    // Up/Down di kolom cari: pindah ke halaman sebelum/sesudahnya (berhenti di ujung, tidak berputar).
     function stepPage(delta) {
         const i = Math.max(0, navIds.indexOf(pageId));
         pageId = navIds[Math.max(0, Math.min(navIds.length - 1, i + delta))];
@@ -248,12 +218,8 @@ FocusScope {
     }
 
     function focusSearch() { searchInput.forceActiveFocus(); }
-    // Fokus keyboard panel TANPA masuk ke kolom cari: Esc, Ctrl+S, Ctrl+F, "/" dan panah tetap jalan,
-    // tapi tidak ada kursor berkedip / cincin fokus di kolom cari tiap panel dibuka.
     function focusPanel() { root.forceActiveFocus(); }
 
-    // Ganti halaman / mulai mencari: gulir ke atas lalu jalankan animasi masuk konten.
-    // Tanpa ini, konten berganti mendadak sementara panel lain semua memakai pegas (Reveal).
     onPageIdChanged: { flick.contentY = 0; pageIntro.restart(); }
     onQueryChanged: { flick.contentY = 0; pageIntro.restart(); }
 
@@ -270,11 +236,10 @@ FocusScope {
             focusSearch();
             event.accepted = true;
         } else if (event.text === "/" && !(event.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier)) && !searchInput.activeFocus) {
-            focusSearch();   // "/" membuka pencarian (kalau kolom cari sudah fokus, TextInput yang menangani)
+            focusSearch();
             event.accepted = true;
         }
     }
-    // Panah atas/bawah pindah halaman juga saat fokus tidak di kolom cari.
     Keys.onUpPressed: if (atPage) stepPage(-1)
     Keys.onDownPressed: if (atPage) stepPage(1)
 
@@ -307,7 +272,6 @@ FocusScope {
         }
     }
 
-    // Tombol bulat kecil di header (kembali / tutup).
     component RoundBtn: Rectangle {
         id: rb
         property string glyph
@@ -340,9 +304,6 @@ FocusScope {
         Accessible.name: rb.accessibleName
     }
 
-    // Satu baris halaman, dipakai di sidebar (compact) DAN di hasil pencarian "Pages".
-    // Sidebar: tanpa chevron dan tanpa garis pemisah, hanya penanda halaman terpilih.
-    // Hasil cari: chevron + garis tipis, karena barisnya membawa pengguna ke halaman lain.
     component NavRow: Item {
         id: navRow
         property var page: null
@@ -358,7 +319,6 @@ FocusScope {
             function onNavMoved() { if (navRow.current && navRow.compact) sideFlick.reveal(navRow); }
         }
 
-        // Terpilih = tileMid, hover = tile (lebih tipis), jadi keduanya tetap bisa dibedakan.
         Rectangle {
             anchors.fill: parent
             radius: Theme.radiusXs
@@ -366,8 +326,6 @@ FocusScope {
             Behavior on color { ColorAnimation { duration: Theme.animHover } }
         }
 
-        // Pemisah digambar DI ATAS sorotan: sebelumnya sorotan menutupinya, jadi garisnya
-        // berkedip hilang-muncul tiap kursor lewat.
         Rectangle {
             visible: navRow.rowIndex > 0 && !navRow.compact
             z: 2
@@ -377,7 +335,6 @@ FocusScope {
             color: Theme.line
         }
 
-        // Ikon polos tanpa kotak: yang dibaca orang adalah nama halaman, ikon cuma penanda tenang di tepi kiri.
         Item {
             id: iconBox
             x: Theme.settingsRowPadX
@@ -449,10 +406,8 @@ FocusScope {
         border.width: Theme.borderThin
         border.color: Theme.lineStrong
         clip: true
-        // Klik di mana saja selain kolom cari melepas fokus kolom cari (kolom cari ada di atas MouseArea ini).
         MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onPressed: root.forceActiveFocus() }
 
-        // ---- header: judul ........ [kolom cari] [tutup], hanya di atas kolom isi (sidebar punya judulnya sendiri)
         Item {
             id: header
             anchors { top: parent.top; left: sideNav.right; right: parent.right }
@@ -460,7 +415,6 @@ FocusScope {
 
             SettingsText {
                 id: titleText
-                // Satu tepi kiri dengan label grup dan judul baris di bawahnya.
                 x: root.contentX + Theme.settingsRowPadX
                 width: parent.width - x - Theme.settingsSearchWidth - Theme.icon22 - Theme.space6 - Theme.settingsGutter - Theme.space10 * 2
                 anchors.verticalCenter: parent.verticalCenter
@@ -469,8 +423,6 @@ FocusScope {
                 font.pixelSize: Theme.settingsTitleSize
                 font.weight: Font.DemiBold
                 font.letterSpacing: Theme.settingsTitleTracking
-                // Judul besar pakai desain "display" Inter (sumbu opsz 14-32) supaya tidak longgar.
-                // Kalau fontnya bukan variable font, Qt mengabaikan sumbu ini.
                 font.variableAxes: ({ "opsz": 32, "wght": Font.DemiBold })
             }
 
@@ -482,10 +434,6 @@ FocusScope {
             }
         }
 
-        // ---- sidebar halaman: selalu tampak (tidak ada layar utama / tombol kembali).
-        // Tanpa permukaan sendiri ("ghost"): hanya satu garis tipis di tepi kanan. Karena tidak ada
-        // latar yang bisa menimpa sudut kartu, hack margin radius yang dulu ada tidak perlu lagi
-        // (Flickable di bawah tetap menyisakan radiusXl supaya sorotan baris terakhir tidak keluar dari lengkung sudut).
         Item {
             id: sideNav
             anchors { top: parent.top; bottom: parent.bottom; left: parent.left }
@@ -497,7 +445,6 @@ FocusScope {
                 color: Theme.line
             }
 
-            // Judul sidebar sejajar dengan judul halaman di sebelahnya.
             Item {
                 id: sideTitleBox
                 anchors { top: parent.top; left: parent.left; right: parent.right }
@@ -523,7 +470,6 @@ FocusScope {
                 clip: true
                 boundsBehavior: Flickable.StopAtBounds
 
-                // dipanggil hanya dari keyboard (stepPage), sama seperti flick.reveal di bawah
                 function reveal(item) {
                     const top = item.mapToItem(contentItem, 0, 0).y - Theme.space12;
                     const bottom = top + item.height + Theme.space12 * 2;
@@ -561,7 +507,6 @@ FocusScope {
                                     compact: true
                                     page: modelData
                                     rowIndex: index
-                                    // Saat mencari, tak ada halaman yang ditandai: isi sedang berupa hasil cari.
                                     current: !root.searching && root.pageId === modelData.id
                                 }
                             }
@@ -571,8 +516,6 @@ FocusScope {
             }
         }
 
-        // ---- kolom cari (kapsul) di dalam baris header: kanan judul, kiri tombol tutup.
-        // Letaknya tetap di semua halaman, jadi tidak ada lagi lompatan antara layar utama dan halaman.
         Rectangle {
             id: searchBox
             anchors {
@@ -645,20 +588,15 @@ FocusScope {
             }
         }
 
-        // ---- isi (layar utama / halaman / hasil cari)
         Flickable {
             id: flick
             anchors { top: header.bottom; topMargin: Theme.space12; bottom: parent.bottom; bottomMargin: Theme.space8; left: sideNav.right; right: parent.right }
             contentWidth: width
-            // Bar bawah cuma dipesan setinggi yang benar-benar dipakai: bar Apply (44) saat ada
-            // draft/status, footer hint (26) saat tidak. Dulu bar 44 selalu dipesan, jadi ada
-            // ruang mati permanen di dasar panel dan isi gampang tenggelam ke bawah lipatan.
             contentHeight: content.height + Theme.settingsPadTop + Theme.settingsGutter * 2
                            + (root.barShown ? Theme.settingsBarHeight + Theme.space8 : Theme.space8)
             clip: true
             boundsBehavior: Flickable.StopAtBounds
 
-            // dipanggil hanya dari keyboard (bukan hover), supaya konten tidak bergeser di bawah kursor
             function reveal(item) {
                 const top = item.mapToItem(contentItem, 0, 0).y - Theme.space12;
                 const bottom = top + item.height + Theme.space12 * 2;
@@ -666,85 +604,69 @@ FocusScope {
                 else if (bottom > contentY + height) contentY = Math.max(0, Math.min(contentHeight - height, bottom - height));
             }
 
-            // PENTING: semua blok di bawah ini HARUS jadi anak Column `content`.
-            // Repeater hanya membuat delegate, dia tidak menatanya. Kalau Repeater jadi anak
-            // Flickable langsung, semua delegate menumpuk di y = 0 dan teksnya saling tindih.
             Column {
                 id: content
                 x: root.contentX
                 y: Theme.settingsPadTop
-                // Dibatasi dan di tengah: di panel lebar, baris dan slider tidak membentang sampai tepi kanan.
                 width: root.contentW
                 spacing: Theme.settingsGroupSpacing
                 transform: Translate { id: contentShift }
 
-                // -- halaman About: ringkasan komputer
                 SettingsAbout {
                     visible: root.atPage && root.currentPage && root.currentPage.about === true
                     width: content.width
                 }
 
-                // -- halaman pintasan keyboard (data: core/shortcuts/KeyList.qml, sama dengan Cheatsheet)
                 SettingsKeys {
                     visible: root.atPage && root.currentPage && root.currentPage.keys === true
                     width: content.width
                 }
 
-                // -- halaman Display: pengaturan monitor (resolusi, refresh rate, skala, rotasi)
                 SettingsDisplay {
                     visible: root.atPage && root.currentPage && root.currentPage.monitors === true
                     width: content.width
                 }
 
-                // -- pratinjau cuaca di atas halaman Weather; muncul kalau kota sudah dipilih
                 SettingsWeatherPreview {
                     visible: root.atPage && root.currentPage && root.currentPage.weather === true && Sys.weather.hasLocation
                     width: content.width
                 }
 
-                // -- halaman Weather: lokasi + unit
                 SettingsWeather {
                     visible: root.atPage && root.currentPage && root.currentPage.weather === true
                     width: content.width
                 }
 
-                // -- halaman Power: profil daya (langsung berlaku)
                 SettingsPower {
                     visible: root.atPage && root.currentPage && root.currentPage.power === true
                     width: content.width
                 }
 
-                // -- halaman Sound: output, input, volume per aplikasi (langsung berlaku)
                 SettingsSound {
                     visible: root.atPage && root.currentPage && root.currentPage.sound === true
                     width: content.width
                 }
 
-                // -- halaman Equalizer: band yang bisa digeser + kurva respons (dikirim ke Easy Effects)
                 SettingsEqualizer {
                     visible: root.atPage && root.currentPage && root.currentPage.eq === true
                     width: content.width
                 }
 
-                // -- halaman Notifications: jadwal DND + mute per aplikasi
                 SettingsNotifications {
                     visible: root.atPage && root.currentPage && root.currentPage.notifications === true
                     width: content.width
                 }
 
-                // -- halaman Apps & Startup: autostart XDG (dex)
                 SettingsApps {
                     visible: root.atPage && root.currentPage && root.currentPage.apps === true
                     width: content.width
                 }
 
-                // -- halaman Backup & Reset: simpan/pulihkan settings + reset ke default
                 SettingsBackup {
                     visible: root.atPage && root.currentPage && root.currentPage.backup === true
                     width: content.width
                 }
 
-                // -- pratinjau Appearance: membaca draft, jadi perubahan langsung kelihatan sebelum Apply
                 SettingsAppearancePreview {
                     visible: root.atPage && root.currentPage && root.currentPage.preview === "appearance"
                     width: content.width
@@ -754,13 +676,11 @@ FocusScope {
                     showDate: root.valueOf(SettingsSchema.find("clockDate"))
                 }
 
-                // -- wallpaper sekarang + grid pilihan (langsung berlaku, tanpa Apply)
                 SettingsWallpaperPreview {
                     visible: root.atPage && root.currentPage && root.currentPage.preview === "wallpaper"
                     width: content.width
                 }
 
-                // -- hasil cari: hanya status kosong. Jumlah hasil tidak digambar (kontrak desain R8).
                 SettingsText {
                     visible: root.searching && root.resultCount === 0
                     leftPadding: Theme.settingsRowPadX
@@ -768,7 +688,6 @@ FocusScope {
                     color: Theme.dim
                 }
 
-                // -- grup pengaturan (halaman atau hasil cari)
                 Repeater {
                     model: root.shownGroups
 
@@ -787,7 +706,6 @@ FocusScope {
                             leftPadding: Theme.settingsRowPadX
                         }
 
-                        // Pratinjau per grup (penanda `preview` di schema); tampil tepat di atas barisnya.
                         SettingsTouchpadPreview {
                             visible: root.atPage && group.modelData.preview === "touchpad"
                             width: parent.width
@@ -805,7 +723,6 @@ FocusScope {
                             rate: root.valueOf(SettingsSchema.find("inputRepeatRate"))
                             delayMs: root.valueOf(SettingsSchema.find("inputRepeatDelayMs"))
                         }
-                        // Perkiraan warna layar; Kelvin dibaca dari draft.
                         SettingsNightPreview {
                             visible: root.atPage && group.modelData.preview === "night"
                             width: parent.width
@@ -836,7 +753,6 @@ FocusScope {
                                 id: rows
                                 width: parent.width
 
-                                // Hasil pencarian "Pages": baris navigasi, bukan baris pengaturan.
                                 Repeater {
                                     model: group.modelData.pageRows ? group.modelData.items : []
 
@@ -860,7 +776,6 @@ FocusScope {
                                         item: modelData
                                         separator: index > 0
                                         modified: !modelData.ro && root.draft.hasOwnProperty(modelData.key)
-                                        // Di hasil cari, judul baris jadi tautan: lompat ke halaman aslinya dan sorot barisnya.
                                         titleLink: root.searching
                                         onTitleClicked: root.jumpTo(group.modelData.pageId, modelData.key)
                                         readonly property bool wanted: root.flashKey !== "" && modelData.key === root.flashKey
@@ -880,8 +795,6 @@ FocusScope {
                     }
                 }
 
-                // -- halaman: zona reset di akhir halaman (dua ketukan); deskripsi halaman tidak digambar
-                // (teksnya tetap ada di schema karena dipakai pencarian).
                 SettingsResetPage {
                     visible: root.atPage && root.pageResettable(root.currentPage)
                     width: content.width
@@ -892,13 +805,11 @@ FocusScope {
             }
         }
 
-        // Animasi masuk konten (fade + geser 6 px), dipicu onPageIdChanged / onQueryChanged.
-        // Sengaja di luar Flickable: dia bukan Item, jadi tidak ikut ditata Column.
         ParallelAnimation {
             id: pageIntro
             NumberAnimation { target: content; property: "opacity"; from: 0; to: 1; duration: Theme.animBase; easing.type: Theme.easeOut }
             NumberAnimation { target: contentShift; property: "y"; from: Theme.space6; to: 0; duration: Theme.animBase; easing.type: Theme.easeOut }
-            onFinished: root.doReveal()   // lompat dari hasil cari menunggu posisi baris final
+            onFinished: root.doReveal()
         }
         NumberAnimation { id: scrollAnim; target: flick; property: "contentY"; duration: Theme.animSlow; easing.type: Theme.easeOut }
 
@@ -912,7 +823,6 @@ FocusScope {
             color: Theme.tileStrong
         }
 
-        // ---- bar bawah: draft (Apply/Cancel), lalu status "Saved" sebentar
         Rectangle {
             id: statusBar
             property real slide: root.barShown ? 0 : 1
@@ -928,14 +838,12 @@ FocusScope {
             visible: opacity > 0
             transform: Translate { y: statusBar.slide * Theme.space12 }
 
-            MouseArea { anchors.fill: parent }   // klik di bar jangan tembus ke konten
+            MouseArea { anchors.fill: parent }
 
             Item {
                 anchors { left: parent.left; leftMargin: Theme.settingsRowPadX; right: barButtons.left; rightMargin: Theme.space12; verticalCenter: parent.verticalCenter }
                 height: statusText.implicitHeight
 
-                // Dua anak ini di-anchor, bukan ditaruh di Row: Row menata x sendiri dan
-                // Qt memperingatkan anchor vertikal di dalam Row/Column.
                 Glyph {
                     id: savedCheck
                     visible: !root.dirty

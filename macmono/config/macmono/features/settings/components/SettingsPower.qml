@@ -3,11 +3,6 @@ import Quickshell.Services.UPower
 import "../../../core"
 import "../../../shared/components"
 
-// Halaman Power, bagian atas:
-//   Battery       : kartu besar (persen, status, perkiraan waktu, bar). Hanya muncul kalau ada baterai laptop.
-//   Power profile : 3 tombol segmen + penjelasan profil yang dipilih. Berlaku langsung (tanpa Apply) lewat
-//                   Sys.setProfile (UPower PowerProfiles = power-profiles-daemon). "Performance" hanya
-//                   muncul kalau perangkat mendukungnya.
 Column {
     id: root
     spacing: Theme.settingsGroupSpacing
@@ -46,7 +41,6 @@ Column {
         leftPadding: Theme.settingsRowPadX
     }
 
-    // ---- baterai ----
     Column {
         visible: Sys.batAvailable
         width: parent.width
@@ -109,7 +103,6 @@ Column {
         }
     }
 
-    // ---- power profile ----
     Column {
         width: parent.width
         spacing: Theme.space8
@@ -130,7 +123,6 @@ Column {
                 width: parent.width - Theme.settingsRowPadX * 2
                 spacing: Theme.space10
 
-                // tombol segmen
                 Rectangle {
                     width: parent.width
                     height: Theme.settingsSegHeight

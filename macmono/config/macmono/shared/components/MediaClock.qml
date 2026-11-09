@@ -2,37 +2,22 @@ import QtQuick
 import Quickshell.Io
 import "../../core"
 
-// Jam posisi lagu yang dijaga. Spotify (lewat MPRIS) kadang melaporkan Position yang loncat
-// beberapa detik tepat setelah pause/play, sehingga progress bar dan lirik ikut loncat.
-// Lompatan mendadak sesaat setelah pause/play dianggap salah baca: selisihnya dicatat sebagai
-// `offset` lalu dikurangkan, jadi jam tetap lanjut dari posisi sebenarnya.
-// Lompatan lain tetap diikuti: seek, ganti lagu, dan "previous" yang balik ke awal lagu.
-// Dipakai bersama oleh MediaPlayerView (progress bar) dan LyricsView.
 Item {
     id: root
     visible: false
 
     property var player: null
-    // true = jam ikut berdetak (set false kalau panel lagi ketutup)
     property bool active: true
     signal polled()
 
-    // Posisi asli hasil baca langsung ke player lewat DBus. Quickshell cuma NEBAK posisi
-    // (hitung maju dari posisi terakhir), dan Spotify nggak ngabarin kalau lagu di-restart
-    // lewat "previous". Makanya posisi dibaca ulang sendiri di sini.
     property real polledPos: -1
     property real polledAt: 0
     property var pollTarget: null
 
-    // lompatan > jumpThreshold detik dalam guardMs setelah pause/play = salah baca,
-    // kecuali mendarat di dekat awal lagu (restartZone) karena itu "previous" yang sah.
     readonly property real jumpThreshold: 1.0
     readonly property real restartZone: 1.5
     readonly property int guardMs: 2500
 
-    // Diatur di Settings.mediaPollIntervalMs (default 6000 ms: cukup untuk mengoreksi drift, 6x
-    // lebih jarang men-spawn proses daripada membaca tiap detik). Pause/play dan ganti lagu langsung
-    // memicu baca ulang; seek dari luar instance ini baru ketahuan di polling berikutnya.
     property int pollIntervalMs: Settings.mediaPollIntervalMs
 
     property real offset: 0
@@ -64,8 +49,6 @@ Item {
         poller.running = true;
     }
 
-    // Baca ulang posisi asli hanya kalau data yang dipegang sudah basi (atau belum pernah ada).
-    // Dipanggil dari timer 1 detik, jadi tetap presisi tanpa proses tiap detik.
     function pollIfStale() {
         const p = player;
         if (!p || !p.dbusName || poller.running)
@@ -91,7 +74,6 @@ Item {
         return p.position || 0;
     }
 
-    // Baca posisi (detik) yang sudah dikoreksi, sekaligus memperbarui state jam.
     function sample() {
         const p = player;
         if (!p) {
@@ -117,7 +99,6 @@ Item {
         if (lastRaw >= 0) {
             const expected = lastRaw + (prevPlaying ? (now - lastAt) / 1000 : 0);
             const jump = raw - expected;
-            // lagu di-restart (previous): ikut, dan buang koreksi lama
             if (jump < -jumpThreshold && raw <= restartZone)
                 offset = 0;
             if (now < guardUntil && Math.abs(jump) > jumpThreshold && raw > restartZone)
@@ -129,7 +110,6 @@ Item {
         return Math.max(0, raw + offset);
     }
 
-    // Seek ke `seconds` (posisi yang tampil), lalu rebase jam supaya seek ini nggak dianggap salah baca.
     function seekTo(seconds) {
         if (!player)
             return;
@@ -137,13 +117,10 @@ Item {
         player.position = raw;
         lastRaw = raw;
         lastAt = Date.now();
-        // Jadikan posisi hasil seek sebagai titik acuan interpolasi. Tanpa ini, jam akan
-        // melompat balik ke posisi lama sampai pembacaan berkala berikutnya datang.
         polledPos = raw;
         polledAt = Date.now();
     }
 
-    // Tangkap lompatan yang terjadi di antara polling (mis. saat popup tertutup).
     Connections {
         target: root.player
         function onPositionChanged() { root.sample(); }
@@ -162,8 +139,8 @@ Item {
         triggeredOnStart: true
         running: root.active && root.player !== null
         onTriggered: {
-            root.sample();      // murah: hitung dari interpolasi, tanpa proses
-            root.pollIfStale(); // spawn busctl hanya kalau data sudah basi
+            root.sample();
+            root.pollIfStale();
         }
     }
 }

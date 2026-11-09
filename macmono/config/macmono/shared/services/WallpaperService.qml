@@ -2,15 +2,11 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Wallpaper list, persistence, thumbnails.
-// UI memakai Sys.wallpaper* (fasad); logic berat di sini.
 Scope {
     id: root
 
-    // Dipasang Sys; lihat shared/services/StateStore.qml
     property var stateStore: null
 
-    // Diisi Sys dari Settings.wallpaper*: folder yang dipindai ("~" = home), kedalaman subfolder, batas jumlah file
     property var searchDirs: []
     property int scanDepth: 2
     property int maxFiles: 500
@@ -93,7 +89,6 @@ Scope {
 
     Process {
         id: wallpaperFind
-        // Folder dikirim sebagai argumen ($@), bukan disisipkan ke string shell.
         command: ["sh", "-c",
             "find \"$@\" " +
             "-maxdepth " + Math.floor(root.scanDepth) + " -type f -not -path '*/Screenshots/*' " +

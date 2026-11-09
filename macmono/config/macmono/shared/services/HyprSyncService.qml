@@ -2,19 +2,11 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Menerjemahkan pilihan Pengaturan ke config sistem:
-//   Input -> blok "input" di ~/.config/hypr/custom/macmono-generated.lua (hl.config { input = ... }),
-//            lewat scripts/hypr/apply-generated.sh --section input (backup, reload, cek error, balik kalau error).
-//   Semua setelan generated macmono memakai SATU file (blok bertanda); jangan bikin file generated kedua.
-//   Power -> ~/.config/hypr/hypridle.conf lewat scripts/hypr/apply-idle.sh (lalu hypridle dimulai ulang).
-// Nilai datang dari Settings lewat Sys (inputValues, idleMinutes). Dipanggil SettingsPanel setelah Apply.
-// Kalau gagal: notifikasi lewat notify-send; config lama sudah dikembalikan oleh script.
-// Opsi input dicek ke wiki.hypr.land (Config options: input, input.touchpad), sintaks hl.config({ ... }).
 Scope {
     id: root
 
-    property var inputValues: ({})    // sensitivity, repeatRate, repeatDelay, naturalScroll, tapToClick, disableWhileTyping, clickfinger, scrollFactor, kbLayouts, kbVariants, kbOptions
-    property var idleMinutes: ({})    // lock, screenOff, suspend (0 = mati)
+    property var inputValues: ({})
+    property var idleMinutes: ({})
 
     readonly property string genScript: Quickshell.shellDir + "/scripts/hypr/apply-generated.sh"
     readonly property string idleScript: Quickshell.shellDir + "/scripts/hypr/apply-idle.sh"
@@ -22,12 +14,10 @@ Scope {
     function syncInput() { inputDebounce.restart(); }
     function syncIdle() { idleDebounce.restart(); }
 
-    // Tunggu sebentar supaya binding Settings sudah memuat nilai yang baru disimpan.
     Timer { id: inputDebounce; interval: 150; onTriggered: root.runInput() }
     Timer { id: idleDebounce; interval: 150; onTriggered: root.runIdle() }
 
     function bool(b) { return b ? "true" : "false"; }
-    // XKB memakai daftar dipisah koma; elemen kosong dibuang supaya nggak jadi ",,".
     function csv(list) {
         if (!list || list.length === 0) return "";
         return list.map(x => String(x).trim()).filter(x => x !== "").join(",");
@@ -48,8 +38,6 @@ Scope {
             "            scroll_factor = " + Number(v.scrollFactor).toFixed(2) + ",",
             "        }"
         ];
-        // Layout cuma ditulis kalau user mengisinya. Kalau kosong, layout dari config lain
-        // (mis. hyprland-gui.lua) tetap dipakai; menulis kb_layout = "" justru merusaknya.
         const kb = [["kb_layout", csv(v.kbLayouts)], ["kb_variant", csv(v.kbVariants)], ["kb_options", csv(v.kbOptions)]];
         for (let i = 0; i < kb.length; i++)
             if (kb[i][1] !== "") lines.push("        " + kb[i][0] + " = " + JSON.stringify(kb[i][1]) + ",");
@@ -61,7 +49,6 @@ Scope {
         Quickshell.execDetached(["notify-send", "-a", "macmono", "-u", "normal", "Settings", msg]);
     }
 
-    // ---- Input ----
     property bool inputPending: false
     function runInput() {
         if (inputProc.running) { inputPending = true; return; }
@@ -80,7 +67,6 @@ Scope {
         }
     }
 
-    // ---- Power (idle) ----
     property bool idlePending: false
     function runIdle() {
         if (idleProc.running) { idlePending = true; return; }

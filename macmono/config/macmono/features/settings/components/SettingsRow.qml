@@ -1,24 +1,19 @@
 import QtQuick
 import "../../../core"
 
-// Satu baris pengaturan: judul di kiri, kontrol di kanan.
-// `stacked` (slider, daftar chip): kontrol pindah ke bawah judul dan melebar penuh; nilai (`valueText`)
-// tampil di ujung kanan baris judul. Deskripsi dan nama key sengaja tidak digambar: keduanya
-// terbaca sebagai teks ganda di bawah judul, dan key-nya sudah bisa dilihat di file settings.json.
 Item {
     id: row
     property string title: ""
-    property string valueText: ""      // nilai di ujung kanan baris judul (dipakai baris stacked)
-    property bool modified: false      // ada perubahan yang belum diterapkan
-    property bool resettable: false    // nilai sekarang beda dari bawaan
-    property string resetLabel: "Reset"  // teks tautan di samping judul (mis. "Remove" untuk entri buatan sendiri)
+    property string valueText: ""
+    property bool modified: false
+    property bool resettable: false
+    property string resetLabel: "Reset"
     property bool stacked: false
     property bool separator: false
-    property bool titleLink: false     // judul bisa diklik (hasil pencarian: lompat ke halamannya)
+    property bool titleLink: false
     signal resetRequested()
     signal titleClicked()
 
-    // Sorot baris sebentar (dipakai setelah lompat dari hasil pencarian). Hanya opasitas, tidak menggeser tata letak (R6).
     function pulse() { flashAnim.restart(); }
 
     default property alias content: slot.data
@@ -32,7 +27,7 @@ Item {
 
     Rectangle {
         id: flashRect
-        z: -1      // di bawah teks dan kontrol
+        z: -1
         anchors.fill: parent
         radius: Theme.radiusXs
         color: Theme.tileHover
@@ -47,7 +42,7 @@ Item {
 
     Rectangle {
         visible: row.separator
-        z: 2      // digambar di atas sorotan hover, supaya garis pemisah tidak berkedip hilang-muncul
+        z: 2
         x: row.padX
         width: row.width - row.padX * 2
         height: Theme.borderThin
@@ -57,7 +52,7 @@ Item {
     Column {
         id: texts
         x: row.padX
-        y: row.stacked ? row.padY : row.padY + (row.bodyHeight - height) / 2   // rata tengah dengan kontrol di kanan
+        y: row.stacked ? row.padY : row.padY + (row.bodyHeight - height) / 2
         width: row.stacked ? row.width - row.padX * 2 : row.width - row.padX * 2 - slot.width - Theme.space18
         spacing: Theme.space3
 

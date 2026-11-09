@@ -5,8 +5,6 @@ import Quickshell.Wayland
 import Quickshell.Services.Notifications
 import "../../core"
 
-// Popup notifikasi: gambar (abu-abu), tombol aksi dari app, klik = aksi utama / tutup.
-// Riwayatnya disimpan di Sys.notifHistory (lihat kalender di jam).
 Scope {
     NotificationServer {
         id: server
@@ -15,9 +13,6 @@ Scope {
         imageSupported: true
         keepOnReload: false
         onNotification: (n) => {
-            // Aplikasi yang dibisukan (Pengaturan > Notifications): tutup tanpa popup
-            // dan tanpa masuk riwayat. Ditunda satu putaran supaya server selesai
-            // mendaftarkan notifikasinya dulu sebelum ditutup.
             if (Sys.notifIsMuted(n.appName)) {
                 Qt.callLater(() => { try { n.dismiss(); } catch (e) {} });
                 return;
@@ -31,7 +26,6 @@ Scope {
         screen: Quickshell.screens[0]
         visible: server.trackedNotifications.values.length > 0
 
-        // Tengah atas, tepat di bawah menubar (sejajar OSD).
         anchors { top: true }
         margins { top: Theme.barMargin + Theme.barHeight + Theme.space8 }
         implicitWidth: Theme.notifWidth
@@ -55,11 +49,6 @@ Scope {
                     required property var modelData
                     width: list.width
 
-                    // Tinggi kartu = tinggi isi (Row) + padding atas/bawah, lalu di-clamp
-                    // ke token Theme.notifMinHeight / notifMaxHeight.
-                    // Sengaja TIDAK pakai Math.max(isi, ukuran gambar) + padding seperti versi
-                    // sebelumnya: cara itu menyembunyikan salah hitung anak dan membuat kartu
-                    // melar tanpa batas kalau satu elemen punya implicitHeight aneh.
                     implicitHeight: Math.min(Theme.notifMaxHeight,
                                              Math.max(Theme.notifMinHeight,
                                                       row.implicitHeight + Theme.notifPadTop + Theme.notifPadBottom))
@@ -67,13 +56,11 @@ Scope {
                     color: Theme.panel
                     border.width: Theme.borderThin
                     border.color: Theme.line
-                    // Jaga-jaga kalau isi melebihi notifMaxHeight: potong, jangan bocor keluar kartu.
                     clip: true
                     opacity: 0
 
-                    // Masuk: turun dari atas bar. Keluar: naik lagi, baru dismiss/expire.
                     property bool leaving: false
-                    property string leaveMode: "dismiss"   // "dismiss" | "expire"
+                    property string leaveMode: "dismiss"
                     transform: Translate { id: slide; y: -Theme.notifSlideFrom }
 
                     ParallelAnimation {
@@ -122,7 +109,7 @@ Scope {
                         outAnim.start();
                     }
 
-                    HoverHandler { id: cardHover }   // kursor di atas kartu = jangan hilang dulu
+                    HoverHandler { id: cardHover }
 
                     readonly property real timeoutMs: (card.modelData.expireTimeout ?? -1) > 0 ? card.modelData.expireTimeout : Settings.notifDefaultTimeoutMs
 
@@ -141,7 +128,6 @@ Scope {
                         onTriggered: card.beginLeave("dismiss")
                     }
 
-                    // klik kartu = aksi utama app (mis. buka chat), kalau nggak ada ya tutup
                     MouseArea {
                         anchors.fill: parent
                         enabled: !card.leaving
@@ -155,7 +141,6 @@ Scope {
                         }
                     }
 
-                    // tombol tutup
                     MouseArea {
                         id: closeBtn
                         anchors { top: parent.top; right: parent.right; margins: Theme.space12 }
@@ -183,8 +168,6 @@ Scope {
                         }
                     }
 
-                    // Isi kartu: [gambar] [app / judul / body / tombol aksi].
-                    // Row ini yang menentukan tinggi kartu; padding diambil dari token.
                     Row {
                         id: row
                         anchors {
@@ -196,7 +179,6 @@ Scope {
                         }
                         spacing: Theme.notifImageGap
 
-                        // gambar notifikasi
                         Item {
                             id: pic
                             visible: card.img !== "" && picImg.status === Image.Ready
@@ -224,8 +206,6 @@ Scope {
 
                         Column {
                             id: content
-                            // Lebar kolom teks = sisa Row setelah gambar; kalau gambar tidak ada,
-                            // teks memakai seluruh lebar. Tanpa ini lebar jadi melingkar (parent.width).
                             width: row.width - (pic.visible ? pic.width + row.spacing : 0)
                             spacing: Theme.space6
 
@@ -252,35 +232,24 @@ Scope {
                                 text: card.modelData.body
                                 color: Theme.textSoft
                                 font.family: Theme.font; font.pixelSize: Theme.fontSubtitle
-                                // Body dibaca sebagai kalimat, jadi diberi leading.
-                                // lineHeightMode WAJIB eksplisit: bawaan Text itu ProportionalHeight,
-                                // jadi tanpa mode, Math.round(px) dibaca sebagai pengali dan baris melar.
                                 lineHeightMode: Text.FixedHeight
                                 lineHeight: Math.round(Theme.fontSubtitle * Theme.lineProse)
                                 textFormat: Text.PlainText
                             }
 
-                            // ==========================================================
-                            // TOMBOL AKSI (Bersih, tanpa trik JS)
-                            // ==========================================================
                             Row {
                                 id: actionRow
                                 spacing: Theme.space6
 
-                                // Cek apakah ada aksi yang bukan "default"
                                 visible: (card.modelData.actions ?? []).some(a => a.identifier !== "default")
 
                                 Repeater {
-                                    // Bind langsung ke list native Quickshell.
-                                    // QML akan otomatis me-render ulang jika D-Bus melakukan replace.
                                     model: card.modelData.actions ?? []
 
                                     delegate: MouseArea {
                                         id: act
                                         required property var modelData
 
-                                        // Sembunyikan tombol "default".
-                                        // Row QML otomatis merapatkan tombol yang visible: false.
                                         visible: modelData.identifier !== "default"
 
                                         width: (actText.text ? actText.implicitWidth : 0) + 24
@@ -302,7 +271,6 @@ Scope {
                                         Text {
                                             id: actText
                                             anchors.centerIn: parent
-                                            // Fallback ke identifier kalau app tidak mengirim teks
                                             text: modelData.text || modelData.identifier || "Action"
                                             color: Theme.text
                                             font.family: Theme.font; font.pixelSize: Theme.fontBodyLg; font.weight: Font.Medium

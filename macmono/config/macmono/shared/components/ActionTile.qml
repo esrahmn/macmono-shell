@@ -2,13 +2,11 @@ import QtQuick
 import "../../core"
 import "."
 
-// Tile kotak ikon-di-atas-label. Dipakai menu ⋯ (tools) dan menu power di Control Center,
-// biar dua dropdown itu bentuknya sama persis.
 Rectangle {
     id: root
     property string glyph: ""
     property string label: ""
-    property bool hot: false          // putih (aktif / menunggu konfirmasi)
+    property bool hot: false
     signal clicked()
 
     implicitHeight: Theme.actionTileHeight

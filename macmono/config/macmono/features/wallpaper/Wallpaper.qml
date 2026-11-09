@@ -7,7 +7,6 @@ import "../../core"
 import "../../shared/components"
 
 Scope {
-    // ---------------- layer wallpaper (di belakang semua window) ----------------
     Variants {
         model: Quickshell.screens
 
@@ -30,9 +29,6 @@ Scope {
                 fillMode: Image.PreserveAspectCrop
                 asynchronous: true
                 cache: false
-                // Decode di resolusi fisik, bukan logis: pada fractional scaling
-                // (scale 1.2) sourceSize = lebar logis membuat wallpaper ikut di-upscale
-                // compositor sehingga terlihat sedikit lembut.
                 sourceSize.width: Math.round(bg.width * (bg.screen ? bg.screen.devicePixelRatio : 1))
                 sourceSize.height: Math.round(bg.height * (bg.screen ? bg.screen.devicePixelRatio : 1))
                 opacity: status === Image.Ready ? 1 : 0
@@ -47,9 +43,6 @@ Scope {
 
         }
     }
-    // ---------------- picker wallpaper: filmstrip + live preview ----------------
-    // Layar penuh menampilkan wallpaper yang sedang disorot (preview), strip thumbnail di bawah.
-    // Wallpaper asli baru diganti saat Keep / Enter / double-click. Esc = batal (nggak ada yang berubah).
     Variants {
         model: Quickshell.screens
 
@@ -60,7 +53,6 @@ Scope {
 
             readonly property bool shown: Sys.wallpaperOpen && Sys.wallpaperScreen === modelData.name
 
-            // animasi buka (preview + UI) dan fade-out UI waktu Keep
             property real anim: 0
             property real uiOut: 0
             readonly property real ui: anim * (1 - uiOut)
@@ -69,19 +61,17 @@ Scope {
             Timer { id: closeTimer; interval: Theme.wpCloseDelay; onTriggered: Sys.wallpaperOpen = false }
             Timer {
                 id: wallpaperReadyTimeout; interval: Settings.wallpaperReadyTimeoutMs
-                // Ada layar yang belum lapor siap, tapi gambar sudah termuat di layar lain dan nggak error -> terima saja.
                 onTriggered: {
                     if (Sys.wallpaperLoadError === "" && Sys.wallpaperReadyScreens.length > 0) picker.finishKeep();
                     else picker.failKeep();
                 }
             }
 
-            // state picker
-            property string folder: ""        // "" = semua folder
+            property string folder: ""
             property string selPath: ""
             property string previousWallpaper: ""
             property bool keeping: false
-            property bool frontA: true        // preview ping-pong: gambar baru dimuat di belakang, lalu crossfade
+            property bool frontA: true
             property real wheelAcc: 0
 
             readonly property var folders: {
@@ -154,7 +144,7 @@ Scope {
                 uiOut = 0;
                 if (Sys.wallpaper === selPath) Sys.wallpaper = previousWallpaper;
                 Quickshell.execDetached(["notify-send", "-a", "Wallpaper", "-u", "critical",
-                    "Wallpaper gagal dimuat", "Wallpaper sebelumnya dipulihkan. Periksa file gambar yang dipilih."]);
+                    "Wallpaper failed to load", "Previous wallpaper restored. Check the image file you selected."]);
             }
             function loadPreview() {
                 const url = selPath !== "" ? "file://" + selPath : "";
@@ -174,7 +164,6 @@ Scope {
 
             Connections {
                 target: Sys
-                // daftar wallpaper dimuat async waktu picker dibuka
                 function onWallpapersChanged() {
                     if (!picker.shown) return;
                     if (picker.selPath === "" && Sys.wallpapers.length > 0) picker.select(Sys.wallpapers[0]);
@@ -188,7 +177,6 @@ Scope {
                 }
             }
 
-            // Buka: animasi di QML. Tutup: langsung hilang, sama seperti panel macmono lain.
             visible: shown
             anchors { top: true; bottom: true; left: true; right: true }
             exclusionMode: ExclusionMode.Ignore
@@ -206,7 +194,6 @@ Scope {
                 }
                 folder = "";
                 selPath = Sys.wallpaper !== "" ? Sys.wallpaper : (Sys.wallpapers.length > 0 ? Sys.wallpapers[0] : "");
-                // preview langsung pakai gambar yang dipilih, tanpa crossfade
                 frontA = true;
                 imgB.source = "";
                 imgA.source = selPath !== "" ? "file://" + selPath : "";
@@ -215,7 +202,6 @@ Scope {
                 Qt.callLater(syncStrip);
             }
 
-            // ---------- preview layar penuh ----------
             Item {
                 id: preview
                 anchors.fill: parent
@@ -248,7 +234,6 @@ Scope {
                 }
             }
 
-            // klik di area preview nggak ngapa-ngapain; scroll = ganti gambar
             MouseArea {
                 anchors.fill: parent
                 enabled: picker.shown
@@ -259,7 +244,6 @@ Scope {
                 }
             }
 
-            // ---------- keyboard ----------
             Item {
                 id: keys
                 focus: true
@@ -283,13 +267,12 @@ Scope {
                 }
             }
 
-            // ---------- pill atas: nama + Keep ----------
             Rectangle {
                 id: pill
                 visible: picker.selPath !== ""
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: Theme.wpPillTop - Theme.openDrop * (1 - picker.anim)
-                width: pillRow.implicitWidth + Theme.space16 * 2   // padding kiri = kanan
+                width: pillRow.implicitWidth + Theme.space16 * 2
                 height: Theme.wpPillHeight
                 radius: Math.min(width, height) / 2
                 color: Theme.panel
@@ -297,7 +280,7 @@ Scope {
                 border.color: Theme.lineStrong
                 opacity: picker.ui
 
-                MouseArea { anchors.fill: parent }   // jangan tembus
+                MouseArea { anchors.fill: parent }
 
                 RowLayout {
                     id: pillRow
@@ -327,7 +310,6 @@ Scope {
                 }
             }
 
-            // ---------- tray bawah: filter + filmstrip ----------
             Rectangle {
                 id: tray
                 anchors.left: parent.left
@@ -343,7 +325,7 @@ Scope {
                 border.color: Theme.lineStrong
                 opacity: picker.ui
 
-                MouseArea { anchors.fill: parent }   // jangan tembus ke preview
+                MouseArea { anchors.fill: parent }
 
                 ColumnLayout {
                     anchors.fill: parent
@@ -432,7 +414,6 @@ Scope {
                                         id: thumb
                                         anchors.fill: parent
                                         visible: false
-                                        // thumbnail dari cache dulu; kalau belum ada, pakai file aslinya
                                         property bool useOrig: false
                                         readonly property int ver: Sys.thumbsVersion
                                         onVerChanged: if (useOrig) useOrig = false
@@ -462,7 +443,6 @@ Scope {
                                         border.width: cell.picked ? 2 : 1
                                         border.color: cell.picked ? Theme.text : Theme.line
                                     }
-                                    // label kecil "Current" di wallpaper yang sedang dipakai
                                     Rectangle {
                                         visible: cell.live
                                         anchors.left: parent.left
@@ -495,7 +475,6 @@ Scope {
                     }
                 }
 
-                // pesan kalau kosong
                 Text {
                     visible: picker.pics.length === 0
                     anchors.horizontalCenter: parent.horizontalCenter
@@ -510,15 +489,12 @@ Scope {
         }
     }
 
-    // ---------------- komponen kecil ----------------
-    // Tombol teks gaya editorial (filter, Cancel, Keep, Monochrome, Shuffle): tanpa latar.
-    // redup = biasa, terang = aktif/dipilih; garis tipis di bawah teks = pilihan (filter) atau aksi utama (Keep).
     component Chip: Item {
         id: chip
         property string label: ""
         property bool selected: false
-        property bool strong: false      // aksi utama (Keep): terang + garis bawah
-        property bool on: false          // toggle menyala (Monochrome): terang tanpa garis
+        property bool strong: false
+        property bool on: false
         signal tapped()
         readonly property bool underlined: selected || strong
         readonly property bool bright: underlined || on || chipArea.containsMouse

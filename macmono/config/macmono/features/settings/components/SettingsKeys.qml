@@ -1,26 +1,15 @@
 import QtQuick
 import "../../../core"
 
-// Halaman "Keyboard Shortcuts": daftar pintasan dengan kolom cari.
-// Data: KeyList.groups (sumber yang sama dengan Cheatsheet), tiap baris [ "Super + S", "Keterangan" ].
-//
-// Tata letak mengikuti aturan halaman Settings: tanpa kartu, label grup KAPITAL, satu baris per
-// pintasan dengan pemisah tipis. Keterangan di kiri (judul baris), keycap di kanan (kontrolnya).
-// Keycap memakai token cheatsheet* supaya bentuknya identik dengan Cheatsheet.
-//
-// Pencarian: setiap kata harus cocok di awal kata pada tombol atau keterangan, satu kata kunci per kata ("super k", "lock"); nama grup ikut dari 3 huruf ("media").
 Column {
     id: root
-    spacing: 0   // jarak antar grup diatur SettingsCaps, bukan Column (kalau tidak, tiap baris ikut renggang)
+    spacing: 0
 
-    // Satu kata kunci memakai satu kata saja ("super s" tidak cocok dengan "Super + K": "s" tidak boleh
-    // ikut memakai kata "Super" yang sudah dipakai kata kunci pertama).
     function matches(terms, words, title) {
         const free = words.slice();
         return terms.every(t => {
             let i = free.findIndex(w => w.startsWith(t));
             if (i >= 0) { free.splice(i, 1); return true; }
-            // Nama grup ikut dicocokkan mulai 3 huruf, supaya "media" menampilkan satu grup tapi "s" tidak membuka grup Shell.
             return t.length >= 3 && title.some(w => w.startsWith(t));
         });
     }
@@ -37,7 +26,6 @@ Column {
         return out;
     }
 
-    // Keluar dari halaman: kolom cari dikosongkan, jadi kembali ke sini selalu mulai dari daftar penuh.
     onVisibleChanged: if (!visible) field.clear()
 
     SettingsSearchField {

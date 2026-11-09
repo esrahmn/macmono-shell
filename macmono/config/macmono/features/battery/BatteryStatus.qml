@@ -12,7 +12,6 @@ RowLayout {
     spacing: Theme.space10
 
     BatteryIcon {}
-    // "87% · 2h 10m left": bagian depan putih, bagian setelah " · " redup (Theme.dim)
     Text {
         id: batteryMain
         readonly property string full: Sys.batText()

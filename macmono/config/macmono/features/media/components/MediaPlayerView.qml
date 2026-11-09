@@ -4,10 +4,6 @@ import QtQuick.Layouts
 import "../../../core"
 import "../../../shared/components"
 
-// Isi kartu media (cover, judul, progress, tombol kontrol), dipakai bersama oleh
-// kartu di Control Center (modules/MediaCard) dan popup Super+M (modules/MediaPopup).
-// Bungkus (latar, padding, animasi buka) tetap tanggung jawab pemakainya.
-// `roomy` = tampilan lega untuk popup yang berdiri sendiri.
 ColumnLayout {
     id: root
 
@@ -17,7 +13,6 @@ ColumnLayout {
     property bool roomy: false
     signal playerChangeRequested(int index)
 
-    // semua beda ukuran antara dua tampilan ada di sini
     readonly property int artRadius: roomy ? Theme.radiusCard : Theme.radiusMedium
     readonly property int artGlyph: roomy ? 24 : 22
     readonly property int switchSize: roomy ? 28 : 26
@@ -49,7 +44,6 @@ ColumnLayout {
         }
     }
 
-    // Timer di atas berhenti saat pause, jadi posisi disegarkan sekali tiap panel dibuka.
     onPanelShownChanged: {
         if (panelShown && player)
             pos = clock.sample();
@@ -58,7 +52,7 @@ ColumnLayout {
     RowLayout {
         Layout.fillWidth: true
         spacing: root.roomy ? Theme.space14 : Theme.space12
-        layoutDirection: Qt.RightToLeft   // sampul kecil di kanan atas (popup dan kartu CC)
+        layoutDirection: Qt.RightToLeft
 
         Rectangle {
             Layout.preferredWidth: Theme.mediaArtSizeSmall
@@ -112,7 +106,6 @@ ColumnLayout {
                 font.pixelSize: root.roomy ? Theme.mediaPosterTitleSize : Theme.mediaPosterTitleSizeCompact
                 font.letterSpacing: Theme.panelTitleTracking
             }
-            // artis + sumber jadi satu label KAPITAL renggang
             Text {
                 Layout.fillWidth: true
                 Layout.topMargin: Theme.space6
@@ -167,7 +160,6 @@ ColumnLayout {
         }
         RowLayout {
             Layout.fillWidth: true
-            // Durasi = informasi, bukan hiasan: pakai dim, bukan faint (faint terlalu redup di atas panel).
             Text { text: Sys.formatMediaTime(root.pos); color: Theme.dim; font.family: Theme.font; font.pixelSize: Theme.fontCaption }
             Item { Layout.fillWidth: true }
             Text { text: "-" + Sys.formatMediaTime(root.len - root.pos); color: Theme.dim; font.family: Theme.font; font.pixelSize: Theme.fontCaption }

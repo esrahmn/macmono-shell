@@ -1,25 +1,19 @@
 import QtQuick
-import Quickshell            // wajib: root pakai Scope (tipe dari Quickshell, bukan QtQuick)
+import Quickshell
 import Quickshell.Bluetooth
 
-// Bluetooth: adapter, daftar perangkat, scan, dan state machine pairing.
-// UI tetap memakai fasad Sys.bt* / Sys.toggleBt() / Sys.pairBt().
-// Membuka settings (kcmshell/blueman/bluetoothctl) tetap di Sys karena butuh termScript
-// dan closeCCQuiet().
 Scope {
     id: root
 
-    property int pairTimeoutSec: 30   // batas pairing (detik); diisi Sys dari Settings.btPairTimeoutSec
+    property int pairTimeoutSec: 30
 
     readonly property bool btAvailable: Bluetooth.adapters.values.length > 0
     readonly property bool btOn: Bluetooth.defaultAdapter?.enabled ?? false
 
-    // perangkat yang sudah di-pair / tersambung; yang tersambung tampil duluan
     readonly property var btDevices: (Bluetooth.defaultAdapter?.devices.values ?? [])
         .filter(d => d.paired || d.connected)
         .sort((a, b) => (b.connected - a.connected) || a.name.localeCompare(b.name))
 
-    // perangkat baru yang ketemu saat scan (punya nama, belum di-pair)
     readonly property var btNew: (Bluetooth.defaultAdapter?.devices.values ?? [])
         .filter(d => !d.paired && !d.connected && d.deviceName !== "" && d.name !== d.address.replace(/:/g, "-"))
         .sort((a, b) => a.name.localeCompare(b.name))
@@ -37,7 +31,6 @@ Scope {
             Bluetooth.defaultAdapter.discovering = on;
     }
 
-    // pair perangkat baru -> setelah ter-pair: trust + connect otomatis
     property var pairing: null
     property int pairTicks: 0
 
@@ -48,8 +41,6 @@ Scope {
         d.pair();
     }
 
-    // Batas pairTimeoutSec detik: kalau perangkat tidak pernah melapor paired, batalkan supaya
-    // baris "Pairing…" di UI tidak macet selamanya.
     Timer {
         interval: 1000; repeat: true
         running: root.pairing !== null

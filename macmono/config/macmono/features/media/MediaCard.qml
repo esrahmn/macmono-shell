@@ -4,7 +4,6 @@ import "../../core"
 import "../../shared/components"
 import "components"
 
-// Kartu media di Control Center: latar + padding, isinya dari ui/MediaPlayerView.
 Rectangle {
     id: root
 
@@ -17,7 +16,6 @@ Rectangle {
     Layout.fillWidth: true
     implicitHeight: view.implicitHeight + 2 * Theme.space12
     radius: Theme.radiusCard
-    // Kartu terangkat: sama seperti kartu lain di Control Center.
     color: Theme.tile
     border.width: Theme.borderThin; border.color: Theme.cardStroke
 

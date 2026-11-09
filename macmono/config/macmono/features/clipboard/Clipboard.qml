@@ -5,12 +5,10 @@ import Quickshell.Wayland
 import "../../core"
 import "../../shared/components"
 
-// Clipboard history (cliphist) with two panes: list on the left, preview on the right.
-//  Keyboard: ↑↓ / Ctrl+J/K, ↵ copy, Shift+Del delete, Esc close (tidak digambar di UI)
 Scope {
     id: root
 
-    property var entries: []      // { line, id, preview, type: "text"|"link"|"image", meta }
+    property var entries: []
     property bool loading: false
 
     function parse(text) {
@@ -23,7 +21,6 @@ Scope {
             const preview = line.slice(tab + 1);
             const bin = preview.match(/^\[\[\s*binary data\s+(.+?)\s*\]\]$/);
             if (bin) {
-                // Example: "123 KiB png 800x600"
                 const p = bin[1].split(/\s+/);
                 const fmt = (p[2] || "").toUpperCase();
                 const dim = (p[3] || "").replace("x", " × ");
@@ -62,7 +59,7 @@ Scope {
         target: Sys
         function onClipboardOpenChanged() {
             if (Sys.clipboardOpen) root.reload();
-            else Quickshell.execDetached(["rm", "-rf", "--", Sys.runtimeDir + "/clip"]);   // Remove temporary decoded images when closing.
+            else Quickshell.execDetached(["rm", "-rf", "--", Sys.runtimeDir + "/clip"]);
         }
         function onClipboardUpdated() { if (Sys.clipboardOpen) root.reload(); }
     }
@@ -80,11 +77,8 @@ Scope {
             readonly property real anim: reveal.progress
             readonly property bool present: reveal.present
 
-            // Open/close animation is handled in QML (shared/components/Reveal.qml); the drawer slides out from below the bar.
-            // Hyprland layer animations are disabled through no_anim.
             visible: present
             anchors { top: true; bottom: true; left: true; right: true }
-            // The window starts below the bar so the panel slides out from behind it.
             margins { top: Theme.barMargin + Theme.barHeight }
             exclusionMode: ExclusionMode.Ignore
             color: Theme.transparent
@@ -92,7 +86,6 @@ Scope {
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: (shown && !Sys.capturing) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-            // ---------------- filter & selection ----------------
             readonly property var filtered: {
                 const q = search.text.trim().toLowerCase();
                 if (!q) return root.entries;
@@ -102,7 +95,6 @@ Scope {
             readonly property var sel: filtered[current] ?? null
             onFilteredChanged: current = Math.min(current, Math.max(0, filtered.length - 1))
 
-            // Full content of the selected item (complete text / image path)
             property string detailText: ""
             property string detailImage: ""
             property string detailFor: ""
@@ -118,13 +110,11 @@ Scope {
                     win.detailText = "";
                     win.detailImage = "";
                     if (e.type === "image") {
-                        // Use a restrictive umask and isolated positional arguments.
                         imgProc.exec(["bash", "-c",
                                      "umask 077; d=\"$2\"; mkdir -p \"$d\"; f=\"$d/$3.$4\"; " +
                                      "[ -s \"$f\" ] || printf '%s' \"$1\" | cliphist decode > \"$f\"; printf '%s' \"$f\"",
                                      "bash", e.line, Sys.runtimeDir + "/clip", e.id, e.ext]);
                     } else {
-                        // Limit output to 20,000 bytes to avoid excessive memory use with very long text.
                         textProc.exec(["bash", "-c", "printf '%s' \"$1\" | cliphist decode | head -c 20000", "bash", e.line]);
                     }
                 }
@@ -173,15 +163,12 @@ Scope {
                 id: panel
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: Theme.drawerGap
-                // Panel dibuat lebih lega supaya preview gambar tidak kecil; tetap dibatasi
-                // ukuran layar supaya tidak keluar tepi di monitor kecil.
                 width: Math.min(1120, parent.width - 32)
                 height: Math.min(720, parent.height - y - 32)
                 radius: Theme.radiusPanel
                 color: Theme.panel
                 border.width: Theme.borderThin
                 border.color: Theme.line
-                // Drawer: the panel slides out from below the bar; its contents fade in.
                 transform: Translate { y: -(panel.height + Theme.drawerGap) * (1 - win.anim) }
 
                 MouseArea { anchors.fill: parent }
@@ -190,7 +177,6 @@ Scope {
                     anchors.fill: parent
                     opacity: win.anim
 
-                    // ================= header =================
                     Item {
                         id: header
                         anchors { left: parent.left; right: parent.right; top: parent.top }
@@ -250,7 +236,7 @@ Scope {
                             }
                         }
 
-                        Rectangle { // Search field
+                        Rectangle {
                             id: searchBox
                             anchors { right: parent.right; rightMargin: Theme.space14; verticalCenter: parent.verticalCenter }
                             width: Theme.clipSearchWidth
@@ -310,7 +296,7 @@ Scope {
                         }
                     }
 
-                    Rectangle { // Header divider
+                    Rectangle {
                         id: headerLine
                         anchors { left: parent.left; right: parent.right; top: header.bottom }
                         height: Theme.borderThin
@@ -318,7 +304,6 @@ Scope {
                     }
 
 
-                    // ================= item list (left) =================
                     ListView {
                         id: list
                         anchors { left: parent.left; top: headerLine.bottom; bottom: parent.bottom; margins: Theme.space8 }
@@ -340,7 +325,7 @@ Scope {
                             width: list.width
                             height: Theme.clipRowHeight
                             radius: Theme.radiusXs
-                            color: Theme.transparent   // tanpa tint: penanda terpilih = SelBar saja
+                            color: Theme.transparent
                             readonly property color fg: Theme.text
                             readonly property color fgDim: Theme.dim
 
@@ -385,7 +370,7 @@ Scope {
                                 onClicked: win.current = row.index
                                 onDoubleClicked: { win.current = row.index; win.copySelected(); }
                             }
-                            MouseArea { // Delete button shown on hover
+                            MouseArea {
                                 id: trash
                                 visible: rowArea.containsMouse || containsMouse
                                 anchors { right: parent.right; rightMargin: Theme.space8; verticalCenter: parent.verticalCenter }
@@ -398,7 +383,7 @@ Scope {
                         }
                     }
 
-                    Text { // Empty state
+                    Text {
                         visible: !root.loading && win.filtered.length === 0
                         anchors.centerIn: list
                         horizontalAlignment: Text.AlignHCenter
@@ -407,18 +392,16 @@ Scope {
                         font.family: Theme.font; font.pixelSize: Theme.fontBodyLg
                     }
 
-                    Rectangle { // Vertical divider
+                    Rectangle {
                         id: vline
                         anchors { left: list.right; leftMargin: Theme.space8; top: headerLine.bottom; bottom: parent.bottom }
                         width: Theme.borderThin
                         color: Theme.line
                     }
 
-                    // ================= preview (right) =================
                     Item {
                         anchors { left: vline.right; right: parent.right; top: headerLine.bottom; bottom: parent.bottom; margins: Theme.space18 }
 
-                        // Info + copy button
                         Item {
                             id: paneHead
                             anchors { left: parent.left; right: parent.right; top: parent.top }
@@ -457,7 +440,6 @@ Scope {
                             clip: true
                             visible: win.sel !== null
 
-                            // Text preview
                             Flickable {
                                 id: textFlick
                                 visible: win.sel?.type !== "image"
@@ -478,19 +460,13 @@ Scope {
                                     selectedTextColor: Theme.inverseText
                                     font.family: Theme.fontMono
                                     font.pixelSize: Theme.fontBody
-                                    // Catatan: TextEdit tidak punya lineHeight (hanya Text), jadi leading di
-                                    // sini tetap bawaan Qt. Jangan tambahkan — shell gagal load karenanya.
                                 }
                             }
 
-                            // Image preview
                             Image {
                                 visible: win.sel?.type === "image"
                                 anchors { fill: parent; margins: Theme.space10 }
                                 source: visible && win.detailImage !== "" ? "file://" + win.detailImage : ""
-                                // Decode seukuran kotak tampil saja: screenshot 4K cukup ~2 MB di memori
-                                // GPU, bukan ~33 MB. PreserveAspectFit tetap menjaga proporsi, jadi
-                                // yang terlihat tidak berubah.
                                 sourceSize.width: Math.round(width)
                                 sourceSize.height: Math.round(height)
                                 fillMode: Image.PreserveAspectFit

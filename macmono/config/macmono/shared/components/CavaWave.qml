@@ -2,14 +2,6 @@ import QtQuick
 import QtQuick.Shapes
 import "../../core"
 
-// Visualizer cava gaya "gunung": area terisi halus (spline Catmull-Rom) yang menempel
-// di dasar komponen. Pakai di belakang konten (popup media, menubar).
-// `levels` = array 0..maxLevel dari Sys.mediaVisualizerLevels (urutan bass -> treble, tanpa mirror).
-// `cornerRadius` > 0 = sudut bawah dipotong membulat supaya pas dengan kartu/pill induknya.
-//
-// Digambar dengan Shape (GPU, vektor), bukan Canvas: nggak ada rasterisasi bitmap + upload
-// tekstur tiap frame. Shape nggak punya clip ke bentuk bebas, jadi pembulatan sudut dihitung
-// langsung di path (lihat buildPath): titik dekat sudut dijepit ke lengkung sudut.
 Shape {
     id: root
 
@@ -28,7 +20,6 @@ Shape {
 
         const f = v => v.toFixed(1);
         const r = Math.max(0, Math.min(cr, w / 2, h));
-        // batas bawah bentuk (sudut bawah membulat) pada posisi x
         const floorY = x => {
             const e = Math.min(x, w - x);
             return e < r ? h - r + Math.sqrt(r * r - (r - e) * (r - e)) : h;
@@ -46,7 +37,6 @@ Shape {
             const c1x = xs[i] + (xs[i + 1] - xs[a]) / 6, c1y = ys[i] + (ys[i + 1] - ys[a]) / 6;
             const c2x = xs[i + 1] - (xs[b] - xs[i]) / 6, c2y = ys[i + 1] - (ys[b] - ys[i]) / 6;
             if (r > 0 && (xs[i] < r || xs[i + 1] > w - r)) {
-                // segmen di dekat sudut: dipecah kecil, tiap titik dijepit ke lengkung sudut
                 const K = 8;
                 for (let k = 1; k <= K; k++) {
                     const t = k / K, u = 1 - t;
@@ -77,8 +67,6 @@ Shape {
         fillRule: ShapePath.WindingFill
 
         PathSvg {
-            // levels cuma dibaca di cabang "visible": pas disembunyiin (mis. musik berhenti,
-            // popup tertutup) binding ini nggak dihitung ulang tiap update cava.
             path: root.visible ? root.buildPath(root.levels, root.width, root.height, root.cornerRadius) : ""
         }
     }

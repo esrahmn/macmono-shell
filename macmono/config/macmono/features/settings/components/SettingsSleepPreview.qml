@@ -1,9 +1,6 @@
 import QtQuick
 import "../../../core"
 
-// Pratinjau grup "Screen & sleep" (halaman Power): kapan layar terkunci, mati, dan komputer tidur
-// kalau lu diam saja. Dibaca dari draft (belum di-Apply), jadi geser slider langsung terlihat di sini.
-// Dipasang tepat di atas slider-nya lewat `preview: "sleep"` di SettingsSchema (bukan di level halaman).
 Rectangle {
     id: root
     property int lockMin: 5
@@ -50,7 +47,6 @@ Rectangle {
             anchors.fill: parent
             readonly property real trackW: width - Theme.settingsMarkSize
 
-            // rel
             Rectangle {
                 x: Theme.settingsMarkSize / 2
                 y: Theme.settingsMarkSize / 2 - height / 2
@@ -59,7 +55,6 @@ Rectangle {
                 radius: height / 2
                 color: Theme.tileHover
             }
-            // titik awal: "sekarang"
             Rectangle { x: 0; y: 0; width: Theme.settingsMarkSize; height: width; radius: width / 2; color: Theme.dim }
             SettingsText { x: 0; y: Theme.settingsMarkSize + Theme.space4; text: "Idle"; color: Theme.dim; font.pixelSize: Theme.fontCaption }
 
@@ -79,7 +74,6 @@ Rectangle {
                         color: Theme.text
                     }
                     SettingsText {
-                        // dua baris label bergantian supaya titik yang berdekatan tidak saling tindih
                         x: Math.max(0, Math.min(ev.parent.width - width, ev.cx - width / 2))
                         y: Theme.settingsMarkSize + Theme.space4 + (ev.index % 2) * (Theme.fontBody + Theme.space6)
                         text: ev.modelData.label + " · " + ev.modelData.m + " min"

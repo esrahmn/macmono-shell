@@ -20,12 +20,11 @@ Scope {
 
             visible: Sys.barVisible
             anchors { top: true; left: true; right: true }
-            margins { top: Theme.barMargin; left: Theme.barMargin; right: Theme.barMargin }  // sejajar dengan gaps_out (5)
+            margins { top: Theme.barMargin; left: Theme.barMargin; right: Theme.barMargin }
             implicitHeight: Theme.barHeight
             color: Theme.transparent
             WlrLayershell.namespace: "macmono:menubar"
 
-            // Keep Awake: inhibit idle selama toggle aktif
             IdleInhibitor { window: bar; enabled: Sys.keepAwake }
 
             readonly property var activeTop: ToplevelManager.activeToplevel
@@ -37,9 +36,6 @@ Scope {
                 return n.charAt(0).toUpperCase() + n.slice(1);
             }
 
-            // Jam bar. Dihitung manual, bukan Qt.formatDateTime("hh:mm"), karena Qt tidak punya
-            // pola 12 jam: polanya selalu 0-23 dan "AP" cuma menempel tanpa mengubah angkanya.
-            // Detik hanya dihitung kalau memang ditampilkan, supaya teks tidak bergetar tiap detik.
             readonly property string clockLabel: {
                 const d = Sys.now;
                 const pad = n => (n < 10 ? "0" : "") + n;
@@ -60,18 +56,16 @@ Scope {
                 return Settings.clockDate ? Qt.formatDateTime(d, "ddd d MMM") + "  " + time : time;
             }
 
-            // ---------------- badan bar (floating) ----------------
             Rectangle {
                 anchors.fill: parent
                 radius: Theme.barHeight / 2
                 color: Theme.bar
 
-                // ============ kiri: logo, workspace, nama app ============
                 Row {
                     anchors { left: parent.left; leftMargin: Theme.space16; verticalCenter: parent.verticalCenter }
                     spacing: Theme.space14
 
-                    Glyph { // logo: ensō -> launcher
+                    Glyph {
                         anchors.verticalCenter: parent.verticalCenter
                         width: Theme.icon20; height: Theme.icon20
                         name: "enso"
@@ -88,14 +82,12 @@ Scope {
                         }
                     }
 
-                    // workspace: satu bulatan, hover -> melebar nampilin semua
                     Item {
                         id: ws
                         anchors.verticalCenter: parent.verticalCenter
                         height: Theme.menubarCellHeight
                         width: wsRow.width
                         readonly property bool open: wsArea.containsMouse
-                        // minimal 5 titik, nambah otomatis kalau workspace 6-10 dipakai
                         readonly property int count: Math.min(Settings.menubarWorkspaceMax, Math.max(Settings.menubarWorkspaceMin, Hyprland.focusedWorkspace?.id ?? 0,
                                                                            ...Hyprland.workspaces.values.map(w => w.id).filter(id => id > 0 && id <= Settings.menubarWorkspaceMax)))
 
@@ -163,8 +155,6 @@ Scope {
                     }
                 }
 
-                // ============ tengah: jam saja ============
-                // klik jam -> kalender + notifikasi; titik kecil = ada notifikasi belum dilihat
                 MouseArea {
                     id: clockArea
                     anchors.centerIn: parent
@@ -188,7 +178,6 @@ Scope {
                     }
                 }
 
-                // ============ kanan: tray, status ============
                 Row {
                     id: rightContent
                     anchors { right: parent.right; rightMargin: Theme.space16; verticalCenter: parent.verticalCenter }
@@ -217,18 +206,10 @@ Scope {
                         }
                     }
 
-                    Row { // tray (di-desaturate biar tetap monochrome)
+                    Row {
                         id: trayRow
                         anchors.verticalCenter: parent.verticalCenter
                         spacing: Theme.space14
-                        // Satu layer untuk seluruh baris tray, bukan satu layer per ikon.
-                        // Hasil visualnya sama (semua ikon jadi abu-abu), tapi biayanya 1 tekstur
-                        // + 1 pass shader, bukan N: sebelumnya 10 ikon tray = 10 tekstur offscreen
-                        // dan 10 pass tambahan setiap bar digambar ulang.
-                        // Guard lebar > 0: saat baru start, SystemTray.items masih kosong dan Row
-                        // berukuran 0x0 — tidak perlu bikin tekstur kosong untuk itu.
-                        // Catatan: layer memotong anak yang keluar bounds item-nya, jadi jangan
-                        // taruh badge/indikator yang menonjol keluar sel 18x18 ini.
                         layer.enabled: trayRow.width > 0
                         layer.effect: MultiEffect { saturation: -1.0 }
                         Repeater {
@@ -240,8 +221,6 @@ Scope {
                                 width: Theme.menubarTrayItem; height: Theme.menubarTrayItem
                                 acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                                 onClicked: (e) => {
-                                    // kiri = buka app (atau menu kalau app-nya cuma punya menu),
-                                    // kanan = menu tray, tengah = secondary action
                                     if (e.button === Qt.MiddleButton) { modelData.secondaryActivate(); return; }
                                     if (e.button === Qt.LeftButton && !modelData.onlyMenu) { modelData.activate(); return; }
                                     if (modelData.hasMenu) {
@@ -258,7 +237,6 @@ Scope {
                         }
                     }
 
-                    // status (klik -> control center)
                     MouseArea {
                         anchors.verticalCenter: parent.verticalCenter
                         width: statusRow.implicitWidth
@@ -270,7 +248,6 @@ Scope {
                             anchors.verticalCenter: parent.verticalCenter
                             spacing: Theme.space14
 
-                            // rekam layar macmono: pil "● 0:42", klik untuk berhenti
                             Rectangle {
                                 visible: Sys.recActive
                                 anchors.verticalCenter: parent.verticalCenter
@@ -282,7 +259,7 @@ Scope {
                                     spacing: Theme.space6
                                     Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
-                                        width: Settings.menuBarRecordDotSize; height: Settings.menuBarRecordDotSize; radius: recArea.containsMouse ? Theme.radiusIndicator : Math.min(width, height) / 2   // titik -> kotak "stop" saat hover
+                                        width: Settings.menuBarRecordDotSize; height: Settings.menuBarRecordDotSize; radius: recArea.containsMouse ? Theme.radiusIndicator : Math.min(width, height) / 2
                                         color: Theme.inverseText
                                         SequentialAnimation on opacity {
                                             running: Sys.recActive && !recArea.containsMouse; loops: Animation.Infinite
@@ -306,12 +283,11 @@ Scope {
                                 }
                             }
 
-                            // indikator privasi: lagi rekam layar / mic dipakai / kamera dipakai
                             Row {
                                 visible: Sys.recording || Sys.micInUse || Sys.camInUse
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: Theme.space8
-                                Rectangle {   // rekam layar: titik berkedip
+                                Rectangle {
                                     visible: Sys.recording
                                     anchors.verticalCenter: parent.verticalCenter
                                     width: Settings.menuBarRecordingDotSize; height: Settings.menuBarRecordingDotSize; radius: Math.min(width, height) / 2
@@ -322,7 +298,7 @@ Scope {
                                         NumberAnimation { to: 1; duration: Theme.animPulse }
                                     }
                                 }
-                                Row {   // mic / kamera: ikon polos, gaya sama dengan ikon wifi / volume
+                                Row {
                                     visible: Sys.micInUse || Sys.camInUse
                                     anchors.verticalCenter: parent.verticalCenter
                                     spacing: Theme.space4
@@ -365,7 +341,7 @@ Scope {
                                 color: Theme.text
                             }
 
-                            Row { // baterai
+                            Row {
                                 visible: Sys.batAvailable
                                 anchors.verticalCenter: parent.verticalCenter
                                 spacing: Theme.space6

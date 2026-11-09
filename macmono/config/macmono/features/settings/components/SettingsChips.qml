@@ -2,7 +2,6 @@ import QtQuick
 import "../../../core"
 import "../../../shared/components"
 
-// Daftar nilai yang bisa ditambah/dihapus (pinned apps, folder wallpaper, level baterai).
 Item {
     id: root
     property var model: []

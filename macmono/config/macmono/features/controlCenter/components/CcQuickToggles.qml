@@ -4,7 +4,6 @@ import Quickshell.Services.UPower
 import "../../../core"
 import "../../../shared/components"
 
-// Kolom kanan Control Center: Focus, power profile, Night Light, Mic.
 ColumnLayout {
     id: root
 

@@ -5,18 +5,9 @@ import Quickshell.Hyprland
 import "../settings"
 import "../system"
 
-// Nama shortcut HARUS sama dengan yang dipakai keybind & hypridle di config Hypr (hl.dsp.global("quickshell:<nama>")).
-// Kalau mengganti nama, ubah bind-nya di keybinds.lua dalam satu commit.
 Scope {
     id: root
 
-    // =====================================================================
-    //  Super (tap) -> launcher
-    // =====================================================================
-    // Di Hyprland 0.57, bind dengan { release = true } cuma ngirim event "released".
-    // onPressed di searchToggleRelease jadi nggak pernah jalan, makanya waktu tekan
-    // juga dicatat dari bind transparan SUPER_L -> quickshell:workspaceNumber.
-    // Default true, biar tap pertama langsung jalan.
     property bool superMightTrigger: true
     property real superPressedAt: 0
     property var wsAtPress: null
@@ -33,54 +24,45 @@ Scope {
         superPressedAt = 0;
         if (!superMightTrigger) { superMightTrigger = true; return; }
         if (pressedAt > 0) {
-            if (Date.now() - pressedAt > Settings.superTapMaxMs) return;                                 // ditahan lama
-            if ((Hyprland.focusedWorkspace?.id ?? null) !== wsAtPress) return;        // habis Super+angka
-            if (ToplevelManager.activeToplevel !== winAtPress) return;                // habis Super+panah/Q/dll
+            if (Date.now() - pressedAt > Settings.superTapMaxMs) return;
+            if ((Hyprland.focusedWorkspace?.id ?? null) !== wsAtPress) return;
+            if (ToplevelManager.activeToplevel !== winAtPress) return;
         }
         Sys.toggleLauncher();
     }
 
     GlobalShortcut {
         name: "searchToggleRelease"
-        description: "macmono: toggle launcher saat Super dilepas"
+        description: "macmono: toggle launcher when Super is released"
         onPressed: root.armSuper()
         onReleased: root.releaseSuper()
     }
     GlobalShortcut {
         name: "workspaceNumber"
-        description: "macmono: catat waktu Super ditekan"
+        description: "macmono: record when Super is pressed"
         onPressed: root.armSuper()
     }
     GlobalShortcut {
         name: "searchToggleReleaseInterrupt"
-        description: "macmono: batalin toggle launcher (Super dipakai buat kombinasi)"
+        description: "macmono: cancel launcher toggle (Super is part of a combo)"
         onPressed: root.superMightTrigger = false
     }
     GlobalShortcut { name: "searchToggle"; description: "macmono: toggle launcher"; onPressed: Sys.toggleLauncher() }
     GlobalShortcut { name: "commandPaletteToggle"; description: "macmono: command palette"; onPressed: Sys.toggleCommandPalette() }
 
-    // =====================================================================
-    //  Lock (Super+L lewat loginctl -> hypridle, dan auto-lock idle)
-    // =====================================================================
     GlobalShortcut { name: "lock"; description: "macmono: lock screen"; onPressed: Sys.lock() }
-    GlobalShortcut { name: "lockFocus"; description: "macmono: fokus ulang lock setelah resume"; onPressed: Sys.lockRefocus() }
+    GlobalShortcut { name: "lockFocus"; description: "macmono: refocus lock after resume"; onPressed: Sys.lockRefocus() }
 
-    // =====================================================================
-    //  Fitur macmono
-    // =====================================================================
-    GlobalShortcut { name: "sidebarLeftToggle";   description: "macmono: kalender & notifikasi"; onPressed: Sys.toggleCalendar(Sys.focusedScreenName()) }
-    GlobalShortcut { name: "mediaControlsToggle"; description: "macmono: kontrol media";        onPressed: Sys.toggleMedia() }
-    GlobalShortcut { name: "settingsToggle";      description: "macmono: pengaturan sistem";    onPressed: Sys.toggleSettings() }
-    GlobalShortcut { name: "cheatsheetToggle";    description: "macmono: daftar shortcut";      onPressed: Sys.toggleCheat() }
+    GlobalShortcut { name: "sidebarLeftToggle";   description: "macmono: calendar & notifications"; onPressed: Sys.toggleCalendar(Sys.focusedScreenName()) }
+    GlobalShortcut { name: "mediaControlsToggle"; description: "macmono: media controls";        onPressed: Sys.toggleMedia() }
+    GlobalShortcut { name: "settingsToggle";      description: "macmono: system settings";    onPressed: Sys.toggleSettings() }
+    GlobalShortcut { name: "cheatsheetToggle";    description: "macmono: shortcut list";      onPressed: Sys.toggleCheat() }
     GlobalShortcut { name: "sidebarRightToggle";  description: "macmono: control center";  onPressed: Sys.toggleCC(Sys.focusedScreenName()) }
     GlobalShortcut { name: "wallpaperSelectorToggle"; description: "macmono: wallpaper picker"; onPressed: Sys.toggleWallpaper() }
     GlobalShortcut { name: "wallpaperSelectorRandom"; description: "macmono: random wallpaper"; onPressed: Sys.randomWallpaper() }
     GlobalShortcut { name: "regionScreenshot";    description: "macmono: screenshot";       onPressed: Sys.screenshot("copy", false) }
     GlobalShortcut { name: "barToggle";           description: "macmono: toggle menubar";    onPressed: Sys.barVisible = !Sys.barVisible }
 
-    // =====================================================================
-    //  Jalur tunggal: keybinds.lua cuma memanggil global shortcut (fallback fuzzel/hyprshot sudah dihapus).
-    // =====================================================================
     function sh(cmd) {
         closeAll();
         Sys.spawn(["bash", "-c", cmd]);
@@ -88,36 +70,34 @@ Scope {
     function closeAll() { Sys.closeCCQuiet(); }
 
     GlobalShortcut {
-        name: "overviewClipboardToggle"   // Super+V
-        description: "macmono: riwayat clipboard"
+        name: "overviewClipboardToggle"
+        description: "macmono: clipboard history"
         onPressed: Sys.toggleClipboard()
     }
     GlobalShortcut {
-        name: "overviewEmojiToggle"       // Super+.
+        name: "overviewEmojiToggle"
         description: "macmono: emoji picker"
         onPressed: Sys.toggleEmoji()
     }
     GlobalShortcut {
-        name: "overviewWorkspacesToggle"  // Super+Tab & gesture 4 jari atas/bawah
-        description: "macmono: buka launcher (ala Launchpad)"
+        name: "overviewWorkspacesToggle"
+        description: "macmono: open launcher (Launchpad style)"
         onPressed: Sys.toggleLauncher()
     }
     GlobalShortcut {
-        name: "sessionToggle"             // Ctrl+Alt+Del
-        description: "macmono: menu power"
+        name: "sessionToggle"
+        description: "macmono: power menu"
         onPressed: Sys.togglePower()
     }
     GlobalShortcut {
-        name: "regionSearch"              // Super+Shift+A
-        description: "macmono: Google Lens dari area layar"
+        name: "regionSearch"
+        description: "macmono: Google Lens from a screen area"
         onPressed: root.sh("pidof slurp || \"${XDG_CONFIG_HOME:-$HOME/.config}/hypr/hyprland/scripts/snip_to_search.sh\"")
     }
     GlobalShortcut {
-        name: "regionOcr"                 // Super+Shift+X
-        description: "macmono: OCR area layar ke clipboard"
-        onPressed: Sys.screenshot("ocr", false)   // pakai pemilih area macmono (layar dibekukan)
+        name: "regionOcr"
+        description: "macmono: OCR screen area to clipboard"
+        onPressed: Sys.screenshot("ocr", false)
     }
-    // Super+Shift+R (regionRecord) sengaja nggak dipakai: rekam layar cukup dari Control Center (⋯ → Record).
 
-    // IPC handlers ada di services/Ipc.qml (hindari target dobel)
 }

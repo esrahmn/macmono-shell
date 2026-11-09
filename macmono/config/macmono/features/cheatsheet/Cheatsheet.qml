@@ -4,11 +4,7 @@ import Quickshell.Wayland
 import "../../core"
 import "../../shared/components"
 
-// Super+/ : daftar shortcut macmono, sidebar di kiri. Animasi sama dengan laci lain (Reveal bawaan).
-// Tombol apa saja atau klik di luar kartu untuk tutup; roda mouse untuk gulir.
 Scope {
-    // Daftar ini pindah ke core/shortcuts/KeyList.qml supaya halaman "Keyboard Shortcuts"
-    // di Pengaturan memakai tabel yang sama (dulu tabelnya cuma ada di sini).
     readonly property var groups: KeyList.groups
 
     Variants {
@@ -26,7 +22,6 @@ Scope {
             onShownChanged: if (shown) keys.forceActiveFocus()
 
             visible: present
-            // Window tetap seukuran layar di bawah bar; yang bergerak cuma kartu.
             anchors { top: true; bottom: true; left: true; right: true }
             margins { top: Theme.barMargin + Theme.barHeight }
             mask: win.shown ? null : cardMask
@@ -42,7 +37,7 @@ Scope {
                 id: keys
                 anchors.fill: parent
                 focus: true
-                Keys.onPressed: (e) => { Sys.cheatOpen = false; e.accepted = true; }   // tombol apa saja menutup
+                Keys.onPressed: (e) => { Sys.cheatOpen = false; e.accepted = true; }
             }
 
             Rectangle {
@@ -57,10 +52,9 @@ Scope {
                 border.width: Theme.borderThin
                 border.color: Theme.line
                 clip: true
-                // laci: kartu masuk dari tepi kiri layar
                 transform: Translate { x: -(card.width + Theme.space8) * (1 - Math.min(1, win.anim)) }
 
-                MouseArea { anchors.fill: parent }   // klik di dalam kartu jangan tembus ke penutup
+                MouseArea { anchors.fill: parent }
 
                 Flickable {
                     id: flick

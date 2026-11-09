@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Pastikan `def` di core/settings/SettingsSchema.qml sama dengan nilai bawaan di core/settings/Settings.qml.
+"""Check that `def` values in core/settings/SettingsSchema.qml match the defaults in core/settings/Settings.qml.
 
-Jalankan dari akar proyek: python3 scripts/development/check-settings-defaults.py
-Keluar dengan kode 1 kalau ada yang beda atau ada kunci yang tidak ada di Settings.qml.
+Run from the project root: python3 scripts/development/check-settings-defaults.py
+Exits with code 1 if anything differs or a key is missing from Settings.qml.
 """
 import json
 import re
@@ -23,18 +23,16 @@ for m in re.finditer(r'\{ key: "(\w+)".*?def: (\[.*?\]|[^,}\s]+)', schema, re.S)
     if "liveAction" in m.group(0):
         continue
     if key not in defaults:
-        print(f"  {key}: tidak ada di Settings.qml")
+        print(f"  {key}: missing from Settings.qml")
         problems += 1
         continue
     if json.loads(raw) != defaults[key]:
         print(f"  {key}: schema={raw} Settings.qml={defaults[key]}")
         problems += 1
 
-# Opsi yang sengaja tidak ada di UI (timing/guard/debounce) tetap dipakai kode dan bisa diubah lewat
-# ~/.config/macmono/settings.json. Cukup hitung, jangan dicetak satu-satu.
 hidden = set(defaults) - set(re.findall(r'key: "(\w+)"', schema))
 if hidden:
-    print(f"  ({len(hidden)} opsi sengaja tidak ada di UI; tetap bisa diubah lewat settings.json)")
+    print(f"  ({len(hidden)} options are intentionally not in the UI; they can still be changed via settings.json)")
 
-print("OK" if problems == 0 else f"{problems} masalah")
+print("OK" if problems == 0 else f"{problems} problem(s)")
 sys.exit(1 if problems else 0)

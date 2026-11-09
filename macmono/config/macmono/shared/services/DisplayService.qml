@@ -2,11 +2,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Pengaturan monitor: baca `hyprctl -j monitors`, simpan pilihan (draft), tulis ke
-// ~/.config/hypr/custom/macmono-generated.lua lewat scripts/hypr/apply-generated.sh.
-// Script itu yang backup, reload, cek error, dan balik otomatis kalau nggak di-confirm
-// (tetap jalan walau shell macet karena scale salah).
-// Sintaks hl.monitor dicek ke wiki.hypr.land (Monitors): output, mode, position, scale, transform.
 Scope {
     id: root
 
@@ -14,14 +9,13 @@ Scope {
     readonly property string script: Quickshell.shellDir + "/scripts/hypr/apply-generated.sh"
     readonly property var scalePresets: [1, 1.1, 1.25, 1.5, 1.6, 1.75, 2, 2.25, 2.5, 3]
 
-    property var monitors: []          // dari hyprctl: name, description, width, height, refreshRate, scale, transform, x, y, availableModes
-    property var draft: ({})           // name -> { res, rate, scale, transform }
+    property var monitors: []
+    property var draft: ({})
     property string error: ""
     property bool busy: false
-    property int confirmLeft: 0        // > 0 = menunggu "Keep"
+    property int confirmLeft: 0
     readonly property bool dirty: Object.keys(draft).length > 0
 
-    // ---------- baca state ----------
     function refresh() {
         if (!readProc.running) readProc.running = true;
     }
@@ -38,8 +32,6 @@ Scope {
         }
     }
 
-    // ---------- helper mode ----------
-    // availableModes berisi "1920x1080@60.00Hz"
     function modesOf(m) {
         const out = [];
         for (const s of (m.availableModes || [])) {
@@ -56,7 +48,6 @@ Scope {
     function rateList(m, res) {
         return modesOf(m).filter(e => e.res === res).map(e => e.rate);
     }
-    // Skala valid: panjang & lebar logis harus bulat (wiki Monitors: skala harus membagi resolusi dengan bersih)
     function validScales(m, res) {
         const p = String(res).split("x"), w = +p[0], h = +p[1];
         const swap = (m.transform % 2) === 1;
@@ -67,7 +58,6 @@ Scope {
         });
     }
 
-    // ---------- draft ----------
     function current(m) {
         return { res: m.width + "x" + m.height, rate: Number(m.refreshRate).toFixed(2), scale: Number(m.scale), transform: m.transform };
     }
@@ -80,7 +70,7 @@ Scope {
             const rates = rateList(m, v);
             if (rates.indexOf(cur.rate) < 0) cur.rate = rates[0];
         }
-        const ok = validScales(m, cur.res);   // transform/res berubah -> skala lama mungkin nggak valid lagi
+        const ok = validScales(m, cur.res);
         if (ok.indexOf(cur.scale) < 0) cur.scale = ok.length ? ok[0] : 1;
         const base = current(m);
         if (cur.res === base.res && cur.rate === base.rate && cur.scale === base.scale && cur.transform === base.transform)
@@ -90,17 +80,14 @@ Scope {
     }
     function reset() { draft = ({}); error = ""; }
 
-    // ---------- bikin Lua ----------
     function logicalWidth(v) {
         const w = +String(v.res).split("x")[0], h = +String(v.res).split("x")[1];
         return Math.round(((v.transform % 2) === 1 ? h : w) / v.scale);
     }
     function buildLua() {
-        // Urut kiri ke kanan seperti posisi sekarang; x dihitung ulang supaya nggak numpuk/bolong saat skala berubah.
-        // Posisi y dipertahankan. (Pengaturan posisi manual menyusul.)
         const list = monitors.slice().sort((a, b) => a.x - b.x);
         let x = list.length ? list[0].x : 0;
-        const lines = [];   // header file ditulis oleh apply-generated.sh, bukan di sini
+        const lines = [];
         for (const m of list) {
             const v = value(m);
             lines.push("hl.monitor({ output = \"" + m.name + "\", mode = \"" + v.res + "@" + v.rate + "\", position = \""
@@ -110,7 +97,6 @@ Scope {
         return lines.join("\n") + "\n";
     }
 
-    // ---------- terapkan ----------
     function apply() {
         if (busy || !dirty) return;
         error = "";
@@ -155,7 +141,7 @@ Scope {
         repeat: true
         onTriggered: {
             root.confirmLeft -= 1;
-            if (root.confirmLeft <= 0) {   // script watchdog sudah balik sendiri; tinggal segarkan tampilan
+            if (root.confirmLeft <= 0) {
                 tick.stop();
                 root.draft = ({});
                 refreshLater.restart();

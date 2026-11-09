@@ -1,8 +1,4 @@
 #!/bin/bash
-# macmono: rekam layar pakai wf-recorder (encode GPU lewat VA-API kalau ada).
-#   record.sh start full|area none|system|mic
-#   record.sh stop
-#   record.sh status      -> "1 <file>" kalau lagi rekam, "0" kalau nggak
 state="${XDG_RUNTIME_DIR:-$HOME/.cache}/macmono-record"
 dir="$HOME/Videos/Recordings"
 
@@ -119,7 +115,6 @@ stop)
     fi
     rm -f -- "$state"
     if [ -s "$file" ]; then
-        # notifikasi tampil 20 detik; klik kartunya (default) atau "Open folder" = buka folder rekaman
         (
             act=$(notify-send -a "Screen Recording" -t 20000 \
                   -A default="Open folder" -A open="Open folder" -A play="Play" \
@@ -198,7 +193,6 @@ start)
         notify-send -a "Screen Recording" -t 2500 -h int:transient:1 "Recording started" "Click the timer in the bar to stop"
         exit 0
     }
-    # coba encode GPU dulu (AMD/Intel), kalau langsung mati jatuh ke encoder CPU
     if [ -e /dev/dri/renderD128 ]; then
         if start_recorder h264_vaapi 1.2; then
             started

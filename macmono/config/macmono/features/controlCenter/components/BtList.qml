@@ -2,7 +2,6 @@ import QtQuick
 import "../../../core"
 import "../../../shared/components"
 
-// Daftar Bluetooth di Control Center: perangkat tersimpan + perangkat baru hasil scan, tombol pengaturan.
 Rectangle {
     property bool open: false
 
@@ -13,12 +12,10 @@ Rectangle {
     Behavior on opacity { NumberAnimation { duration: Theme.animFade } }
     visible: implicitHeight > 0.5
     radius: Theme.radiusCard
-    // Daftar = kotak cekung di dalam panel, bukan kartu terangkat: kontennya terasa masuk.
     color: Theme.well
     border.width: Theme.borderThin; border.color: Theme.cardStroke
     clip: true
 
-    // scan otomatis selama daftar terbuka, berhenti saat ditutup
     onOpenChanged: Sys.setBtScan(open)
 
     Column {
@@ -33,7 +30,6 @@ Rectangle {
             color: Theme.dim
             font.family: Theme.font; font.pixelSize: Theme.fontBodyLg
         }
-        // Bluetooth mati: tombol nyalakan langsung di sini
         Item {
             visible: !Sys.btOn
             width: parent.width; height: Theme.btHintHeight
@@ -71,7 +67,6 @@ Rectangle {
             }
         }
 
-        // perangkat baru
         Text {
             visible: Sys.btOn
             width: parent.width; height: Theme.listSubheaderHeight

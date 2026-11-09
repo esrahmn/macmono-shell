@@ -4,11 +4,6 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// ============================================================================
-// SETTINGSSTORE macmono
-// Menyimpan override Settings ke ~/.config/macmono/settings.json.
-// Jika file/folder belum ada, storage disiapkan otomatis saat startup.
-// ============================================================================
 
 Singleton {
     id: root
@@ -16,10 +11,8 @@ Singleton {
     readonly property string dir: Quickshell.env("HOME") + "/.config/macmono"
     readonly property string path: dir + "/settings.json"
 
-    // FileView baru diaktifkan setelah direktori dan file tersedia.
     property bool storageReady: false
 
-    // Nilai override. Nilai yang tidak ada memakai fallback dari Settings.qml.
     property var data: ({})
 
     function v(key, fallback) {
@@ -27,7 +20,6 @@ Singleton {
         return value === undefined ? fallback : value;
     }
 
-    // sets = { key: value }, removes = [key]
     function apply(sets, removes) {
         const next = Object.assign({}, data);
         for (const key in sets) next[key] = sets[key];
@@ -44,7 +36,6 @@ Singleton {
         const contents = JSON.stringify(data, null, 2) + "\n";
         lastWritten = contents;
 
-        // Direktori sudah dibuat oleh prepareStorage.
         Quickshell.execDetached([
             "sh", "-c",
             "printf '%s' \"$3\" > \"$2.tmp\" && mv \"$2.tmp\" \"$2\"",
@@ -58,8 +49,6 @@ Singleton {
         onTriggered: root.write()
     }
 
-    // Buat direktori dan file hanya jika belum ada.
-    // File yang sudah ada tidak pernah ditimpa saat startup.
     Process {
         id: prepareStorage
         command: [
@@ -73,7 +62,7 @@ Singleton {
             if (code === 0) {
                 root.storageReady = true;
             } else {
-                console.warn("[SettingsStore] Gagal menyiapkan direktori settings (exit", code, ")");
+                console.warn("[SettingsStore] Failed to create the settings directory (exit", code, ")");
             }
         }
     }
@@ -86,10 +75,10 @@ Singleton {
             if (parsed && typeof parsed === "object" && !Array.isArray(parsed)) {
                 data = parsed;
             } else {
-                console.warn("[SettingsStore] settings.json harus berupa objek JSON; nilai bawaan dipakai.");
+                console.warn("[SettingsStore] settings.json must be a JSON object; using defaults.");
             }
         } catch (error) {
-            console.warn("[SettingsStore] settings.json tidak valid; nilai bawaan dipakai:", error);
+            console.warn("[SettingsStore] settings.json is invalid; using defaults:", error);
         }
     }
 
@@ -101,7 +90,7 @@ Singleton {
         onLoaded: root.parse(text())
         onFileChanged: reload()
         onLoadFailed: (error) => {
-            console.warn("[SettingsStore] Gagal membaca settings.json:", error);
+            console.warn("[SettingsStore] Failed to read settings.json:", error);
         }
     }
 }

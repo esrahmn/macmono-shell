@@ -2,15 +2,12 @@ import QtQuick
 import QtQuick.Shapes
 import "../../../core"
 
-// Pratinjau Pointer speed: tangan (touchpad/mouse) selalu bergeser sama jauh, kursor di layar mini bergeser
-// lebih jauh kalau pointer lebih cepat. Perkiraan visual saja; angka aslinya diatur libinput lewat Hyprland.
 Rectangle {
     id: root
     property real sens: 0
 
     readonly property bool running: visible && Sys.settingsOpen
     property real t: 0
-    // -1 -> sekitar 0.33x, 0 -> 1x, +1 -> 3x
     readonly property real mult: Math.pow(3, sens)
 
     height: Theme.settingsDemoHeight + Theme.settingsRowPadY * 2
@@ -31,7 +28,6 @@ Rectangle {
         anchors.verticalCenter: parent.verticalCenter
         spacing: Theme.space22
 
-        // tangan: selalu geser sama jauh
         Rectangle {
             id: pad
             width: Theme.settingsDemoPadW
@@ -51,7 +47,6 @@ Rectangle {
             }
         }
 
-        // layar mini + kursor
         Rectangle {
             id: scr
             width: Theme.settingsDemoPageW

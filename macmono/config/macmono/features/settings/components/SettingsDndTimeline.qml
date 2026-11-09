@@ -1,9 +1,6 @@
 import QtQuick
 import "../../../core"
 
-// Garis waktu 24 jam untuk jadwal Do Not Disturb: bagian yang diisi = jam tenang, titik = sekarang.
-// Jendela yang lewat tengah malam (22:00 sampai 07:00) digambar sebagai dua potong. Aturan "dalam jendela"
-// sama dengan shared/services/DndSchedule.qml (start = end berarti tidak ada jendela).
 Rectangle {
     id: root
     property int startMin: 1320
@@ -44,7 +41,6 @@ Rectangle {
             font.pixelSize: Theme.fontBody
         }
 
-        // batang 24 jam
         Item {
             id: bar
             width: parent.width
@@ -70,7 +66,6 @@ Rectangle {
                     opacity: root.scheduled ? 1 : 0.3
                 }
             }
-            // sekarang
             Rectangle {
                 x: Math.max(0, Math.min(bar.width - width, bar.width * root.nowMin / root.dayMin - width / 2))
                 width: Theme.borderStrong
@@ -80,7 +75,6 @@ Rectangle {
             }
         }
 
-        // label jam
         Item {
             width: parent.width
             height: Theme.fontCaption + Theme.space4

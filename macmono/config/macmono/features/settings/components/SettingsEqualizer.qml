@@ -3,19 +3,13 @@ import QtQuick.Shapes
 import "../../../core"
 import "../../../shared/components"
 
-// Halaman Equalizer: 10 band (32 Hz - 16 kHz) yang digeser naik-turun, plus kurva respons
-// yang bergerak SELAGI digeser. Kurva dihitung dari rumus filter bell (RBJ) yang sama dengan
-// preset yang dikirim ke Easy Effects (Q 1.5, lihat shared/services/EqualizerService.qml), jadi
-// bentuknya mendekati yang terdengar, bukan sekadar garis yang menyambung titik slider.
-// Disimpan saat slider dilepas; dikirim ke Easy Effects 450 ms kemudian (debounce di service).
-// Urutan halaman: kartu saklar (seluruh kartu bisa diklik; baris kedua = status / peringatan), preset, band.
 Column {
     id: root
     spacing: 0
 
     readonly property var freqs: Sys.eq.freqs
     readonly property int n: freqs.length
-    readonly property real range: 12        // dB, simetris
+    readonly property real range: 12
     readonly property real stepDb: 0.5
 
     readonly property var presets: [
@@ -26,14 +20,9 @@ Column {
         { label: "Laptop speakers", gains: [-6, -4, 0, 1.5, 2, 1, 1.5, 2.5, 3, 2] }
     ]
 
-    // Salinan lokal: grafik membacanya langsung supaya ikut bergerak saat slider digeser;
-    // ke Settings baru dikirim saat dilepas.
     property var gains: normalized(Settings.eqBands)
     property bool dragging: false
 
-    // State "Custom": gains tidak cocok dengan preset mana pun. Dihitung langsung dari `gains`, jadi chip
-    // pindah ke Custom SELAGI slider digeser. `customGains` mengingat kurva terakhir buatan sendiri
-    // (hanya di memori sesi ini), supaya pindah ke preset lalu balik ke Custom tidak menghilangkan kurvanya.
     readonly property bool isCustom: !presets.some(pr => sameAs(pr.gains))
     property var customGains: null
     Component.onCompleted: if (isCustom) customGains = gains.slice()
@@ -64,7 +53,7 @@ Column {
         if (isCustom) customGains = gains.slice();
     }
     function pickPreset(list) {
-        if (isCustom) customGains = gains.slice();   // simpan dulu sebelum ditimpa preset
+        if (isCustom) customGains = gains.slice();
         commit(list);
     }
     function setEnabled(v) {
@@ -77,7 +66,6 @@ Column {
     }
     function fmtHz(f) { return f >= 1000 ? (f / 1000) + "k" : String(f); }
 
-    // Respons gabungan (dB) semua band pada frekuensi f; filter bell RBJ, fs 48 kHz.
     function responseDb(f) {
         const fs = 48000;
         const w = 2 * Math.PI * f / fs;
@@ -97,8 +85,6 @@ Column {
         }
         return db;
     }
-    // Sumbu x: logaritmik, 10 oktaf; pusat band ke-i tepat di (i + 0.5) / 10 lebar grafik,
-    // sejajar dengan slider di bawahnya.
     function curvePath(w, h) {
         if (w <= 0 || h <= 0) return "";
         const N = 96, f0 = freqs[0] / Math.SQRT2;
@@ -115,7 +101,6 @@ Column {
         return c === "" ? "" : c + "L" + w.toFixed(1) + " " + (h / 2).toFixed(1) + "L0 " + (h / 2).toFixed(1) + "Z";
     }
 
-    // ---- komponen lokal ----
     component SectionLabel: SettingsText {
         property bool first: false
         topPadding: first ? 0 : Theme.settingsGroupSpacing
@@ -127,8 +112,6 @@ Column {
         leftPadding: Theme.settingsRowPadX
     }
 
-    // ---- saklar: kartu besar. Baris kedua dipakai buat status; saat mati, di situ juga peringatan
-    // bahwa menyalakan akan mengganti preset output Easy Effects (tepat di titik orang memutuskan). ----
     Rectangle {
         id: hero
         width: root.width
@@ -173,7 +156,6 @@ Column {
             }
         }
 
-        // Dideklarasikan terakhir supaya duduk di atas MouseArea kartu.
         SettingsToggle {
             id: heroToggle
             anchors { right: parent.right; rightMargin: Theme.settingsRowPadX; verticalCenter: parent.verticalCenter }
@@ -182,7 +164,6 @@ Column {
         }
     }
 
-    // ---- preset ----
     SectionLabel { text: "PRESET" }
 
     Item {
@@ -205,8 +186,6 @@ Column {
                 }
             }
 
-            // Muncul begitu ada kurva buatan sendiri. Menyala kalau sedang dipakai; kalau tidak,
-            // mengetuknya mengembalikan kurva terakhir.
             SettingsChoice {
                 visible: root.isCustom || root.customGains !== null
                 label: "Custom"
@@ -216,7 +195,6 @@ Column {
         }
     }
 
-    // ---- band + grafik ----
     SectionLabel { text: "BANDS" }
 
     Rectangle {
@@ -241,7 +219,6 @@ Column {
             width: parent.width - Theme.space16 * 2
             spacing: Theme.space8
 
-            // grafik respons
             Item {
                 id: plot
                 width: parent.width
@@ -294,7 +271,6 @@ Column {
                 }
             }
 
-            // nilai dB tiap band
             Row {
                 x: card.axisW
                 Repeater {
@@ -311,7 +287,6 @@ Column {
                 }
             }
 
-            // slider vertikal
             Row {
                 x: card.axisW
                 Repeater {
@@ -336,7 +311,6 @@ Column {
                             radius: width / 2
                             color: Theme.tileHover
                         }
-                        // tanda 0 dB
                         Rectangle {
                             x: (parent.width - width) / 2
                             y: band.yFor(0)
@@ -344,7 +318,6 @@ Column {
                             height: Theme.borderThin
                             color: Theme.lineStrong
                         }
-                        // isi dari 0 dB ke knob
                         Rectangle {
                             x: rail.x
                             width: rail.width
@@ -387,7 +360,6 @@ Column {
                 }
             }
 
-            // frekuensi; "Hz" jadi label sumbu, sejajar dengan angka dB di atas
             Row {
                 SettingsText {
                     width: card.axisW

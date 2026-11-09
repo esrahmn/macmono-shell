@@ -13,7 +13,6 @@ import "../theme"
 Singleton {
     id: root
 
-    // Subsystem services (hidup di dalam Sys supaya property binding tetap sederhana)
     PrivacyService {
         id: privacy
         activePollMs: Settings.privacyPollActiveMs
@@ -50,8 +49,8 @@ Singleton {
         unit: Settings.weatherUnit
         cacheMin: Settings.weatherCacheMin
     }
-    property alias weather: weatherSvc            // kartu cuaca di kalender + halaman Weather
-    property alias display: displaySvc   // dipakai halaman Display di Pengaturan
+    property alias weather: weatherSvc
+    property alias display: displaySvc
     HyprSyncService {
         id: hyprSyncSvc
         inputValues: ({
@@ -63,17 +62,13 @@ Singleton {
         })
         idleMinutes: ({ lock: Settings.idleLockMin, screenOff: Settings.idleScreenOffMin, suspend: Settings.idleSuspendMin })
     }
-    property alias hyprSync: hyprSyncSvc   // halaman Input & Power: tulis ke config Hyprland / hypridle
+    property alias hyprSync: hyprSyncSvc
     EqualizerService { id: eqSvc }
-    property alias eq: eqSvc   // halaman Equalizer: kirim band ke Easy Effects
+    property alias eq: eqSvc
     SystemInfoService { id: systemInfoSvc }
 
-    // Folder pribadi (mode 0700) untuk file sementara: screenshot beku, gambar clipboard hasil decode.
-    // Jangan pakai /tmp: isinya bisa password atau data sensitif, dan /tmp bisa dibaca user lain.
     readonly property string runtimeDir: (Quickshell.env("XDG_RUNTIME_DIR") || (Quickshell.env("HOME") + "/.cache")) + "/macmono"
 
-    // ---------------- info sistem (halaman About di Pengaturan) ----------------
-    // UI tetap lewat fasad Sys.*, jadi sumber datanya bisa diganti tanpa menyentuh QML panel.
     readonly property string osName: systemInfoSvc.osName
     readonly property string kernelVersion: systemInfoSvc.kernelVersion
     readonly property string architecture: systemInfoSvc.architecture
@@ -81,9 +76,6 @@ Singleton {
     readonly property var systemDetails: systemInfoSvc.details
     function loadSystemDetails() { systemInfoSvc.loadDetails(); }
 
-    // =====================================================================
-    //  State UI (panel yang lagi kebuka)
-    // =====================================================================
     property bool barVisible: true
     property bool ccOpen: false
     property string ccScreen: ""
@@ -108,7 +100,6 @@ Singleton {
     }
     property real trayClosedAt: 0
     onTrayMenuOpenChanged: if (!trayMenuOpen) trayClosedAt = Date.now()
-    // foto profil: ~/.face (file ATAU folder berisi gambar), ~/.face.icon, AccountsService
     property string avatar: ""
     Process {
         running: true
@@ -121,22 +112,17 @@ Singleton {
         }
     }
 
-    // ---------------- indikator privasi (delegasi ke PrivacyService) ----------------
-    // mic & screencast = reactive Pipewire; camera/recorder = poll hemat di PrivacyService
     readonly property bool micInUse: privacy.micInUse
     readonly property bool camInUse: privacy.camInUse
     readonly property bool recordingProc: privacy.recordingProc
     readonly property bool screencast: privacy.screencast
-    // recording = ada external recorder ATAU portal screencast (internal recActive di-handle terpisah)
     readonly property bool recording: (privacy.recordingProc && !recActive) || privacy.screencast
 
-    // Generation counter untuk sinkronisasi state rekaman internal vs external process
     property int recordingGeneration: 0
 
-    // ---------------- rekam layar (scripts/record.sh, wf-recorder) ----------------
     property bool recActive: false
     property bool recStartPending: false
-    property bool recStopping: false         // lagi menunggu wf-recorder berhenti (jangan dikira masih rekam)
+    property bool recStopping: false
     property int recStatusGeneration: 0
     property string recStartMode: "full"
     property string recStartAudio: "none"
@@ -159,7 +145,6 @@ Singleton {
         recStartAudio = audio || "none";
         closeCCQuiet();
         recordStartDelay.restart();
-        // jaga-jaga record.sh gagal ngabarin lewat IPC: jangan biarkan tombol Record macet selamanya
         recStartTimeout.interval = recStartMode === "area" ? Settings.recordStartTimeoutAreaMs : Settings.recordStartTimeoutMs;
         recStartTimeout.restart();
     }
@@ -185,7 +170,6 @@ Singleton {
         recStartPending = false;
         recStartTimeout.stop();
     }
-    // Timeout: IPC dari record.sh nggak datang. Cek status asli, siapa tahu perekam sebenarnya sudah jalan.
     Timer {
         id: recStartTimeout
         onTriggered: {
@@ -198,9 +182,8 @@ Singleton {
     Timer { id: recStopGrace; interval: Settings.recordStopGraceMs; onTriggered: root.recStopping = false }
     Timer {
         id: recordStartDelay
-        interval: Settings.panelCloseDelayMs   // tunggu animasi tutup panel selesai (shared/components/Reveal.qml), supaya nggak ikut terekam
+        interval: Settings.panelCloseDelayMs
         onTriggered: {
-            // wf-recorder hidup di luar cgroup shell: restart shell nggak boleh memutus rekaman.
             root.spawn(["bash", Quickshell.shellDir + "/scripts/capture/record.sh", "start", root.recStartMode, root.recStartAudio]);
         }
     }
@@ -217,8 +200,7 @@ Singleton {
             }
         }
     }
-    // ---------------- peringatan baterai ----------------
-    property int batWarned: 100            // level terakhir yang sudah diperingatkan (reset saat dicas)
+    property int batWarned: 100
     function batNotify(urgency, title, body) {
         Quickshell.execDetached(["notify-send", "-a", "Battery", "-u", urgency,
             "-h", "string:x-canonical-private-synchronous:macmono-battery", title, body]);
@@ -247,20 +229,18 @@ Singleton {
     }
     Timer { interval: Settings.batteryStartupDelayMs; running: true; onTriggered: { root.batChargingKnown = true; root.checkBattery(); } }
 
-    // ---------------- kalender + pusat notifikasi (klik jam) ----------------
     property bool calendarOpen: false
     property string calendarScreen: ""
     property real calendarClosedAt: 0
     onCalendarOpenChanged: if (!calendarOpen) calendarClosedAt = Date.now(); else notifUnread = 0
     function toggleCalendar(screenName) {
-        if (Date.now() - calendarClosedAt < Settings.panelReopenGuardMs) return;   // klik jam saat terbuka: focus grab sudah nutup duluan
+        if (Date.now() - calendarClosedAt < Settings.panelReopenGuardMs) return;
         if (calendarOpen) { calendarOpen = false; return; }
         closeCCQuiet();
         calendarScreen = screenName || focusedScreenName();
         calendarOpen = true;
     }
 
-    // ---------------- popup media (Super+M) & cheatsheet (Super+/) ----------------
     readonly property int mediaPopupWidth: Theme.mediaPopupWidth
     property bool mediaOpen: false
     property string mediaScreen: ""
@@ -273,8 +253,8 @@ Singleton {
         mediaOpen = true;
     }
     property bool settingsOpen: false
-    property bool visualizerPreview: false   // true selama halaman Settings > Sound tampil (pratinjau visualizer)
-    property bool soundMeterActive: false    // true selama halaman Settings > Sound tampil (meter mikrofon hidup)
+    property bool visualizerPreview: false
+    property bool soundMeterActive: false
     property string settingsScreen: ""
     function toggleSettings() {
         if (settingsOpen) { settingsOpen = false; return; }
@@ -293,8 +273,7 @@ Singleton {
         cheatOpen = true;
     }
 
-    // ---------------- riwayat notifikasi ----------------
-    property var notifHistory: []          // [{ id, app, summary, body, time }], terbaru di depan
+    property var notifHistory: []
     property int notifUnread: 0
     property int notifSeq: 0
     function pushNotif(n) {
@@ -304,7 +283,6 @@ Singleton {
     }
     function removeNotif(id) { notifHistory = notifHistory.filter(x => x.id !== id); }
     function clearNotifs() { notifHistory = []; notifUnread = 0; }
-    // riwayat disimpan ke ~/.local/state/macmono/notifications.json (ditulis lewat FileView, bukan argv)
     property bool notifLoaded: false
     onNotifHistoryChanged: if (notifLoaded) notifSave.restart()
     Timer { id: notifSave; interval: Settings.notifSaveDelayMs; onTriggered: notifFile.setText(JSON.stringify(root.notifHistory)) }
@@ -328,7 +306,7 @@ Singleton {
 
     property bool powerOpen: false
     property string powerScreen: ""
-    signal clipboardUpdated()   // dipanggil watcher cliphist (execs.lua) tiap ada salinan baru
+    signal clipboardUpdated()
     property string clipboardScreen: ""
 
     function focusedScreenName() {
@@ -336,7 +314,6 @@ Singleton {
     }
 
     function toggleCC(screenName) {
-        // Klik tombol saat panel kebuka: focus grab nutup duluan, jangan dibuka lagi
         if (Date.now() - ccClosedAt < Settings.panelReopenGuardMs) return;
         if (ccOpen && ccScreen === screenName) { ccOpen = false; return; }
         closeCCQuiet();
@@ -374,18 +351,11 @@ Singleton {
         wallpaperOpen = true;
     }
 
-    // =====================================================================
-    // Tutup semua panel dulu, baru kirim dispatch ke Hyprland.
-    // Race: begitu launcher melepas keyboard focus, Hyprland mengembalikan fokus ke window
-    // terakhir dan bisa menimpa dispatch workspace/window. Solusi: tutup panel dulu,
-    // baru dispatch setelah fokus sempat settle (docs Hyprland).
-    // =====================================================================
     property string pendingDispatch: ""
     function closeAndDispatch(cmd) {
         if (!cmd) return;
         pendingDispatch = cmd;
         closeCCQuiet();
-        // Pastikan launcher benar-benar tertutup sebelum timer jalan
         launcherOpen = false;
         dispatchDelay.restart();
     }
@@ -413,37 +383,15 @@ Singleton {
         emojiOpen = true;
     }
 
-    // =====================================================================
-    //  Data Hyprland buat overview (hyprctl -j clients & monitors).
-    //  Di-refresh pas launcher dibuka, dan tiap ada event window/workspace selama kebuka.
-    // =====================================================================
-    // Implementasi ada di HyprlandOverviewService; UI tetap pakai Sys.hyprClients / Sys.hyprMonitors.
     HyprlandOverviewService { id: hyprOverview; active: root.launcherOpen }
     readonly property var hyprClients: hyprOverview.clients
 
-    // Window yang biasanya bisa membuka kamera (browser, meeting, perekam). Dipakai PrivacyService
-    // untuk memilih ritme cek: ada window seperti ini = cek cepat, tidak ada = cek lambat.
-    // Daftarnya sengaja longgar; window ini cuma "mungkin" memakai kamera, bukan bukti.
-    // Sumbernya Hyprland.toplevels (selalu hidup), BUKAN Sys.hyprClients — hyprClients cuma
-    // di-refresh saat launcher terbuka, jadi gate-nya akan selalu false kalau pakai itu.
-    //
-    // Kenapa regex-nya ditulis langsung di dalam binding, bukan property var terpisah:
-    // regex literal yang disimpan di property var bisa sampai ke binding sebagai nilai kosong,
-    // lalu .test() melempar dan hasil binding bool-nya jadi undefined — persis warning
-    // "Unable to assign [undefined] to bool" di log. Literal inline tidak lewat konversi itu.
-    // Loop gaya index + guard di awal: kalau Hyprland belum siap dan toplevels.values masih
-    // kosong/undefined, hasilnya tetap false yang sah, bukan error.
-    // try/catch: binding ini dievaluasi ulang tiap window buka/tutup. Kalau di tengah hot reload
-    // singleton Hyprland lagi dibangun ulang, akses di dalamnya bisa melempar TypeError dan hasilnya
-    // jadi undefined (warning "Unable to assign [undefined] to bool"). Dengan catch, hasilnya selalu bool.
-    // Nama app yang dianggap bisa makai kamera/mic. Dicocokkan ke TOKEN class window (dipecah di
-    // tanda baca), bukan potongan nama: "com.obsproject.Studio" kena, "obsidian"/"zenity" nggak.
     readonly property var camApps: ["chrome", "chromium", "brave", "vivaldi", "opera", "edge", "firefox",
         "zen", "zoom", "teams", "skype", "discord", "vesktop", "webcord", "slack", "telegram", "signal",
         "obs", "obsproject", "cheese", "guvcview", "kamoso"]
     readonly property bool camWindowOpen: {
         try {
-            const tl = Hyprland.toplevels;                              // dibaca di binding -> reaktif saat window buka/tutup
+            const tl = Hyprland.toplevels;
             const list = (tl && tl.values) ? tl.values : [];
             const apps = root.camApps;
             for (let i = 0; i < list.length; i++) {
@@ -463,16 +411,9 @@ Singleton {
     function refreshHypr() { hyprOverview.refresh(); }
     onLauncherOpenChanged: if (launcherOpen) { refreshHypr(); calendarOpen = false; mediaOpen = false; cheatOpen = false; }
 
-    // =====================================================================
-    //  Jam
-    // =====================================================================
     SystemClock { id: clock; precision: SystemClock.Minutes }
     readonly property var now: clock.date
 
-    // =====================================================================
-    //  Audio
-    // =====================================================================
-    // Implementasi ada di AudioService; UI tetap pakai Sys.volume, Sys.setVolume(), dst.
     AudioService { id: audioService; meterWanted: root.soundMeterActive }
     readonly property var sink: audioService.sink
     readonly property real volume: audioService.volume
@@ -494,7 +435,6 @@ Singleton {
     function setSourceVolume(v) { audioService.setSourceVolume(v); }
     function setStreamVolume(n, v) { audioService.setStreamVolume(n, v); }
     function setStreamMuted(n, m) { audioService.setStreamMuted(n, m); }
-    // Halaman Sound: tes suara ke output, dan level mikrofon (meter hanya hidup selama halaman tampil).
     readonly property string testSoundStatus: audioService.testStatus
     readonly property bool testSoundRunning: audioService.testRunning
     function toggleTestSound() { audioService.toggleTestSound(); }
@@ -502,7 +442,6 @@ Singleton {
     readonly property bool inputMeterAvailable: audioService.meterAvailable
     readonly property var mediaVisualizerLevels: mediaVisualizer.levels
 
-    // Helper media (MPRIS), dipakai MediaCard / MediaPopup.
     function mediaPlayer(players, preferredIndex) {
         if (!players || players.length === 0) return null;
         if (preferredIndex >= 0 && preferredIndex < players.length) return players[preferredIndex];
@@ -516,11 +455,8 @@ Singleton {
         return (h > 0 ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(s).padStart(2, "0");
     }
 
-    // =====================================================================
-    //  Baterai & power profile
-    // =====================================================================
     readonly property bool batAvailable: UPower.displayDevice.isLaptopBattery
-    readonly property real batPercent: UPower.displayDevice.percentage ?? 1   // 0..1
+    readonly property real batPercent: UPower.displayDevice.percentage ?? 1
     readonly property bool batCharging: UPower.displayDevice.state == UPowerDeviceState.Charging
     readonly property real batSeconds: batCharging ? UPower.displayDevice.timeToFull : UPower.displayDevice.timeToEmpty
 
@@ -549,17 +485,11 @@ Singleton {
         setProfile(profiles[(currentIndex + 1) % profiles.length]);
     }
 
-    // =====================================================================
-    //  Brightness (delegasi ke BrightnessService)
-    // =====================================================================
     readonly property real brightness: brightnessSvc.brightness
     readonly property bool brightnessOk: brightnessSvc.brightnessOk
     readonly property string brightnessBackend: brightnessSvc.brightnessBackend
     function setBrightness(v) { brightnessSvc.setBrightness(v); }
 
-    // =====================================================================
-    //  Toggle: Focus (DND), Keep Awake, Night Light
-    // =====================================================================
     property bool dnd: false
     property bool keepAwake: false
     property bool nightLight: false
@@ -568,12 +498,9 @@ Singleton {
         applyNightLight();
     }
     function applyNightLight() {
-        // hyprsunset adalah daemon: harus hidup lebih lama dari shell (lihat spawn()).
         spawn(["bash", "-c",
             "pidof hyprsunset >/dev/null || (hyprsunset >/dev/null 2>&1 &) ; sleep 0.4; hyprctl hyprsunset temperature " + (nightLight ? Settings.nightLightKelvin : Settings.nightLightOffKelvin)]);
     }
-    // Dipakai jadwal Night Light: mengubah flag lewat jalur yang sama dengan toggle manual,
-    // supaya hyprsunset ikut diatur (bukan cuma flag di QML).
     function setNightLight(on) {
         const v = !!on;
         if (nightLight === v) return;
@@ -589,18 +516,13 @@ Singleton {
         onWindowChanged: (on) => root.setNightLight(on)
     }
 
-    // Jam matahari hari ini (menit lokal), dipakai halaman Display untuk status jadwal.
-    // Dibaca setelah instance di atas ada, supaya binding-nya tidak menunjuk objek kosong.
     readonly property int sunriseMin: nightLightSchedule.sunriseMin
     readonly property int sunsetMin: nightLightSchedule.sunsetMin
     readonly property bool sunTimesValid: nightLightSchedule.valid
 
-    // toggle disimpan di ~/.local/state/macmono, dipulihkan saat shell start
     property bool togglesLoaded: false
     onDndChanged: if (togglesLoaded) saveState("dnd", dnd ? "1" : "0")
 
-    // Jadwal DND: service yang menulis `dnd` saat masuk/keluar jendela waktu.
-    // Toggle manual tetap boleh; kalau jadwal aktif, pengecekan 30 detik berikutnya menimpanya.
     DndSchedule {
         id: dndSchedule
         enabled: Settings.dndScheduleEnabled
@@ -609,8 +531,6 @@ Singleton {
         onWindowChanged: (on) => { root.dnd = on; }
     }
 
-    // Notifikasi dari aplikasi yang dibisukan langsung ditutup (dipakai Notifs.qml).
-    // Nama dibandingkan tanpa huruf besar/kecil; entri kosong diabaikan.
     function notifIsMuted(app) {
         const name = String(app ?? "").trim().toLowerCase();
         if (name === "") return false;
@@ -636,9 +556,6 @@ Singleton {
         }
     }
 
-    // =====================================================================
-    //  Peluncur proses di luar shell (app, terminal, daemon, rekaman)
-    // =====================================================================
     function spawn(argv, cwd) {
         const args = Array.from(argv ?? []);
         if (args.length === 0) return;
@@ -646,17 +563,12 @@ Singleton {
         else Quickshell.execDetached(args);
     }
 
-    // Autostart sesi (XDG) untuk halaman Apps & Startup.
     AutostartService { id: autostartService }
     readonly property var autostart: autostartService
 
-    // Backup & Reset untuk halaman Settings.
     BackupService { id: backupService }
     readonly property var backup: backupService
 
-    // =====================================================================
-    //  Terminal: $TERMINAL -> xdg-terminal-exec -> kitty/foot/alacritty/wezterm/konsole
-    // =====================================================================
     readonly property string termScript:
         "term_run() { for t in \"${TERMINAL:-}\" xdg-terminal-exec kitty foot alacritty wezterm konsole; do " +
         "[ -n \"$t\" ] && command -v \"$t\" >/dev/null 2>&1 || continue; " +
@@ -669,9 +581,6 @@ Singleton {
         spawn(["sh", "-c", termScript + "term_run \"$@\"", "sh"].concat(cmd));
     }
 
-    // =====================================================================
-    //  Wifi (delegasi ke WifiService)
-    // =====================================================================
     readonly property bool wifiOn: wifiSvc.wifiOn
     readonly property string wifiName: wifiSvc.wifiName
     readonly property string wifiActiveUuid: wifiSvc.wifiActiveUuid
@@ -680,7 +589,6 @@ Singleton {
     readonly property var wifiProfiles: wifiSvc.wifiProfiles
     readonly property string wifiConnecting: wifiSvc.wifiConnecting
     readonly property string wifiError: wifiSvc.wifiError
-    // Icon menubar: wifi-off / wifi-1 / wifi-2 / wifi
     readonly property string wifiGlyph: !wifiOn ? "wifi-off"
         : wifiName === "" ? "wifi-none"
         : wifiSignal >= 67 ? "wifi" : wifiSignal >= 34 ? "wifi-2" : "wifi-1"
@@ -698,10 +606,6 @@ Singleton {
             "(command -v alacritty >/dev/null && alacritty -e nmtui-connect) || true"]);
     }
 
-    // =====================================================================
-    //  Bluetooth (data, scan, pairing ada di BluetoothService)
-    //  Buka settings tetap di sini karena butuh termScript + closeCCQuiet().
-    // =====================================================================
     BluetoothService { id: btSvc; pairTimeoutSec: Settings.btPairTimeoutSec }
     readonly property bool btAvailable: btSvc.btAvailable
     readonly property bool btOn: btSvc.btOn
@@ -719,11 +623,6 @@ Singleton {
             "kcmshell6 kcm_bluetooth 2>/dev/null || blueman-manager 2>/dev/null || term_run bluetoothctl"]);
     }
 
-    // =====================================================================
-    //  Lock screen
-    // =====================================================================
-    // Lock native QML (features/lock/LockScreen.qml). lock/lock.sh (hyprlock) cuma cadangan
-    // dari hypridle kalau qs lagi mati.
     property bool locked: false
     signal lockRefocus()
     function lock() {
@@ -737,12 +636,6 @@ Singleton {
         locked = true;
     }
 
-    // =====================================================================
-    //  Screenshot: layar dibekukan dulu pakai grim (panel yang lagi
-    //  kebuka ikut kerekam), lalu area dipilih di RegionSelector, crop pakai magick.
-    //  Implementasinya ada di CaptureService; UI tetap pakai Sys.capturing /
-    //  Sys.captureTargets / Sys.captureMode / Sys.finishCapture(), dst.
-    // =====================================================================
     CaptureService {
         id: captureSvc
         runtimeDir: root.runtimeDir
@@ -755,13 +648,12 @@ Singleton {
     property alias captureFile: captureSvc.captureFile
     property alias captureTargets: captureSvc.captureTargets
 
-    // closeFirst = true kalau dipanggil dari tombol di launcher/CC (panelnya ditutup dulu)
     function screenshot(mode, closeFirst) {
         if (captureSvc.capturing || captureSvc.capturePending) return;
         captureSvc.captureMode = mode || "copy";
         if (closeFirst) {
             closeCCQuiet();
-            captureSvc.scheduleStart();   // tunggu panel benar-benar hilang dari layar
+            captureSvc.scheduleStart();
         } else {
             startCapture();
         }
@@ -775,7 +667,6 @@ Singleton {
     }
 
     function closeCCQuiet() { ccOpen = false; launcherOpen = false; commandPaletteOpen = false; wallpaperOpen = false; clipboardOpen = false; emojiOpen = false; powerOpen = false; trayMenuOpen = false; calendarOpen = false; mediaOpen = false; cheatOpen = false; }
-    // panel lain dibuka -> panel "kecil" (kalender, media, cheatsheet) ditutup
     onClipboardOpenChanged: if (clipboardOpen) { calendarOpen = false; mediaOpen = false; cheatOpen = false; }
     onWallpaperOpenChanged: if (wallpaperOpen) { calendarOpen = false; mediaOpen = false; cheatOpen = false; }
     function togglePower() {
@@ -785,7 +676,6 @@ Singleton {
         powerOpen = true;
     }
 
-    // power: dipakai Control Center, launcher, dll.
     function power(act) {
         closeCCQuiet();
         switch (act) {
@@ -797,11 +687,6 @@ Singleton {
         }
     }
 
-    // =====================================================================
-    //  Wallpaper (delegasi ke WallpaperService)
-    //  Wallpaper.qml menulis Sys.wallpaper langsung, jadi property harus writable
-    //  dan disinkronkan dua arah dengan service.
-    // =====================================================================
     property string wallpaper: wallpaperSvc.wallpaper
     property bool wallpaperMono: wallpaperSvc.wallpaperMono
     readonly property var wallpapers: wallpaperSvc.wallpapers
@@ -818,7 +703,6 @@ Singleton {
         if (wallpaperMono !== wallpaperSvc.wallpaperMono)
             wallpaperSvc.setWallpaperMono(wallpaperMono);
     }
-    // service -> Sys (saat load dari disk / random)
     Connections {
         target: wallpaperSvc
         function onWallpaperChanged() {
@@ -837,10 +721,8 @@ Singleton {
     function loadWallpapers() { wallpaperSvc.loadWallpapers(); }
     function randomWallpaper() { wallpaperSvc.randomWallpaper(); }
     function thumbFor(path) { return wallpaperSvc.thumbFor(path); }
-    // Penyimpanan state kecil (~/.local/state/macmono) ada di StateStore.
     function saveState(name, value) { stateStore.save(name, value); }
 
-    // =====================================================================
     function refresh() {
         brightnessSvc.refresh();
         wifiSvc.refresh();

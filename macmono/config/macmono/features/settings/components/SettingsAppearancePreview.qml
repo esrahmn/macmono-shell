@@ -1,8 +1,6 @@
 import QtQuick
 import "../../../core"
 
-// Pratinjau halaman Appearance: desktop mini dengan top bar dan satu panel.
-// Nilainya dari draft (belum di-Apply), jadi geser slider atau nyalakan saklar langsung kelihatan di sini.
 Item {
     id: root
     property real panelOpacity: 0.60
@@ -12,10 +10,8 @@ Item {
 
     height: Theme.settingsPreviewHeight
 
-    // Sama dengan Theme.bar: dibatasi 0.25 sampai 1.
     readonly property color fill: Qt.rgba(0, 0, 0, Math.max(0.25, Math.min(1, panelOpacity)))
 
-    // Rumus jam sama dengan MenuBar.qml
     readonly property string clockLabel: {
         const d = Sys.now;
         const pad = n => (n < 10 ? "0" : "") + n;
@@ -39,7 +35,6 @@ Item {
         cornerRadius: Theme.radius
     }
 
-    // Top bar mini
     Rectangle {
         id: bar
         anchors { top: parent.top; left: parent.left; right: parent.right; margins: Theme.space10 }
@@ -61,7 +56,6 @@ Item {
         }
     }
 
-    // Panel mini
     Rectangle {
         anchors { horizontalCenter: parent.horizontalCenter; top: bar.bottom; topMargin: Theme.space12 }
         width: Math.min(parent.width * 0.5, Theme.settingsPreviewPanelMax)

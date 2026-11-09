@@ -1,8 +1,6 @@
 import QtQuick
 import "../../../core"
 
-// Pratinjau Notifications: desktop mini dengan satu notifikasi di pojok kanan atas, seperti aslinya.
-// Kalau Do Not Disturb sedang nyala, notifikasinya meredup dan ada keterangan bahwa pop-up disembunyikan.
 Item {
     id: root
     property bool dnd: false

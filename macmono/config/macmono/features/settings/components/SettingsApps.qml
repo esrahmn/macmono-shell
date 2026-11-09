@@ -3,28 +3,17 @@ import Quickshell
 import "../../../core"
 import "../../../shared/components"
 
-// Halaman Apps & Startup: aplikasi yang dijalankan saat login (XDG autostart lewat dex).
-// Semua state berasal dari file .desktop di /etc/xdg/autostart dan ~/.config/autostart;
-// mengubahnya langsung menulis ke file yang sama (lihat shared/services/AutostartService.qml),
-// jadi berlaku pada login berikutnya — tidak perlu menyalin apa pun ke settings.json.
-//
-// Susunan halaman:
-//   STARTUP APPLICATIONS  + tombol "+ Add" (picker aplikasi terpasang, satu baris satu maksud)
-//   NOT USED ON HYPRLAND  diciutkan secara bawaan: entri khusus KDE/GNOME yang memang tidak jalan di sini,
-//                         jadi tidak perlu menandai tiap barisnya (dulu 8 dari 14 baris bertanda sama).
-// Baris memakai SettingsRow: nama entri + toggle. Perintah Exec tidak digambar (R5).
 Column {
     id: root
     readonly property var svc: Sys.autostart
-    spacing: 0   // jarak antar grup diatur komponen di bawah, bukan Column (kalau tidak, tiap baris ikut renggang)
+    spacing: 0
 
-    property bool adding: false       // picker "+ Add" terbuka
-    property bool showInert: false    // grup "Not used on Hyprland" terbuka
+    property bool adding: false
+    property bool showInert: false
 
     readonly property var liveEntries: svc.entries.filter(e => e.relevant !== false)
     readonly property var inertEntries: svc.entries.filter(e => e.relevant === false)
 
-    // Aplikasi terpasang yang belum ada di daftar, disaring oleh kolom cari. Dihitung hanya saat picker terbuka.
     readonly property var matches: {
         if (!adding) return [];
         const have = ({});
@@ -43,7 +32,6 @@ Column {
         return out.slice(0, Theme.settingsPickMax);
     }
 
-    // Entri lama punya akhiran "(disabled by macmono)" di Name; toggle sudah menunjukkan keadaannya.
     function label(n) { return String(n).replace(/\s*\(disabled by macmono\)\s*$/i, ""); }
     function add(entry) { svc.addApp(entry.id); adding = false; }
 
@@ -51,7 +39,6 @@ Column {
     onAddingChanged: if (adding) { field.text = ""; Qt.callLater(() => field.forceActiveFocus()); }
     Component.onCompleted: svc.refresh()
 
-    // Label KAPITAL renggang, sama dengan label grup di halaman lain.
     component CapsLabel: SettingsText {
         leftPadding: Theme.settingsRowPadX
         color: Theme.labelCapsText
@@ -60,7 +47,6 @@ Column {
         font.letterSpacing: Theme.labelCapsTracking
     }
 
-    // Keterangan kecil di bawah judul grup.
     component Note: SettingsText {
         width: root.width
         topPadding: Theme.space8
@@ -72,8 +58,6 @@ Column {
         font.pixelSize: Theme.fontBody
     }
 
-    // Satu entri autostart. "Reset" = hapus penimpaan user (kembali ke versi sistem);
-    // "Remove" = entri buatan sendiri (tidak punya versi sistem), filenya dihapus.
     component EntryRow: SettingsRow {
         id: entryRow
         required property var modelData
@@ -93,7 +77,6 @@ Column {
         }
     }
 
-    // ---- judul grup + tombol tambah ----
     Item {
         width: root.width
         height: Theme.settingsButtonHeight
@@ -109,7 +92,6 @@ Column {
         }
     }
 
-    // ---- picker: cari aplikasi terpasang, ketuk untuk menambah ----
     Column {
         visible: root.adding
         width: root.width
@@ -212,7 +194,6 @@ Column {
         delegate: EntryRow {}
     }
 
-    // ---- grup yang jarang dipakai: entri yang tidak jalan di Hyprland (ciut bawaan) ----
     Item {
         visible: root.inertEntries.length > 0
         width: root.width

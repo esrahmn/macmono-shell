@@ -7,23 +7,20 @@ import "../../core"
 import "../../shared/components"
 import "../overview"
 
-// Launcher macmono (desain "A · Spotlight"): satu panel kaca di bawah jam.
-//  - kolom search kosong -> app Pinned + overview workspace (drag window antar workspace)
-//  - mulai ngetik        -> hasil per kelompok (Top Hit, Windows, Apps, Actions) + panel preview di kanan
 Scope {
     id: root
 
     readonly property var actions: [
-        { id: "clipboard",  name: "Clipboard", sub: "Copy history", kw: "clipboard history paste riwayat salin", glyph: "clipboard" },
-        { id: "wallpaper",  name: "Change Wallpaper", sub: "Pick a wallpaper", kw: "wallpaper background image tema", glyph: "image" },
-        { id: "random",     name: "Random Wallpaper", sub: "Shuffle wallpaper", kw: "wallpaper random shuffle acak", glyph: "image" },
-        { id: "screenshot", name: "Screenshot", sub: "Capture the screen", kw: "screenshot snip capture tangkap layar", glyph: "camera" },
-        { id: "update",     name: "System Update", sub: "Update all packages in a terminal", kw: "update upgrade pacman cachyos hello perbarui sistem", glyph: "restart" },
-        { id: "lock",       name: "Lock Screen", sub: "Lock the session", kw: "lock kunci", glyph: "lock" },
-        { id: "sleep",      name: "Sleep", sub: "Suspend", kw: "sleep suspend tidur", glyph: "sleep" },
-        { id: "restart",    name: "Restart", sub: "Reboot the computer", kw: "restart reboot mulai ulang", glyph: "restart" },
-        { id: "shutdown",   name: "Shut Down", sub: "Power off", kw: "shutdown poweroff power off matikan", glyph: "power" },
-        { id: "logout",     name: "Log Out", sub: "End the session", kw: "logout log out sign out keluar", glyph: "logout" }
+        { id: "clipboard",  name: "Clipboard", sub: "Copy history", kw: "clipboard history paste copy", glyph: "clipboard" },
+        { id: "wallpaper",  name: "Change Wallpaper", sub: "Pick a wallpaper", kw: "wallpaper background image theme", glyph: "image" },
+        { id: "random",     name: "Random Wallpaper", sub: "Shuffle wallpaper", kw: "wallpaper random shuffle randomize", glyph: "image" },
+        { id: "screenshot", name: "Screenshot", sub: "Capture the screen", kw: "screenshot snip capture screen grab", glyph: "camera" },
+        { id: "update",     name: "System Update", sub: "Update all packages in a terminal", kw: "update upgrade pacman cachyos hello refresh system", glyph: "restart" },
+        { id: "lock",       name: "Lock Screen", sub: "Lock the session", kw: "lock session", glyph: "lock" },
+        { id: "sleep",      name: "Sleep", sub: "Suspend", kw: "sleep suspend", glyph: "sleep" },
+        { id: "restart",    name: "Restart", sub: "Reboot the computer", kw: "restart reboot", glyph: "restart" },
+        { id: "shutdown",   name: "Shut Down", sub: "Power off", kw: "shutdown poweroff power off", glyph: "power" },
+        { id: "logout",     name: "Log Out", sub: "End the session", kw: "logout log out sign out exit", glyph: "logout" }
     ]
 
     function runAction(id) {
@@ -47,7 +44,6 @@ Scope {
         Sys.launcherOpen = false;
     }
 
-    // Skor pencarian: makin tinggi makin atas
     function score(text, q) {
         if (!text) return 0;
         const t = String(text).toLowerCase();
@@ -68,7 +64,6 @@ Scope {
         const out = [];
         if (q === "") return out;
 
-        // kalkulator: cuma angka dan operator
         if (/^[0-9+\-*\/().%^\s]+$/.test(q) && /[0-9]/.test(q) && /[+\-*\/%^]/.test(q)) {
             try {
                 const v = eval(q.replace(/\^/g, "**"));
@@ -78,7 +73,6 @@ Scope {
         }
 
         const scored = [];
-        // window yang lagi kebuka
         for (const c of Sys.hyprClients) {
             if (!c.mapped || (c.workspace?.id ?? 0) <= 0) continue;
             const s = Math.max(score(c.title, q) * 0.9, score(c.class, q));
@@ -90,12 +84,10 @@ Scope {
                     icon: e?.icon || c.class.toLowerCase(), tag: "" } });
             }
         }
-        // aksi sistem
         for (const a of actions) {
             const s = Math.max(score(a.name, q), score(a.kw, q) * 0.7);
             if (s > 0) scored.push({ s: s + 4, item: { kind: "action", id: a.id, name: a.name, sub: a.sub, glyph: a.glyph, tag: "Action" } });
         }
-        // aplikasi
         for (const e of DesktopEntries.applications.values) {
             if (e.noDisplay) continue;
             let kw = "";
@@ -106,8 +98,6 @@ Scope {
         scored.sort((a, b) => (b.s - a.s) || a.item.name.localeCompare(b.item.name));
         const ranked = scored.slice(0, 40).map(r => r.item);
 
-        // Kelompokkan: Top Hit (hasil terbaik, atau hasil kalkulator) lalu Windows, Apps, Actions.
-        // Urutan di dalam kelompok tetap sesuai skor; ListView memakai field "group" sebagai judul bagian.
         const top = out.length > 0 ? out.shift() : ranked.shift();
         const grouped = [];
         if (top) grouped.push(Object.assign({}, top, { group: "Top Hit" }));
@@ -116,22 +106,19 @@ Scope {
         for (const k of ["calc", "window", "app", "action"])
             for (const it of out.concat(ranked)) {
                 if (it.kind !== k) continue;
-                if (k === "app" && ++appCount > Settings.launcherMaxResults) continue;  // batas cuma buat daftar app
+                if (k === "app" && ++appCount > Settings.launcherMaxResults) continue;
                 grouped.push(Object.assign({}, it, { group: names[k] }));
             }
         return grouped;
     }
 
-    // jalankan app (app terminal dibuka lewat Sys.runInTerminal, karena execute() Quickshell nggak membuka terminal)
     function launchEntry(e) {
         if (!e) return;
         if (e.runInTerminal) Sys.runInTerminal(e.command, false);
-        else Sys.spawn(e.command, e.workingDirectory);   // = DesktopEntry.execute(), lewat Sys.spawn
+        else Sys.spawn(e.command, e.workingDirectory);
         Sys.launcherOpen = false;
     }
 
-    // app Pinned (Settings.pinnedApps): id .desktop dulu, kalau nggak ada coba tebak dari nama
-    // Dihitung dari DesktopEntries.applications (bukan byId) supaya ikut diperbarui begitu daftar app selesai dimuat.
     readonly property var pinned: {
         const apps = DesktopEntries.applications.values;
         const out = [], seen = ({});
@@ -154,8 +141,6 @@ Scope {
             required property var modelData
             screen: modelData
 
-            // Buka & tutup: animasi di QML (shared/components/Reveal.qml), laci dari bawah bar seperti control center.
-            // Animasi layer Hyprland dimatiin (no_anim).
             readonly property bool shown: Sys.launcherOpen && Sys.launcherScreen === modelData.name
             Reveal { id: reveal; open: win.shown }
             readonly property real anim: reveal.progress
@@ -163,7 +148,6 @@ Scope {
 
             visible: present
             anchors { top: true; bottom: true; left: true; right: true }
-            // window mulai di tepi bawah bar: panel keluar dari balik bar (bagian di atasnya terpotong)
             margins { top: Theme.barMargin + Theme.barHeight }
             exclusionMode: ExclusionMode.Ignore
             color: Theme.transparent
@@ -196,7 +180,6 @@ Scope {
                     Sys.launcherOpen = false;
                 }
             }
-            // window terpilih -> pindahkan ke workspace yang sedang aktif (ikut fokus ke sana)
             function moveHere(addr) {
                 const ws = Hyprland.focusedMonitor?.activeWorkspace?.id ?? 1;
                 Sys.closeAndDispatch("hl.dsp.window.move({ workspace = " + ws + ", follow = true, window = \"address:" + addr + "\" })");
@@ -220,7 +203,6 @@ Scope {
 
             MouseArea { anchors.fill: parent; enabled: win.shown; onClicked: Sys.launcherOpen = false }
 
-            // ================= panel =================
             Rectangle {
                 id: panel
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -231,10 +213,9 @@ Scope {
                 color: Theme.panel
                 border.width: Theme.borderThin
                 border.color: Theme.line
-                // laci: panel keluar dari tepi bawah bar; isi di-fade lewat opacity di dalamnya
                 transform: Translate { y: -(panel.height + Theme.drawerGap) * (1 - win.anim) }
 
-                MouseArea { anchors.fill: parent; onClicked: input.forceActiveFocus() }   // klik di panel jangan nutup
+                MouseArea { anchors.fill: parent; onClicked: input.forceActiveFocus() }
 
                 Column {
                     id: col
@@ -243,7 +224,6 @@ Scope {
                     spacing: Theme.space16
                     opacity: win.anim
 
-                    // ---------- kolom search ----------
                     Rectangle {
                         width: col.width
                         height: Theme.launcherSearchHeight
@@ -299,7 +279,6 @@ Scope {
                         }
                     }
 
-                    // ---------- idle: Pinned + Workspaces ----------
                     Column {
                         visible: !win.searching
                         width: col.width
@@ -382,7 +361,6 @@ Scope {
                         }
                     }
 
-                    // ---------- mencari: hasil per kelompok + panel preview ----------
                     Row {
                         visible: win.searching
                         width: col.width
@@ -413,7 +391,6 @@ Scope {
                                 highlightMoveDuration: 0
                                 onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
 
-                                // judul kelompok (TOP HIT / WINDOWS / APPS / ACTIONS) ditaruh di atas baris pertama tiap kelompok
                                 delegate: Column {
                                     id: rowWrap
                                     required property var modelData
@@ -440,7 +417,7 @@ Scope {
                                     width: list.width
                                     height: isTop ? 68 : 56
                                     radius: Theme.radiusXs
-                                    color: Theme.transparent   // tanpa tint: penanda terpilih = SelBar saja
+                                    color: Theme.transparent
                                     readonly property color fg: Theme.text
                                     readonly property color fgDim: Theme.dim
 
@@ -527,7 +504,6 @@ Scope {
                             }
                         }
 
-                        // panel preview hasil terpilih
                         Rectangle {
                             id: preview
                             width: Theme.launcherPreviewWidth
@@ -541,7 +517,7 @@ Scope {
                                 anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space16 }
                                 spacing: Theme.space12
 
-                                Rectangle {   // gambar: preview live window / ikon app / ikon aksi
+                                Rectangle {
                                     width: parent.width
                                     height: Math.round(width * 10 / 16)
                                     radius: Theme.radiusXs
@@ -609,7 +585,6 @@ Scope {
                                     }
                                 }
 
-                                // tombol aksi sesuai jenis hasil
                                 Column {
                                     width: parent.width
                                     spacing: Theme.space6
@@ -671,8 +646,6 @@ Scope {
         }
     }
 
-    // Label bagian launcher memakai token label KAPITAL yang sama dengan panel Settings:
-    // 14 px tanpa tracking bikin "PINNED"/"WORKSPACES" terbaca sebagai judul, bukan penanda.
     component SectionLabel: Text {
         color: Theme.labelCapsText
         font.family: Theme.font; font.pixelSize: Theme.labelCapsSize; font.weight: Font.DemiBold

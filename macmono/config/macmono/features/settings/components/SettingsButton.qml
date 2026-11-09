@@ -1,7 +1,6 @@
 import QtQuick
 import "../../../core"
 
-// Tombol kecil untuk bagian Pengaturan buatan sendiri. `primary` = tombol utama (terbalik).
 Rectangle {
     id: btn
     property string label

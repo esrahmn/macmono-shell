@@ -3,7 +3,6 @@ import QtQuick.Layouts
 import "../../../core"
 import "../../../shared/components"
 
-// Kartu slider kecerahan + volume + daftar output di Control Center.
 Rectangle {
     id: root
     property string expanded: ""
@@ -12,7 +11,6 @@ Rectangle {
     Layout.fillWidth: true
     implicitHeight: sliderCol.implicitHeight + Theme.space22
     radius: Theme.radiusCard
-    // Kartu terangkat: latar lebih terang dari panel + garis tipis supaya batasnya jelas.
     color: Theme.tile
     border.width: Theme.borderThin; border.color: Theme.cardStroke
 

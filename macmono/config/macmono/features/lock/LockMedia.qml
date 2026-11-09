@@ -5,8 +5,6 @@ import QtQuick.Layouts
 import "../../core"
 import "../../shared/components"
 
-// Kartu media di lock screen. Data langsung dari Mpris (D-Bus) yang sudah
-// dipantau shell, jadi nggak ada playerctl/polling script sama sekali.
 Rectangle {
     id: root
 
@@ -42,7 +40,6 @@ Rectangle {
         }
     }
 
-    // Timer di atas berhenti saat pause, jadi posisi disegarkan sekali tiap kartu muncul.
     onVisibleChanged: {
         if (visible && player && Sys.locked)
             pos = clock.sample();

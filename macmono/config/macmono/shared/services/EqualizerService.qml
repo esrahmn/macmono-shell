@@ -2,22 +2,13 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Equalizer sistem lewat Easy Effects. Sengaja TIDAK memilih "Easy Effects Sink" sebagai output
-// default: README Easy Effects menyuruh hardware tetap jadi default; Easy Effects sendiri yang
-// menggeser stream aplikasi lewat sink virtualnya.
-//
-// Hanya bekerja saat dipanggil dari UI (Sys.eq.apply): tidak ada apply otomatis waktu shell start,
-// jadi preset Easy Effects milik user tidak tertimpa tiap login.
-// Preset ditulis ke ~/.config/easyeffects/output/macmono-eq.json oleh scripts/audio/apply-eq.sh.
 Scope {
     id: root
 
-    // 10 band satu oktaf. Q 1.5 + mode "APO (DR)" = bell RBJ biasa, sama dengan rumus grafik di
-    // SettingsEqualizer, jadi kurva yang terlihat mendekati yang benar-benar dipakai.
     readonly property var freqs: [32, 64, 125, 250, 500, 1000, 2000, 4000, 8000, 16000]
     readonly property real q: 1.5
 
-    property string status: ""    // hasil terakhir untuk UI
+    property string status: ""
     property bool ok: true
 
     function buildPreset(gains) {
@@ -29,7 +20,6 @@ Scope {
             bands["band" + i] = { "frequency": freqs[i], "gain": g, "mode": "APO (DR)", "mute": false,
                                   "q": q, "slope": "x1", "solo": false, "type": "Bell", "width": 4.0 };
         }
-        // Headroom: input diturunkan sebesar boost terbesar supaya tidak clipping.
         const eq = { "balance": 0.0, "bypass": false, "input-gain": -boost, "left": bands, "mode": "IIR",
                      "num-bands": freqs.length, "output-gain": 0.0, "pitch-left": 0.0, "pitch-right": 0.0,
                      "right": bands, "split-channels": false };
@@ -46,7 +36,6 @@ Scope {
         debounce.restart();
     }
 
-    // Tunggu user selesai menggeser / mengklik beberapa kali.
     Timer { id: debounce; interval: 450; onTriggered: root._run() }
 
     function _run() {

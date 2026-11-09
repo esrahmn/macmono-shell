@@ -27,8 +27,6 @@ Rectangle {
         Behavior on x { NumberAnimation { duration: Theme.animHover; easing.type: Theme.easeOut } }
     }
 
-    // Cincin fokus keyboard: sebelumnya kontrol bisa dijangkau Tab tapi tak ada tanda apa pun
-    // di layar, jadi navigasi keyboard terasa "buta".
     Rectangle {
         anchors.fill: parent
         anchors.margins: -Theme.space3

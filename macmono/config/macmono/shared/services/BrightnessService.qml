@@ -2,20 +2,15 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 
-// Brightness subsystem.
-// - Laptop backlight: brightnessctl
-// - External monitor: ddcutil (VCP 10)
-// UI hanya baca property / panggil setBrightness(); tidak spawn Process sendiri.
 Scope {
     id: root
 
-    // Jeda (ms) sebelum nilai dikirim saat slider digeser; diisi Sys dari Settings.brightness*DebounceMs
     property int debounceMs: 80
     property int ddcDebounceMs: 250
 
     property real brightness: 0.5
     property bool brightnessOk: false
-    property string brightnessBackend: ""   // "backlight" | "ddc"
+    property string brightnessBackend: ""
     property int ddcMax: 100
     property int brightnessRevision: 0
     property int refreshRevision: 0

@@ -4,20 +4,12 @@ import Quickshell.Wayland
 import Quickshell.Hyprland
 import "../../core"
 
-// Overview workspace:
-//  - klik workspace          -> pindah ke workspace itu
-//  - klik window             -> fokus ke window itu
-//  - drag window ke workspace lain -> window dipindah (nggak ikut pindah layar)
-//  - klik tengah window      -> tutup window
-// Fokus/pindah workspace dikirim lewat Sys.closeAndDispatch: launcher ditutup dulu,
-// baru dispatch. Kalau kebalik, Hyprland ngembaliin fokus ke window lama begitu
-// keyboard dilepas launcher, jadi workspace-nya "balik lagi".
 Rectangle {
     id: ov
 
-    required property var screenInfo   // ShellScreen dari PanelWindow
-    property bool live: false          // preview window cuma jalan selama launcher kebuka
-    signal activated(string cmd)   // Launcher: tutup dulu, baru jalankan cmd
+    required property var screenInfo
+    property bool live: false
+    signal activated(string cmd)
 
     readonly property HyprlandMonitor hmon: Hyprland.monitorFor(screenInfo)
     readonly property var mon: Sys.hyprMonitors.find(m => m.name === screenInfo.name) ?? null
@@ -28,7 +20,6 @@ Rectangle {
     readonly property real s: Settings.overviewScale
     readonly property int gap: 8
 
-    // ukuran 1 workspace = area kerja monitor (tanpa reserved/menubar) x skala
     readonly property var res: mon?.reserved ?? [0, 0, 0, 0]
     readonly property real monW: mon ? ((mon.transform % 2 === 1) ? mon.height : mon.width) / mon.scale : screenInfo.width
     readonly property real monH: mon ? ((mon.transform % 2 === 1) ? mon.width : mon.height) / mon.scale : screenInfo.height
@@ -42,7 +33,6 @@ Rectangle {
     property bool dragging: false
     property int dragTarget: -1
 
-    // window yang workspace-nya ada di grup ini, diindeks per address
     readonly property var clients: Sys.hyprClients.filter(c =>
         c.mapped && c.workspace && c.workspace.id >= firstWs && c.workspace.id < firstWs + perGroup)
     readonly property var byAddr: {
@@ -58,7 +48,7 @@ Rectangle {
     function wsAt(px, py) {
         const c = Math.floor(px / (wsW + gap)), r = Math.floor(py / (wsH + gap));
         if (c < 0 || c >= cols || r < 0 || r >= rows) return -1;
-        if (px - c * (wsW + gap) > wsW || py - r * (wsH + gap) > wsH) return -1;  // di celah
+        if (px - c * (wsW + gap) > wsW || py - r * (wsH + gap) > wsH) return -1;
         return firstWs + r * cols + c;
     }
     function dispatch(cmd) { Hyprland.dispatch(cmd); }
@@ -70,7 +60,7 @@ Rectangle {
     border.width: Theme.borderThin
     border.color: Theme.line
 
-    MouseArea { anchors.fill: parent }   // klik di sela-sela jangan nutup launcher
+    MouseArea { anchors.fill: parent }
 
     Item {
         id: grid
@@ -78,7 +68,6 @@ Rectangle {
         width: ov.cols * ov.wsW + (ov.cols - 1) * ov.gap
         height: ov.rows * ov.wsH + (ov.rows - 1) * ov.gap
 
-        // ---------------- workspace ----------------
         Repeater {
             model: ov.perGroup
             delegate: Rectangle {
@@ -116,10 +105,7 @@ Rectangle {
             }
         }
 
-        // ---------------- window ----------------
         Repeater {
-            // model cuma daftar address (string) biar delegate & preview-nya nggak dibikin ulang
-            // tiap data hyprctl di-refresh; data lengkapnya diambil dari ov.byAddr
             model: ScriptModel { values: ov.clients.map(c => c.address) }
 
             delegate: Item {
@@ -138,17 +124,15 @@ Rectangle {
                 property bool held: false
                 property bool moved: false
 
-                // ---- jaga preview tetap hidup ----
                 readonly property bool wantsPreview: ov.live && Settings.overviewLivePreview && toplevel !== null
                 property bool capReset: false
                 property int retries: 0
                 function restartCapture() {
                     if (capReset) return;
-                    capReset = true;                       // captureSource -> null (context lama dibuang)
-                    Qt.callLater(() => w.capReset = false); // lalu dipasang lagi -> context baru
+                    capReset = true;
+                    Qt.callLater(() => w.capReset = false);
                 }
                 onWantsPreviewChanged: retries = 0
-                // jaring pengaman: masih kosong padahal harusnya ada preview -> coba lagi (maks 6x per buka)
                 Timer {
                     interval: Settings.overviewPreviewRetryMs
                     repeat: true
@@ -167,14 +151,12 @@ Rectangle {
                 Behavior on y { enabled: !w.held; NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
                 Behavior on scale { NumberAnimation { duration: Theme.animHover } }
 
-                Rectangle { // latar kalau preview belum ada
+                Rectangle {
                     anchors.fill: parent
                     radius: Theme.radiusXs
                     color: Theme.raised
                 }
 
-                // Preview polos: ScreencopyView langsung, tanpa efek apa pun di atasnya
-                // (efek abu-abu / masker bikin gambarnya nggak ikut diperbarui).
                 ScreencopyView {
                     id: preview
                     anchors.fill: parent
@@ -183,7 +165,7 @@ Rectangle {
                     onHasContentChanged: if (!hasContent && w.wantsPreview) w.restartCapture()
                 }
 
-                Text { // tanpa ikon: kalau preview belum ada cuma judul window (redup)
+                Text {
                     visible: !preview.hasContent
                     anchors { fill: parent; margins: Theme.space8 }
                     horizontalAlignment: Text.AlignHCenter
@@ -197,7 +179,7 @@ Rectangle {
                     font.pixelSize: Theme.fontSmall
                 }
 
-                Rectangle { // bingkai + highlight hover
+                Rectangle {
                     anchors.fill: parent
                     radius: Theme.radiusXs
                     color: area.containsMouse ? Theme.tileMid : Theme.transparent
@@ -252,7 +234,6 @@ Rectangle {
             }
         }
 
-        // penanda workspace aktif
         Rectangle {
             readonly property var p: ov.cellPos(ov.activeWs)
             visible: ov.activeWs >= ov.firstWs && ov.activeWs < ov.firstWs + ov.perGroup
