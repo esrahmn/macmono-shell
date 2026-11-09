@@ -1,14 +1,3 @@
-# Maintainer: esrahmn <korekikorekapi@gmail.com>
-#
-# Bangun & pasang dari repo ini:
-#   cd packaging/arch && makepkg -si
-# Dari AUR (kalau sudah dipublish): yay -S macmono-git
-#
-# Shell dipasang ke /etc/xdg/quickshell/macmono, jadi `qs -c macmono` jalan
-# tanpa menyentuh $HOME. Kalau ada ~/.config/quickshell/macmono, itu yang dipakai
-# (bisa dipakai untuk override). Config Hyprland TIDAK ikut dipasang oleh paket
-# ini; pakai ./install.sh atau salin macmono/config/hypr ke ~/.config/hypr.
-
 _gituser=esrahmn
 _gitrepo=macmono-shell
 _qsdir=macmono/config/macmono
@@ -19,7 +8,7 @@ pkgrel=1
 pkgdesc='Monochrome macOS-style desktop shell for Hyprland, built with Quickshell / Qt 6'
 arch=('any')
 url="https://github.com/${_gituser}/${_gitrepo}"
-license=('GPL-3.0-only')   # LICENSE di repo = GPL v3; ganti ke -or-later kalau memang itu maksudmu
+license=('GPL-3.0-only')  
 makedepends=('git' 'python')
 depends=(
   'quickshell>=0.3.2'
