@@ -1,0 +1,6 @@
+# artefak makepkg
+src/
+pkg/
+macmono-shell/
+*.pkg.tar.*
+*.log

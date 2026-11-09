@@ -108,6 +108,21 @@ You can also run it without cloning first (it clones the repo into `~/.local/sha
 bash <(curl -fsSL https://raw.githubusercontent.com/esrahmn/macmono-shell/main/install.sh)
 ```
 
+### Arch package (`macmono-git`)
+
+Prefer a real pacman package? Build it straight from this repo:
+
+```bash
+git clone https://github.com/esrahmn/macmono-shell.git
+cd macmono-shell/packaging/arch
+makepkg -si
+```
+
+The shell is installed to `/etc/xdg/quickshell/macmono`, so `qs -c macmono` works
+without touching your home directory. A copy in `~/.config/quickshell/macmono`
+takes priority if you want to override it. The package only ships the shell:
+get the Hyprland config from `macmono/config/hypr` (or run `./install.sh`).
+
 ### Manual install
 
 Prefer to do it by hand? **Back up your existing config first.**

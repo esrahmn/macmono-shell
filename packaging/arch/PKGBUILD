@@ -1,0 +1,87 @@
+# Maintainer: esrahmn <korekikorekapi@gmail.com>
+#
+# Bangun & pasang dari repo ini:
+#   cd packaging/arch && makepkg -si
+# Dari AUR (kalau sudah dipublish): yay -S macmono-git
+#
+# Shell dipasang ke /etc/xdg/quickshell/macmono, jadi `qs -c macmono` jalan
+# tanpa menyentuh $HOME. Kalau ada ~/.config/quickshell/macmono, itu yang dipakai
+# (bisa dipakai untuk override). Config Hyprland TIDAK ikut dipasang oleh paket
+# ini; pakai ./install.sh atau salin macmono/config/hypr ke ~/.config/hypr.
+
+_gituser=esrahmn
+_gitrepo=macmono-shell
+_qsdir=macmono/config/macmono
+
+pkgname=macmono-git
+pkgver=r0.0000000
+pkgrel=1
+pkgdesc='Monochrome macOS-style desktop shell for Hyprland, built with Quickshell / Qt 6'
+arch=('any')
+url="https://github.com/${_gituser}/${_gitrepo}"
+license=('GPL-3.0-only')   # LICENSE di repo = GPL v3; ganti ke -or-later kalau memang itu maksudmu
+makedepends=('git' 'python')
+depends=(
+  'quickshell>=0.3.2'
+  'hyprland'
+  'hyprlock'
+  'hypridle'
+  'pipewire'
+  'networkmanager'
+  'bluez'
+  'bluez-utils'
+  'upower'
+  'brightnessctl'
+  'libnotify'
+  'jq'
+  'cava'
+  'playerctl'
+  'bc'
+)
+optdepends=(
+  'grim: screenshot'
+  'slurp: pilih area screenshot / recording'
+  'imagemagick: thumbnail wallpaper dan wallpaper lock screen'
+  'wl-clipboard: copy ke clipboard'
+  'cliphist: clipboard manager'
+  'wf-recorder: screen recording'
+  'hyprsunset: night light'
+  'tesseract: OCR dari region selector'
+  'geoclue: lokasi untuk cuaca'
+  'hyprpolkitagent: polkit agent (salah satu: polkit-kde-agent / polkit-gnome)'
+  'systemsettings: aplikasi settings (Super+I), atau gnome-control-center / better-control'
+  'python: dipakai xdg_autostart.sh di config Hyprland'
+)
+provides=("${pkgname%-git}")
+conflicts=("${pkgname%-git}")
+install="${pkgname}.install"
+source=("${_gitrepo}::git+${url}.git")
+sha256sums=('SKIP')
+
+pkgver() {
+  cd "${srcdir}/${_gitrepo}"
+  printf 'r%s.%s' "$(git rev-list --count HEAD)" "$(git rev-parse --short=7 HEAD)"
+}
+
+check() {
+  cd "${srcdir}/${_gitrepo}/${_qsdir}"
+  python3 -I scripts/development/check-settings-defaults.py
+}
+
+package() {
+  cd "${srcdir}/${_gitrepo}"
+  local dest="${pkgdir}/etc/xdg/quickshell/macmono"
+
+  install -dm755 "${pkgdir}/etc/xdg/quickshell"
+  cp -a "${_qsdir}" "${dest}"
+
+  # tidak dibutuhkan saat runtime
+  rm -rf "${dest}/docs" "${dest}/scripts/development" "${dest}/README.md"
+
+  find "${dest}" -type d -exec chmod 755 {} +
+  find "${dest}" -type f -name '*.sh' -exec chmod 755 {} +
+  find "${dest}" -type f ! -name '*.sh' -exec chmod 644 {} +
+
+  install -Dm644 LICENSE "${pkgdir}/usr/share/licenses/${pkgname}/LICENSE"
+  install -Dm644 README.md "${pkgdir}/usr/share/doc/${pkgname}/README.md"
+}

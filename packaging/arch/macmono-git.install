@@ -1,0 +1,10 @@
+post_install() {
+  echo ":: macmono dipasang di /etc/xdg/quickshell/macmono"
+  echo ":: config Hyprland tidak ikut dipasang. Ambil dari repo:"
+  echo "::   https://github.com/esrahmn/macmono-shell  (./install.sh atau salin macmono/config/hypr)"
+  echo ":: jalankan shell: qs -c macmono"
+}
+
+post_upgrade() {
+  echo ":: macmono diperbarui. Reload shell: killall qs; qs -c macmono &"
+}
