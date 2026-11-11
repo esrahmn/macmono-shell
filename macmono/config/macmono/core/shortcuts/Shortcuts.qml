@@ -23,12 +23,13 @@ Scope {
         const pressedAt = superPressedAt;
         superPressedAt = 0;
         if (!superMightTrigger) { superMightTrigger = true; return; }
+        if (Sys.overviewOpen) return;
         if (pressedAt > 0) {
             if (Date.now() - pressedAt > Settings.superTapMaxMs) return;
             if ((Hyprland.focusedWorkspace?.id ?? null) !== wsAtPress) return;
             if (ToplevelManager.activeToplevel !== winAtPress) return;
         }
-        Sys.toggleLauncher();
+        Sys.toggleLauncherMenu();
     }
 
     GlobalShortcut {
@@ -47,8 +48,7 @@ Scope {
         description: "macmono: cancel launcher toggle (Super is part of a combo)"
         onPressed: root.superMightTrigger = false
     }
-    GlobalShortcut { name: "searchToggle"; description: "macmono: toggle launcher"; onPressed: Sys.toggleLauncher() }
-    GlobalShortcut { name: "commandPaletteToggle"; description: "macmono: command palette"; onPressed: Sys.toggleCommandPalette() }
+    GlobalShortcut { name: "searchToggle"; description: "macmono: toggle launcher"; onPressed: Sys.toggleLauncherMenu() }
 
     GlobalShortcut { name: "lock"; description: "macmono: lock screen"; onPressed: Sys.lock() }
     GlobalShortcut { name: "lockFocus"; description: "macmono: refocus lock after resume"; onPressed: Sys.lockRefocus() }
@@ -81,8 +81,8 @@ Scope {
     }
     GlobalShortcut {
         name: "overviewWorkspacesToggle"
-        description: "macmono: open launcher (Launchpad style)"
-        onPressed: Sys.toggleLauncher()
+        description: "macmono: window overview"
+        onPressed: Sys.toggleOverview()
     }
     GlobalShortcut {
         name: "sessionToggle"

@@ -17,23 +17,23 @@ Rectangle {
         return out;
     }
 
-    height: alBody.height + Theme.settingsRowPadY * 2
+    height: alBody.height + SettingsMetrics.settingsRowPadY * 2
     radius: Theme.radiusCard
     color: Theme.tile
     border.width: Theme.borderThin
-    border.color: Theme.cardStroke
+    border.color: Theme.line
 
     Item {
         id: alBody
-        x: Theme.settingsRowPadX
-        y: Theme.settingsRowPadY
-        width: root.width - Theme.settingsRowPadX * 2
-        height: Theme.settingsBatBar + Theme.space8 + Theme.fontBody + Theme.space8 + Theme.fontCaption
+        x: SettingsMetrics.settingsRowPadX
+        y: SettingsMetrics.settingsRowPadY
+        width: root.width - SettingsMetrics.settingsRowPadX * 2
+        height: SettingsMetrics.settingsBatBar + Theme.space8 + Theme.fontSm + Theme.space8 + Theme.fontXs
 
         Rectangle {
             id: bar
             width: parent.width
-            height: Theme.settingsBatBar
+            height: SettingsMetrics.settingsBatBar
             radius: height / 2
             color: Theme.tileHover
             Rectangle {
@@ -49,20 +49,20 @@ Rectangle {
                 id: tick
                 required property int modelData
                 readonly property real cx: bar.width * modelData / 100
-                Rectangle { x: tick.cx - width / 2; y: -Theme.space3; width: Theme.borderStrong; height: bar.height + Theme.space3 * 2; color: Theme.dim }
+                Rectangle { x: tick.cx - width / 2; y: -Theme.space2; width: Theme.borderStrong; height: bar.height + Theme.space2 * 2; color: Theme.dim }
                 SettingsText {
                     x: Math.max(0, Math.min(alBody.width - width, tick.cx - width / 2))
                     y: bar.height + Theme.space8
                     text: tick.modelData + "%"
-                    font.pixelSize: Theme.fontBody
+                    font.pixelSize: Theme.fontSm
                 }
             }
         }
         SettingsText {
-            y: bar.height + Theme.space8 + Theme.fontBody + Theme.space8
+            y: bar.height + Theme.space8 + Theme.fontSm + Theme.space8
             text: "Solid area = urgent warnings (" + root.criticalLevel + "% and below). Lines = alert levels."
-            color: Theme.settingsDescText
-            font.pixelSize: Theme.fontCaption
+            color: SettingsMetrics.settingsDescText
+            font.pixelSize: Theme.fontXs
         }
     }
 }

@@ -5,7 +5,9 @@ import "../../../shared/components"
 
 Column {
     id: root
-    spacing: Theme.settingsGroupSpacing
+
+    readonly property int settingsSegHeight: 38
+    spacing: SettingsMetrics.settingsGroupSpacing
 
     readonly property var profiles: {
         const list = [
@@ -34,11 +36,11 @@ Column {
     }
 
     component Caption: SettingsText {
-        color: Theme.labelCapsText
-        font.pixelSize: Theme.labelCapsSize
-        font.weight: Font.DemiBold
-        font.letterSpacing: Theme.labelCapsTracking
-        leftPadding: Theme.settingsRowPadX
+        color: Theme.dim
+        font.pixelSize: Theme.fontXs
+        font.weight: Theme.weightSemibold
+        font.letterSpacing: Theme.trackCaps
+        leftPadding: SettingsMetrics.settingsRowPadX
     }
 
     Column {
@@ -49,17 +51,17 @@ Column {
 
         Rectangle {
             width: parent.width
-            height: batBody.height + Theme.settingsRowPadY * 2
+            height: batBody.height + SettingsMetrics.settingsRowPadY * 2
             radius: Theme.radiusCard
             color: Theme.tile
             border.width: Theme.borderThin
-            border.color: Theme.cardStroke
+            border.color: Theme.line
 
             Column {
                 id: batBody
-                x: Theme.settingsRowPadX
-                y: Theme.settingsRowPadY
-                width: parent.width - Theme.settingsRowPadX * 2
+                x: SettingsMetrics.settingsRowPadX
+                y: SettingsMetrics.settingsRowPadY
+                width: parent.width - SettingsMetrics.settingsRowPadX * 2
                 spacing: Theme.space12
 
                 Item {
@@ -68,27 +70,27 @@ Column {
                     SettingsText {
                         id: pctText
                         text: root.pct + "%"
-                        font.pixelSize: Theme.fontHero
-                        font.weight: Font.DemiBold
-                        font.letterSpacing: Theme.settingsRowTracking
+                        font.pixelSize: Theme.font2xl
+                        font.weight: Theme.weightSemibold
+                        font.letterSpacing: Theme.trackSnug
                     }
                     Column {
                         anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                         spacing: Theme.space2
-                        SettingsText { anchors.right: parent.right; text: root.status; font.weight: Font.DemiBold }
+                        SettingsText { anchors.right: parent.right; text: root.status; font.weight: Theme.weightSemibold }
                         SettingsText {
                             anchors.right: parent.right
                             visible: root.timeText !== ""
                             text: root.timeText
-                            color: Theme.settingsDescText
-                            font.pixelSize: Theme.fontBody
+                            color: SettingsMetrics.settingsDescText
+                            font.pixelSize: Theme.fontSm
                         }
                     }
                 }
 
                 Rectangle {
                     width: parent.width
-                    height: Theme.settingsBatBar
+                    height: SettingsMetrics.settingsBatBar
                     radius: height / 2
                     color: Theme.tileHover
                     Rectangle {
@@ -96,7 +98,7 @@ Column {
                         width: parent.width * Math.max(0, Math.min(1, Sys.batPercent))
                         radius: height / 2
                         color: Theme.text
-                        Behavior on width { NumberAnimation { duration: Theme.animHover; easing.type: Theme.easeOut } }
+                        Behavior on width { Tween { duration: Theme.durFast } }
                     }
                 }
             }
@@ -110,27 +112,27 @@ Column {
 
         Rectangle {
             width: parent.width
-            height: profBody.height + Theme.settingsRowPadY * 2
+            height: profBody.height + SettingsMetrics.settingsRowPadY * 2
             radius: Theme.radiusCard
             color: Theme.tile
             border.width: Theme.borderThin
-            border.color: Theme.cardStroke
+            border.color: Theme.line
 
             Column {
                 id: profBody
-                x: Theme.settingsRowPadX
-                y: Theme.settingsRowPadY
-                width: parent.width - Theme.settingsRowPadX * 2
-                spacing: Theme.space10
+                x: SettingsMetrics.settingsRowPadX
+                y: SettingsMetrics.settingsRowPadY
+                width: parent.width - SettingsMetrics.settingsRowPadX * 2
+                spacing: Theme.space12
 
                 Rectangle {
                     width: parent.width
-                    height: Theme.settingsSegHeight
+                    height: root.settingsSegHeight
                     radius: Theme.radiusCard
-                    color: Theme.tileFaint
+                    color: Theme.tile
 
                     Row {
-                        anchors { fill: parent; margins: Theme.space3 }
+                        anchors { fill: parent; margins: Theme.space2 }
                         Repeater {
                             model: root.profiles
                             delegate: Rectangle {
@@ -139,16 +141,16 @@ Column {
                                 readonly property bool on: Sys.profile === modelData.p
                                 width: parent.width / root.profiles.length
                                 height: parent.height
-                                radius: Theme.radiusXs
-                                color: on ? Theme.text : (segArea.containsMouse ? Theme.tileMid : Theme.transparent)
-                                Behavior on color { ColorAnimation { duration: Theme.animHover } }
+                                radius: Theme.radiusControl
+                                color: on ? Theme.text : (segArea.containsMouse ? Theme.tile : Theme.transparent)
+                                Behavior on color { TweenColor { duration: Theme.durFast } }
 
                                 SettingsText {
                                     anchors.centerIn: parent
                                     text: seg.modelData.label
                                     color: seg.on ? Theme.panel : Theme.text
-                                    font.pixelSize: Theme.fontBody
-                                    font.weight: Font.DemiBold
+                                    font.pixelSize: Theme.fontSm
+                                    font.weight: Theme.weightSemibold
                                 }
                                 MouseArea {
                                     id: segArea
@@ -165,8 +167,8 @@ Column {
                 SettingsText {
                     width: parent.width
                     text: root.current.info
-                    color: Theme.settingsDescText
-                    font.pixelSize: Theme.fontBody
+                    color: SettingsMetrics.settingsDescText
+                    font.pixelSize: Theme.fontSm
                     wrapMode: Text.Wrap
                 }
             }

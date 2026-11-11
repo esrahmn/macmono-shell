@@ -10,6 +10,16 @@ import "../../core"
 import "../../shared/components"
 
 Scope {
+    id: root
+    readonly property int recStopRadius: 2   // record dot becomes a small square on hover
+
+    readonly property int menubarCellHeight: 16
+    readonly property int menubarTrayItem: 23
+    readonly property int menubarRecHeight: 22
+    readonly property int menubarTitleMaxWidth: 300
+    readonly property int wsDotWide: 20
+    readonly property int wsDotNarrow: 7
+    readonly property int wsDotCompact: 8
     Variants {
         model: Quickshell.screens
 
@@ -59,33 +69,50 @@ Scope {
             Rectangle {
                 anchors.fill: parent
                 radius: Theme.barHeight / 2
-                color: Theme.bar
+                color: Theme.panel
 
                 Row {
                     anchors { left: parent.left; leftMargin: Theme.space16; verticalCenter: parent.verticalCenter }
-                    spacing: Theme.space14
+                    spacing: Theme.space16
 
-                    Glyph {
+                    Item {
+                        id: launcherButton
                         anchors.verticalCenter: parent.verticalCenter
-                        width: Theme.icon20; height: Theme.icon20
-                        name: "enso"
-                        color: Theme.text
-                        opacity: launcherArea.containsMouse ? Theme.opacityHover : 1
-                        Behavior on opacity { NumberAnimation { duration: Theme.animHover } }
+                        width: Theme.iconLg
+                        height: Theme.iconLg
+
+                        readonly property bool menuOpen: Sys.launcherMenuOpen && Sys.launcherMenuScreen === bar.screen.name
+
+                        Rectangle {
+                            anchors.fill: parent
+                            anchors.margins: -Theme.space8
+                            radius: Theme.radiusControl
+                            color: Theme.tile
+                            visible: launcherButton.menuOpen
+                        }
+
+                        Glyph {
+                            anchors.fill: parent
+                            name: "enso"
+                            color: Theme.text
+                            opacity: launcherArea.containsMouse ? Theme.opacityHover : 1
+                            Behavior on opacity { Tween { duration: Theme.durFast } }
+                        }
+
                         MouseArea {
                             id: launcherArea
                             anchors.fill: parent
-                            anchors.margins: -6
+                            anchors.margins: -Theme.space8
                             hoverEnabled: true
                             cursorShape: Qt.PointingHandCursor
-                            onClicked: Sys.toggleLauncher()
+                            onClicked: Sys.toggleLauncherMenu(bar.screen.name)
                         }
                     }
 
                     Item {
                         id: ws
                         anchors.verticalCenter: parent.verticalCenter
-                        height: Theme.menubarCellHeight
+                        height: root.menubarCellHeight
                         width: wsRow.width
                         readonly property bool open: wsArea.containsMouse
                         readonly property int count: Math.min(Settings.menubarWorkspaceMax, Math.max(Settings.menubarWorkspaceMin, Hyprland.focusedWorkspace?.id ?? 0,
@@ -94,7 +121,7 @@ Scope {
                         MouseArea {
                             id: wsArea
                             anchors.fill: wsRow
-                            anchors.margins: -6
+                            anchors.margins: -Theme.space8
                             hoverEnabled: true
                             onWheel: (e) => {
                                 Hyprland.dispatch("hl.dsp.focus({workspace = \"r" + (e.angleDelta.y > 0 ? "-1" : "+1") + "\"})");
@@ -104,7 +131,7 @@ Scope {
                         Row {
                             id: wsRow
                             anchors.verticalCenter: parent.verticalCenter
-                            spacing: Theme.space0
+                            spacing: 0
 
                             Repeater {
                                 model: ws.count
@@ -114,27 +141,27 @@ Scope {
                                     readonly property int num: index + 1
                                     readonly property bool active: Hyprland.focusedWorkspace?.id === num
                                     readonly property bool occupied: Hyprland.workspaces.values.some(w => w.id === num)
-                                    readonly property real dotW: ws.open ? (active ? Theme.wsDotWide : Theme.wsDotNarrow) : (active ? Theme.wsDotCompact : 0)
+                                    readonly property real dotW: ws.open ? (active ? root.wsDotWide : root.wsDotNarrow) : (active ? root.wsDotCompact : 0)
                                     readonly property real gap: ws.open ? Theme.space8 : 0
 
-                                    height: Theme.menubarCellHeight
+                                    height: root.menubarCellHeight
                                     width: dotW + (index < ws.count - 1 ? gap : 0)
                                     clip: false
-                                    Behavior on width { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
+                                    Behavior on width { Tween {} }
 
                                     Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
                                         width: cell.dotW
                                         height: cell.dotW > 0 ? (cell.active && ws.open ? 7 : (cell.active ? 8 : 7)) : 0
                                         radius: height / 2
-                                        color: cell.active ? Theme.text : (cell.occupied ? Theme.dim : Theme.faint)
+                                        color: cell.active ? Theme.accent : (cell.occupied ? Theme.dim : Theme.faint)
                                         opacity: cell.dotW > 1 ? 1 : 0
-                                        Behavior on width { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
-                                        Behavior on color { ColorAnimation { duration: Theme.animBase } }
+                                        Behavior on width { Tween {} }
+                                        Behavior on color { TweenColor {} }
                                     }
                                     MouseArea {
                                         anchors.fill: parent
-                                        anchors.margins: -2
+                                        anchors.margins: -Theme.space2
                                         enabled: ws.open
                                         onClicked: Hyprland.dispatch("hl.dsp.focus({workspace = " + cell.num + "})")
                                     }
@@ -145,13 +172,13 @@ Scope {
 
                     Text {
                         anchors.verticalCenter: parent.verticalCenter
-                        width: Math.min(implicitWidth, Theme.menubarTitleMaxWidth)
+                        width: Math.min(implicitWidth, root.menubarTitleMaxWidth)
                         elide: Text.ElideRight
                         text: bar.appName
                         color: Theme.text
                         font.family: Theme.font
-                        font.pixelSize: Theme.fontSubtitle
-                        font.weight: Font.DemiBold
+                        font.pixelSize: Theme.fontMd
+                        font.weight: Theme.weightSemibold
                     }
                 }
 
@@ -167,8 +194,8 @@ Scope {
                         text: bar.clockLabel
                         color: Theme.text
                         font.family: Theme.font
-                        font.pixelSize: Theme.fontHeadingLg
-                        font.weight: Font.DemiBold
+                        font.pixelSize: Theme.fontLg
+                        font.weight: Theme.weightSemibold
                     }
                     Rectangle {
                         visible: Sys.notifUnread > 0
@@ -181,7 +208,7 @@ Scope {
                 Row {
                     id: rightContent
                     anchors { right: parent.right; rightMargin: Theme.space16; verticalCenter: parent.verticalCenter }
-                    spacing: Theme.space14
+                    spacing: Theme.space16
 
                     MouseArea {
                         id: miniMediaArea
@@ -192,8 +219,8 @@ Scope {
                         height: bar.height - 4
                         hoverEnabled: true
                         cursorShape: Qt.PointingHandCursor
-                        onClicked: Sys.toggleMedia(bar.screen.name,
-                                                   Theme.barMargin + Theme.space16 + rightContent.width - x - width)
+                        // Anchor comes from mediaBarRightMargin below, so this and Super+M land in the same spot.
+                        onClicked: Sys.toggleMedia(bar.screen.name)
 
                         CavaWave {
                             id: miniMediaVisualizer
@@ -202,14 +229,23 @@ Scope {
                             visible: opacity > 0
                             levels: Sys.mediaVisualizerLevels
                             fillOpacity: 0.10
-                            cornerRadius: height / 2
+                            // Flat strip: a pill radius (height / 2) clipped the wave's peaks at the ends.
+                            cornerRadius: 0
                         }
+                    }
+
+                    // Publishes the popup anchor: the card is as wide as this strip, so its left edge lands on
+                    // the visualizer's left edge. Shared with the Super+M shortcut through Sys.toggleMedia().
+                    Binding {
+                        target: Sys
+                        property: "mediaBarRightMargin"
+                        value: Theme.barMargin + Theme.space16 + rightContent.width - miniMediaArea.width
                     }
 
                     Row {
                         id: trayRow
                         anchors.verticalCenter: parent.verticalCenter
-                        spacing: Theme.space14
+                        spacing: Theme.space12
                         layer.enabled: trayRow.width > 0
                         layer.effect: MultiEffect { saturation: -1.0 }
                         Repeater {
@@ -218,7 +254,7 @@ Scope {
                                 id: trayItem
                                 required property var modelData
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: Theme.menubarTrayItem; height: Theme.menubarTrayItem
+                                width: root.menubarTrayItem; height: root.menubarTrayItem
                                 acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
                                 onClicked: (e) => {
                                     if (e.button === Qt.MiddleButton) { modelData.secondaryActivate(); return; }
@@ -246,32 +282,32 @@ Scope {
                         Row {
                             id: statusRow
                             anchors.verticalCenter: parent.verticalCenter
-                            spacing: Theme.space14
+                            spacing: Theme.space12
 
                             Rectangle {
                                 visible: Sys.recActive
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: recRow.implicitWidth + 18; height: Theme.menubarRecHeight; radius: Math.min(width, height) / 2
-                                color: recArea.containsMouse ? Theme.inverseHover : Theme.inverse
+                                width: recRow.implicitWidth + 18; height: root.menubarRecHeight; radius: Math.min(width, height) / 2
+                                color: recArea.containsMouse ? Theme.accentHover : Theme.accent
                                 Row {
                                     id: recRow
                                     anchors.centerIn: parent
-                                    spacing: Theme.space6
+                                    spacing: Theme.space8
                                     Rectangle {
                                         anchors.verticalCenter: parent.verticalCenter
-                                        width: Settings.menuBarRecordDotSize; height: Settings.menuBarRecordDotSize; radius: recArea.containsMouse ? Theme.radiusIndicator : Math.min(width, height) / 2
-                                        color: Theme.inverseText
+                                        width: Settings.menuBarRecordDotSize; height: Settings.menuBarRecordDotSize; radius: recArea.containsMouse ? root.recStopRadius : Math.min(width, height) / 2
+                                        color: Theme.textOnAccent
                                         SequentialAnimation on opacity {
                                             running: Sys.recActive && !recArea.containsMouse; loops: Animation.Infinite
-                                            NumberAnimation { to: 0.3; duration: Theme.animPulse }
-                                            NumberAnimation { to: 1; duration: Theme.animPulse }
+                                            NumberAnimation { to: 0.3; duration: Theme.durPulse; easing.type: Theme.easeInOut }
+                                            NumberAnimation { to: 1; duration: Theme.durPulse; easing.type: Theme.easeInOut }
                                         }
                                     }
                                     Text {
                                         anchors.verticalCenter: parent.verticalCenter
                                         text: recArea.containsMouse ? "Stop" : Sys.recLabel
-                                        color: Theme.inverseText
-                                        font.family: Theme.font; font.pixelSize: Theme.fontBody; font.weight: Font.DemiBold
+                                        color: Theme.textOnAccent
+                                        font.family: Theme.font; font.pixelSize: Theme.fontSm; font.weight: Theme.weightSemibold
                                         font.features: ({ "tnum": 1 })
                                     }
                                 }
@@ -294,49 +330,49 @@ Scope {
                                     color: Theme.text
                                     SequentialAnimation on opacity {
                                         running: Sys.recording; loops: Animation.Infinite
-                                        NumberAnimation { to: 0.25; duration: Theme.animPulse }
-                                        NumberAnimation { to: 1; duration: Theme.animPulse }
+                                        NumberAnimation { to: 0.25; duration: Theme.durPulse; easing.type: Theme.easeInOut }
+                                        NumberAnimation { to: 1; duration: Theme.durPulse; easing.type: Theme.easeInOut }
                                     }
                                 }
                                 Row {
                                     visible: Sys.micInUse || Sys.camInUse
                                     anchors.verticalCenter: parent.verticalCenter
                                     spacing: Theme.space4
-                                    Glyph { visible: Sys.camInUse; width: Theme.icon18; height: Theme.icon18; name: "camera"; color: Theme.text }
-                                    Glyph { visible: Sys.micInUse; width: Theme.icon18; height: Theme.icon18; name: "mic-fill"; color: Theme.text }
+                                    Glyph { visible: Sys.camInUse; width: Theme.iconLg; height: Theme.iconLg; name: "camera"; color: Theme.text }
+                                    Glyph { visible: Sys.micInUse; width: Theme.iconLg; height: Theme.iconLg; name: "mic-fill"; color: Theme.text }
                                 }
                             }
 
                             Glyph {
                                 visible: Sys.micMuted
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: Theme.icon18; height: Theme.icon18
+                                width: Theme.iconLg; height: Theme.iconLg
                                 name: "mic-off"
                                 color: Theme.text
                             }
                             Glyph {
                                 visible: Sys.dnd
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: Theme.icon18; height: Theme.icon18
+                                width: Theme.iconLg; height: Theme.iconLg
                                 name: "moon"
                                 color: Theme.text
                             }
                             Glyph {
                                 visible: Sys.keepAwake
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: Theme.icon18; height: Theme.icon18
+                                width: Theme.iconLg; height: Theme.iconLg
                                 name: "coffee"
                                 color: Theme.text
                             }
                             Glyph {
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: Theme.icon18; height: Theme.icon18
+                                width: Theme.iconLg; height: Theme.iconLg
                                 name: Sys.wifiGlyph
                                 color: Sys.wifiOn ? Theme.text : Theme.dim
                             }
                             Glyph {
                                 anchors.verticalCenter: parent.verticalCenter
-                                width: Theme.icon18; height: Theme.icon18
+                                width: Theme.iconLg; height: Theme.iconLg
                                 name: Sys.muted ? "mute" : Sys.volume <= 0.005 ? "volume-zero" : Sys.volume < 0.5 ? "volume-low" : "volume"
                                 color: Theme.text
                             }
@@ -344,20 +380,20 @@ Scope {
                             Row {
                                 visible: Sys.batAvailable
                                 anchors.verticalCenter: parent.verticalCenter
-                                spacing: Theme.space6
+                                spacing: Theme.space8
 
                                 Text {
                                     anchors.verticalCenter: parent.verticalCenter
                                     text: Math.round(Sys.batPercent * 100) + "%"
                                     color: Theme.text
                                     font.family: Theme.font
-                                    font.pixelSize: Theme.fontBodyLg
+                                    font.pixelSize: Theme.fontMd
                                 }
                                 BatteryIcon { anchors.verticalCenter: parent.verticalCenter }
                                 Glyph {
                                     visible: Sys.batCharging
                                     anchors.verticalCenter: parent.verticalCenter
-                                    width: Theme.icon11; height: Theme.icon11
+                                    width: Theme.iconSm; height: Theme.iconSm
                                     name: "bolt"
                                     color: Theme.text
                                 }

@@ -7,6 +7,9 @@ import "../../shared/components"
 import "components"
 
 Scope {
+    id: root
+
+    readonly property int mediaPopupLyricsHeight: 210
     Variants {
         model: Quickshell.screens
 
@@ -18,6 +21,7 @@ Scope {
             readonly property bool shown: Sys.mediaOpen && Sys.mediaScreen === modelData.name
             Reveal { id: reveal; open: win.shown }
             readonly property real anim: reveal.progress
+            readonly property real travel: reveal.travel
             readonly property bool present: reveal.present
             onShownChanged: { if (shown) keys.forceActiveFocus(); }
 
@@ -63,7 +67,7 @@ Scope {
                 color: Theme.panel
                 border.width: Theme.borderThin
                 border.color: Theme.line
-                transform: Translate { y: -(card.height + Theme.drawerGap) * (1 - Math.min(1, win.anim)) }
+                transform: Translate { y: Theme.drawerOffset(card.height + Theme.drawerGap, win.travel) }
 
                 MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; z: -1 }
 
@@ -87,7 +91,7 @@ Scope {
                     anchors.centerIn: parent
                     text: "Nothing is playing"
                     color: Theme.dim
-                    font.family: Theme.font; font.pixelSize: Theme.fontBodyLg
+                    font.family: Theme.font; font.pixelSize: Theme.fontMd
                 }
 
                 MediaPlayerView {
@@ -112,7 +116,7 @@ Scope {
                         rightMargin: Theme.space16
                         topMargin: Theme.space16
                     }
-                    height: Theme.mediaPopupLyricsHeight
+                    height: root.mediaPopupLyricsHeight
                     player: win.p
                     active: win.shown
                     visible: win.p !== null

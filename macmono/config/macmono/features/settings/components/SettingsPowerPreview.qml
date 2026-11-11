@@ -9,14 +9,14 @@ Column {
     property var warnLevels: [5, 10, 20]
     property int criticalLevel: 10
 
-    spacing: Theme.settingsGroupSpacing
+    spacing: SettingsMetrics.settingsGroupSpacing
 
     component Caption: SettingsText {
-        color: Theme.labelCapsText
-        font.pixelSize: Theme.labelCapsSize
-        font.weight: Font.DemiBold
-        font.letterSpacing: Theme.labelCapsTracking
-        leftPadding: Theme.settingsRowPadX
+        color: Theme.dim
+        font.pixelSize: Theme.fontXs
+        font.weight: Theme.weightSemibold
+        font.letterSpacing: Theme.trackCaps
+        leftPadding: SettingsMetrics.settingsRowPadX
     }
 
     readonly property var events: {
@@ -37,45 +37,45 @@ Column {
 
         Rectangle {
             width: parent.width
-            height: tlBody.height + Theme.settingsRowPadY * 2
+            height: tlBody.height + SettingsMetrics.settingsRowPadY * 2
             radius: Theme.radiusCard
             color: Theme.tile
             border.width: Theme.borderThin
-            border.color: Theme.cardStroke
+            border.color: Theme.line
 
             Item {
                 id: tlBody
-                x: Theme.settingsRowPadX
-                y: Theme.settingsRowPadY
-                width: parent.width - Theme.settingsRowPadX * 2
+                x: SettingsMetrics.settingsRowPadX
+                y: SettingsMetrics.settingsRowPadY
+                width: parent.width - SettingsMetrics.settingsRowPadX * 2
                 height: root.events.length === 0 ? emptyText.height
-                        : Theme.settingsMarkSize + Theme.space4 + (root.events.length > 1 ? Theme.fontBody * 2 + Theme.space6 : Theme.fontBody) + Theme.space4
+                        : SettingsMetrics.settingsMarkSize + Theme.space4 + (root.events.length > 1 ? Theme.fontSm * 2 + Theme.space8 : Theme.fontSm) + Theme.space4
 
                 SettingsText {
                     id: emptyText
                     visible: root.events.length === 0
                     width: parent.width
                     text: "Nothing happens automatically. The screen stays on and the computer never sleeps."
-                    color: Theme.settingsDescText
-                    font.pixelSize: Theme.fontBody
+                    color: SettingsMetrics.settingsDescText
+                    font.pixelSize: Theme.fontSm
                     wrapMode: Text.Wrap
                 }
 
                 Item {
                     visible: root.events.length > 0
                     anchors.fill: parent
-                    readonly property real trackW: width - Theme.settingsMarkSize
+                    readonly property real trackW: width - SettingsMetrics.settingsMarkSize
 
                     Rectangle {
-                        x: Theme.settingsMarkSize / 2
-                        y: Theme.settingsMarkSize / 2 - height / 2
+                        x: SettingsMetrics.settingsMarkSize / 2
+                        y: SettingsMetrics.settingsMarkSize / 2 - height / 2
                         width: parent.trackW
-                        height: Theme.settingsSliderTrack
+                        height: SettingsMetrics.settingsSliderTrack
                         radius: height / 2
                         color: Theme.tileHover
                     }
-                    Rectangle { x: 0; y: 0; width: Theme.settingsMarkSize; height: width; radius: width / 2; color: Theme.dim }
-                    SettingsText { x: 0; y: Theme.settingsMarkSize + Theme.space4; text: "Idle"; color: Theme.dim; font.pixelSize: Theme.fontCaption }
+                    Rectangle { x: 0; y: 0; width: SettingsMetrics.settingsMarkSize; height: width; radius: width / 2; color: Theme.dim }
+                    SettingsText { x: 0; y: SettingsMetrics.settingsMarkSize + Theme.space4; text: "Idle"; color: Theme.dim; font.pixelSize: Theme.fontXs }
 
                     Repeater {
                         model: root.events
@@ -83,20 +83,20 @@ Column {
                             id: ev
                             required property var modelData
                             required property int index
-                            readonly property real cx: Theme.settingsMarkSize / 2 + parent.trackW * (modelData.m / root.axisMax)
+                            readonly property real cx: SettingsMetrics.settingsMarkSize / 2 + parent.trackW * (modelData.m / root.axisMax)
                             Rectangle {
                                 x: ev.cx - width / 2
                                 y: 0
-                                width: Theme.settingsMarkSize
+                                width: SettingsMetrics.settingsMarkSize
                                 height: width
                                 radius: width / 2
                                 color: Theme.text
                             }
                             SettingsText {
                                 x: Math.max(0, Math.min(ev.parent.width - width, ev.cx - width / 2))
-                                y: Theme.settingsMarkSize + Theme.space4 + (ev.index % 2) * (Theme.fontBody + Theme.space6)
+                                y: SettingsMetrics.settingsMarkSize + Theme.space4 + (ev.index % 2) * (Theme.fontSm + Theme.space8)
                                 text: ev.modelData.label + " · " + ev.modelData.m + " min"
-                                font.pixelSize: Theme.fontBody
+                                font.pixelSize: Theme.fontSm
                             }
                         }
                     }
@@ -123,23 +123,23 @@ Column {
 
         Rectangle {
             width: parent.width
-            height: alBody.height + Theme.settingsRowPadY * 2
+            height: alBody.height + SettingsMetrics.settingsRowPadY * 2
             radius: Theme.radiusCard
             color: Theme.tile
             border.width: Theme.borderThin
-            border.color: Theme.cardStroke
+            border.color: Theme.line
 
             Item {
                 id: alBody
-                x: Theme.settingsRowPadX
-                y: Theme.settingsRowPadY
-                width: parent.width - Theme.settingsRowPadX * 2
-                height: Theme.settingsBatBar + Theme.space8 + Theme.fontBody + Theme.space8 + Theme.fontCaption
+                x: SettingsMetrics.settingsRowPadX
+                y: SettingsMetrics.settingsRowPadY
+                width: parent.width - SettingsMetrics.settingsRowPadX * 2
+                height: SettingsMetrics.settingsBatBar + Theme.space8 + Theme.fontSm + Theme.space8 + Theme.fontXs
 
                 Rectangle {
                     id: bar
                     width: parent.width
-                    height: Theme.settingsBatBar
+                    height: SettingsMetrics.settingsBatBar
                     radius: height / 2
                     color: Theme.tileHover
                     Rectangle {
@@ -155,20 +155,20 @@ Column {
                         id: tick
                         required property int modelData
                         readonly property real cx: bar.width * modelData / 100
-                        Rectangle { x: tick.cx - width / 2; y: -Theme.space3; width: Theme.borderStrong; height: bar.height + Theme.space3 * 2; color: Theme.dim }
+                        Rectangle { x: tick.cx - width / 2; y: -Theme.space2; width: Theme.borderStrong; height: bar.height + Theme.space2 * 2; color: Theme.dim }
                         SettingsText {
                             x: Math.max(0, Math.min(alBody.width - width, tick.cx - width / 2))
                             y: bar.height + Theme.space8
                             text: tick.modelData + "%"
-                            font.pixelSize: Theme.fontBody
+                            font.pixelSize: Theme.fontSm
                         }
                     }
                 }
                 SettingsText {
-                    y: bar.height + Theme.space8 + Theme.fontBody + Theme.space8
+                    y: bar.height + Theme.space8 + Theme.fontSm + Theme.space8
                     text: "Solid area = urgent warnings (" + root.criticalLevel + "% and below). Lines = alert levels."
-                    color: Theme.settingsDescText
-                    font.pixelSize: Theme.fontCaption
+                    color: SettingsMetrics.settingsDescText
+                    font.pixelSize: Theme.fontXs
                 }
             }
         }

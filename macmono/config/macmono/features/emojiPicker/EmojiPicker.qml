@@ -8,6 +8,13 @@ import "../../shared/components"
 Scope {
     id: root
 
+    readonly property int fontEmoji: 24
+    readonly property int emojiTitleHeight: 28
+    readonly property int emojiCategoryHeight: 28
+    readonly property int emojiCellSize: 40
+    readonly property int emojiScrollbarWidth: 3
+    readonly property int emojiFooterHeight: 34
+
     property var entries: []
     property var recentEmojis: []
     property bool loading: true
@@ -91,6 +98,7 @@ Scope {
             readonly property bool shown: Sys.emojiOpen && Sys.emojiScreen === modelData.name
             Reveal { id: reveal; open: win.shown }
             readonly property real anim: reveal.progress
+            readonly property real travel: reveal.travel
             readonly property bool present: reveal.present
             readonly property var filtered: {
                 const query = search.text.trim().toLowerCase();
@@ -112,6 +120,27 @@ Scope {
                 grid.positionViewAtIndex(grid.currentIndex, GridView.Contain);
             }
 
+            function navKey(event) {
+                const count = win.filtered.length;
+                if (event.key === Qt.Key_Down) {
+                    if (count > 0) win.selectEmoji(grid.currentIndex + grid.columnCount);
+                    return true;
+                } else if (event.key === Qt.Key_Up) {
+                    if (count > 0) win.selectEmoji(grid.currentIndex - grid.columnCount);
+                    return true;
+                } else if (event.key === Qt.Key_Right) {
+                    if (count > 0) win.selectEmoji(grid.currentIndex + 1);
+                    return true;
+                } else if (event.key === Qt.Key_Left) {
+                    if (count > 0) win.selectEmoji(grid.currentIndex - 1);
+                    return true;
+                } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
+                    win.copyEmoji(grid.currentIndex);
+                    return true;
+                }
+                return false;
+            }
+
             visible: present
             anchors { top: true; bottom: true; left: true; right: true }
             margins { top: Theme.barMargin + Theme.barHeight }
@@ -127,7 +156,7 @@ Scope {
                 search.text = "";
                 grid.currentIndex = 0;
                 grid.contentY = 0;
-                search.forceActiveFocus();
+                keyCatcher.forceActiveFocus();
             }
 
             MouseArea {
@@ -139,26 +168,44 @@ Scope {
             Rectangle {
                 id: panel
                 anchors.centerIn: parent
-                width: Math.min(540, parent.width - 32)
-                height: Math.min(560, parent.height - 40)
+                width: Math.min(470, parent.width - 32)
+                height: Math.min(490, parent.height - 40)
                 radius: Theme.radiusPanel
                 color: Theme.panel
                 border.width: Theme.borderThin
                 border.color: Theme.line
-                transform: Translate { y: -(panel.y + panel.height) * (1 - win.anim) }
+                transform: Translate { y: Theme.drawerOffset(panel.y + panel.height, win.travel) }
 
                 MouseArea { anchors.fill: parent }
+
+                Item {
+                    id: keyCatcher
+                    focus: true
+                    Keys.onPressed: (e) => {
+                        if (win.navKey(e)) { e.accepted = true; return; }
+                        if (e.key === Qt.Key_Escape) {
+                            Sys.emojiOpen = false;
+                            e.accepted = true;
+                        } else if (e.text.length > 0 && e.text >= " "
+                                   && !(e.modifiers & (Qt.ControlModifier | Qt.AltModifier | Qt.MetaModifier))) {
+                            search.forceActiveFocus();
+                            search.text += e.text;
+                            search.field.cursorPosition = search.text.length;
+                            e.accepted = true;
+                        }
+                    }
+                }
 
                 Column {
                     anchors.fill: parent
                     anchors.margins: Theme.space16
-                    spacing: Theme.space10
+                    spacing: Theme.space12
                     opacity: win.anim
 
                     Row {
                         id: title
                         width: parent.width
-                        height: Theme.emojiTitleHeight
+                        height: root.emojiTitleHeight
                         spacing: Theme.space8
 
                         Text {
@@ -166,98 +213,32 @@ Scope {
                             text: "Emoji"
                             color: Theme.text
                             font.family: Theme.font
-                            font.pixelSize: Theme.panelTitleSize
-                            font.weight: Font.DemiBold
-                            font.letterSpacing: Theme.panelTitleTracking
+                            font.pixelSize: Theme.font2xl
+                            font.weight: Theme.weightSemibold
+                            font.letterSpacing: Theme.trackTight
                         }
                         Text {
                             anchors.verticalCenter: parent.verticalCenter
                             text: root.loading ? "Loading…" : win.filtered.length + " emoji"
                             color: Theme.dim
                             font.family: Theme.font
-                            font.pixelSize: Theme.fontSmall
+                            font.pixelSize: Theme.fontXs
                         }
                     }
 
-                    Rectangle {
-                        id: searchBox
+                    UiSearchField {
+                        id: search
                         width: parent.width
-                        height: Theme.emojiSearchHeight
-                        radius: Math.min(width, height) / 2
-                        color: Theme.tile
-                        border.width: search.activeFocus ? Theme.borderThin : 0
-                        border.color: Theme.lineFocus
-
-                        Glyph {
-                            id: searchIcon
-                            anchors {
-                                left: parent.left
-                                leftMargin: Theme.space14
-                                verticalCenter: parent.verticalCenter
-                            }
-                            width: Theme.icon16
-                            height: Theme.icon16
-                            name: "search"
-                            color: Theme.dim
-                        }
-
-                        TextInput {
-                            id: search
-                            anchors {
-                                left: searchIcon.right
-                                leftMargin: Theme.space8
-                                right: parent.right
-                                rightMargin: Theme.space14
-                                top: parent.top
-                                bottom: parent.bottom
-                            }
-                            verticalAlignment: TextInput.AlignVCenter
-                            color: Theme.text
-                            selectionColor: Theme.text
-                            selectedTextColor: Theme.inverseText
-                            font.family: Theme.font
-                            font.pixelSize: Theme.fontBodyLg
-                            clip: true
-
-                            Text {
-                                anchors.fill: parent
-                                verticalAlignment: Text.AlignVCenter
-                                visible: search.text === ""
-                                text: "Search emoji"
-                                color: Theme.faint
-                                font: search.font
-                            }
-
-                            Keys.onPressed: (event) => {
-                                const count = win.filtered.length;
-                                if (event.key === Qt.Key_Down) {
-                                    if (count > 0) win.selectEmoji(grid.currentIndex + grid.columnCount);
-                                    event.accepted = true;
-                                } else if (event.key === Qt.Key_Up) {
-                                    if (count > 0) win.selectEmoji(grid.currentIndex - grid.columnCount);
-                                    event.accepted = true;
-                                } else if (event.key === Qt.Key_Right) {
-                                    if (count > 0) win.selectEmoji(grid.currentIndex + 1);
-                                    event.accepted = true;
-                                } else if (event.key === Qt.Key_Left) {
-                                    if (count > 0) win.selectEmoji(grid.currentIndex - 1);
-                                    event.accepted = true;
-                                } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
-                                    win.copyEmoji(grid.currentIndex);
-                                    event.accepted = true;
-                                } else if (event.key === Qt.Key_Escape) {
-                                    if (search.text !== "") search.text = "";
-                                    else Sys.emojiOpen = false;
-                                    event.accepted = true;
-                                }
-                            }
-                        }
+                        radius: height / 2
+                        placeholder: "Search emoji"
+                        onEscaped: Sys.emojiOpen = false
+                        onKeyPressed: (event) => { if (win.navKey(event)) event.accepted = true; }
                     }
 
                     Flickable {
                         id: categoryBar
                         width: parent.width
-                        height: Theme.emojiCategoryHeight
+                        height: root.emojiCategoryHeight
                         contentWidth: categoryRow.implicitWidth
                         contentHeight: height
                         clip: true
@@ -268,7 +249,7 @@ Scope {
                             id: categoryRow
                             height: parent.height
                             width: implicitWidth
-                            spacing: Theme.space6
+                            spacing: Theme.space8
 
                             Repeater {
                                 model: root.categoryOptions
@@ -292,8 +273,8 @@ Scope {
                                         text: modelData.label
                                         color: catItem.picked ? Theme.text : Theme.dim
                                         font.family: Theme.font
-                                        font.pixelSize: Theme.fontSmall
-                                        font.weight: catItem.picked ? Font.DemiBold : Font.Medium
+                                        font.pixelSize: Theme.fontXs
+                                        font.weight: catItem.picked ? Theme.weightSemibold : Theme.weightMedium
                                     }
 
                                     MouseArea {
@@ -314,7 +295,7 @@ Scope {
                     GridView {
                         id: grid
                         width: parent.width
-                        height: Math.max(0, parent.height - title.height - searchBox.height
+                        height: Math.max(0, parent.height - title.height - search.height
                             - categoryBar.height - footer.height - parent.spacing * 4)
                         cellWidth: 46
                         cellHeight: 46
@@ -335,27 +316,27 @@ Scope {
                             text: root.loadFailed ? "Could not load emoji" : "No emoji found"
                             color: Theme.dim
                             font.family: Theme.font
-                            font.pixelSize: Theme.fontBody
+                            font.pixelSize: Theme.fontSm
                         }
 
                         delegate: Rectangle {
                             required property var modelData
                             required property int index
-                            width: Theme.emojiCellSize
-                            height: Theme.emojiCellSize
-                            radius: Theme.radiusSmall
+                            width: root.emojiCellSize
+                            height: root.emojiCellSize
+                            radius: Theme.radiusControl
                             color: mouse.containsMouse || grid.currentIndex === index ? Theme.tileHover : Theme.transparent
                             border.width: grid.currentIndex === index ? Theme.borderThin : 0
-                            border.color: Theme.lineStrong
+                            border.color: Theme.line
 
                             Behavior on color {
-                                ColorAnimation { duration: Theme.animHover }
+                                TweenColor { duration: Theme.durFast }
                             }
 
                             Text {
                                 anchors.centerIn: parent
                                 text: modelData.emoji
-                                font.pixelSize: Theme.fontEmoji
+                                font.pixelSize: root.fontEmoji
                             }
                             MouseArea {
                                 id: mouse
@@ -373,7 +354,7 @@ Scope {
                                 bottom: parent.bottom
                                 rightMargin: Theme.space2
                             }
-                            width: Theme.emojiScrollbarWidth
+                            width: root.emojiScrollbarWidth
                             radius: width / 2
                             color: Theme.tile
                             visible: grid.contentHeight > grid.height + 1
@@ -384,7 +365,7 @@ Scope {
                                 y: grid.contentY / Math.max(1, grid.contentHeight - grid.height)
                                     * (parent.height - height)
                                 radius: width / 2
-                                color: Theme.textSoft
+                                color: Theme.text
                             }
                         }
                     }
@@ -393,7 +374,7 @@ Scope {
                         id: footer
                         width: parent.width
                         visible: root.loading || root.loadFailed || win.filtered.length === 0
-                        height: visible ? Theme.emojiFooterHeight : 0
+                        height: visible ? root.emojiFooterHeight : 0
                         Text {
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
@@ -402,9 +383,9 @@ Scope {
                             text: root.loading ? "Loading emoji…" :
                                   root.loadFailed ? "Could not load emoji" :
                                   (win.filtered.length === 0 ? "No emoji found" : "")
-                            color: Theme.textSoft
+                            color: Theme.text
                             font.family: Theme.font
-                            font.pixelSize: Theme.fontBody
+                            font.pixelSize: Theme.fontSm
                         }
 
                     }

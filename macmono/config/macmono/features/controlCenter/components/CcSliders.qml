@@ -5,24 +5,25 @@ import "../../../shared/components"
 
 Rectangle {
     id: root
+
+    readonly property int ccSliderLabelWidth: 40
     property string expanded: ""
     signal requestExpand(string key)
 
     Layout.fillWidth: true
-    implicitHeight: sliderCol.implicitHeight + Theme.space22
+    implicitHeight: sliderCol.implicitHeight + 2 * Theme.space12
     radius: Theme.radiusCard
     color: Theme.tile
-    border.width: Theme.borderThin; border.color: Theme.cardStroke
 
     ColumnLayout {
         id: sliderCol
         anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space12 }
-        spacing: Theme.space10
+        spacing: Theme.space8
 
         RowLayout {
             visible: Sys.brightnessOk
             Layout.fillWidth: true
-            spacing: Theme.space10
+            spacing: Theme.space12
             SliderBar {
                 Layout.fillWidth: true
                 icon: "sun"
@@ -30,57 +31,43 @@ Rectangle {
                 onMoved: (v) => Sys.setBrightness(v)
             }
             Text {
-                Layout.preferredWidth: Theme.ccSliderLabelWidth
+                Layout.preferredWidth: root.ccSliderLabelWidth
                 horizontalAlignment: Text.AlignRight
                 text: Math.round(Sys.brightness * 100) + "%"
                 color: Theme.dim
-                font.family: Theme.font; font.pixelSize: Theme.fontBody
+                font.family: Theme.font; font.pixelSize: Theme.fontSm
             }
-            Item { Layout.preferredWidth: Theme.ccSliderButtonSize }
         }
         RowLayout {
             Layout.fillWidth: true
-            spacing: Theme.space10
+            spacing: Theme.space12
             SliderBar {
                 Layout.fillWidth: true
                 icon: Sys.muted ? "mute" : "volume"
                 value: Sys.muted ? 0 : Sys.volume
                 onMoved: (v) => Sys.setVolume(v)
             }
-            Text {
-                Layout.preferredWidth: Theme.ccSliderLabelWidth
-                horizontalAlignment: Text.AlignRight
-                text: Sys.muted ? "Muted" : Math.round(Sys.volume * 100) + "%"
-                color: Theme.dim
-                font.family: Theme.font; font.pixelSize: Theme.fontBody
-            }
+            // Tap the volume label to pick the output device.
             MouseArea {
-                id: outBtn
-                Layout.preferredWidth: Theme.ccSliderButtonSize; Layout.preferredHeight: Theme.ccSliderButtonSize
+                id: outArea
+                Layout.preferredWidth: root.ccSliderLabelWidth
+                Layout.fillHeight: true
                 hoverEnabled: true
+                cursorShape: Qt.PointingHandCursor
                 onClicked: root.requestExpand("sound")
-                Rectangle {
-                    anchors.fill: parent
-                    radius: Math.min(width, height) / 2
-                    scale: outBtn.pressed ? Theme.buttonPressedScale : 1
-                    color: outBtn.containsMouse || root.expanded === "sound" ? Theme.tileMid : Theme.transparent
-                    Behavior on color { ColorAnimation { duration: Theme.animHover; easing.type: Theme.easeOut } }
-                    Behavior on scale { NumberAnimation { duration: Theme.animPress; easing.type: Theme.easeOut } }
-                }
-                Glyph {
-                    anchors.centerIn: parent
-                    width: Theme.icon13; height: Theme.icon13
-                    name: "chevron"
-                    rotation: root.expanded === "sound" ? 180 : -90
-                    color: Theme.text
-                    Behavior on rotation { NumberAnimation { duration: Theme.animBase } }
+                Text {
+                    anchors { right: parent.right; verticalCenter: parent.verticalCenter }
+                    text: Sys.muted ? "Muted" : Math.round(Sys.volume * 100) + "%"
+                    color: outArea.containsMouse || root.expanded === "sound" ? Theme.text : Theme.dim
+                    font.family: Theme.font; font.pixelSize: Theme.fontSm
+                    Behavior on color { TweenColor { duration: Theme.durFast } }
                 }
             }
         }
         DetailList {
             open: root.expanded === "sound"
             Layout.fillWidth: true
-            color: Theme.tileFaint
+            color: Theme.tile
             emptyText: "No output devices"
             items: Sys.outputDevices.map(n => ({
                 label: Sys.nodeLabel(n),

@@ -6,6 +6,10 @@ import "../../shared/components"
 import "components"
 
 Scope {
+    id: root
+
+    readonly property int settingsWidth: 960
+    readonly property int settingsHeight: 760
     Variants {
         model: Quickshell.screens
 
@@ -17,6 +21,7 @@ Scope {
             readonly property bool shown: Sys.settingsOpen && Sys.settingsScreen === modelData.name
             Reveal { id: reveal; open: win.shown }
             readonly property real anim: reveal.progress
+            readonly property real travel: reveal.travel
             readonly property bool present: reveal.present
 
             visible: present
@@ -40,11 +45,11 @@ Scope {
                 id: body
                 anchors { top: parent.top; horizontalCenter: parent.horizontalCenter }
                 y: Theme.drawerGap
-                width: Math.min(Theme.settingsWidth, Math.max(320, win.width - Theme.space16 * 2))
-                height: Math.min(Theme.settingsHeight, Math.max(360, win.height - Theme.space16 * 2))
+                width: Math.min(root.settingsWidth, Math.max(320, win.width - Theme.space16 * 2))
+                height: Math.min(root.settingsHeight, Math.max(360, win.height - Theme.space16 * 2))
 
                 transform: Translate {
-                    y: -(body.height + Theme.drawerGap) * (1 - Math.min(1, win.anim))
+                    y: Theme.drawerOffset(body.height + Theme.drawerGap, win.travel)
                 }
 
                 SettingsPanel {

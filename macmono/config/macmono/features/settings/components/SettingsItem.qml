@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell
 import "../../../core"
+import "../../../shared/components"
 
 SettingsRow {
     id: root
@@ -106,17 +107,17 @@ SettingsRow {
 
         sourceComponent: Component {
             Rectangle {
-                implicitWidth: actionLabel.implicitWidth + Theme.settingsButtonPadX * 2
-                implicitHeight: Theme.settingsButtonHeight
-                radius: Theme.radiusXs
-                color: actionArea.containsMouse ? Theme.tileHover : Theme.tileMid
-                Behavior on color { ColorAnimation { duration: Theme.animHover } }
+                implicitWidth: actionLabel.implicitWidth + SettingsMetrics.settingsButtonPadX * 2
+                implicitHeight: SettingsMetrics.settingsButtonHeight
+                radius: Theme.radiusControl
+                color: actionArea.containsMouse ? Theme.tileHover : Theme.tile
+                Behavior on color { TweenColor { duration: Theme.durFast } }
 
                 SettingsText {
                     id: actionLabel
                     anchors.centerIn: parent
                     text: "Open"
-                    font.weight: Font.Medium
+                    font.weight: Theme.weightMedium
                 }
 
                 MouseArea {

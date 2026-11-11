@@ -1,9 +1,8 @@
--- MONITOR CONFIG
 hl.monitor({
     output = "",
     mode = "preferred",
     position = "auto",
-    scale = 1
+    scale = 1.2
 })
 
 hl.gesture({
@@ -90,7 +89,6 @@ hl.config({
     },
 })
 
---animations--
 hl.curve("wind",         { type = "bezier", points = { {0.05, 0.9},  {0.1,  1.05} } })
 hl.curve("winIn",        { type = "bezier", points = { {0.1,  1.1},  {0.1,  1.1}  } })
 hl.curve("winOut",       { type = "bezier", points = { {0.3,  -0.3}, {0,    1}    } })
@@ -102,7 +100,6 @@ hl.animation({ leaf = "windowsIn",   enabled = true, speed = 6,    bezier = "win
 hl.animation({ leaf = "windowsOut",  enabled = true, speed = 5,    bezier = "winOut",      style = "slide"     })
 hl.animation({ leaf = "windowsMove", enabled = true, speed = 5,    bezier = "wind",        style = "slide"     })
 hl.animation({ leaf = "border",      enabled = true, speed = 1,    bezier = "liner"                            })
-hl.animation({ leaf = "borderangle", enabled = true, speed = 30,   bezier = "liner",       style = "loop"      })
 hl.animation({ leaf = "layers",      enabled = true, speed = 6,    bezier = "wind",        style = "popin 90%" })
 hl.animation({ leaf = "layersIn",    enabled = true, speed = 6,    bezier = "winIn",       style = "popin 90%" })
 hl.animation({ leaf = "layersOut",   enabled = true, speed = 5,    bezier = "winOut",      style = "popin 90%" })

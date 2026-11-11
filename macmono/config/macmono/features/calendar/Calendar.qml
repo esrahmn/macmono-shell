@@ -6,6 +6,14 @@ import "../../core"
 import "../../shared/components"
 
 Scope {
+    id: root
+    readonly property int weatherIconSize: 30
+
+    readonly property int calendarWidth: 370
+    readonly property int calendarNavSize: 32
+    readonly property int calendarWeekdayHeight: 30
+    readonly property int calendarDayHeight: 40
+    readonly property int calendarDayCircle: 40
     Variants {
         model: Quickshell.screens
 
@@ -17,6 +25,7 @@ Scope {
             readonly property bool shown: Sys.calendarOpen && Sys.calendarScreen === modelData.name
             Reveal { id: reveal; open: win.shown }
             readonly property real anim: reveal.progress
+            readonly property real travel: reveal.travel
             readonly property bool present: reveal.present
             property var selectedDate: new Date()
             onShownChanged: {
@@ -75,36 +84,17 @@ Scope {
                     viewMonth = date.getMonth();
                 }
             }
-            function ago(t) {
-                const s = Math.max(0, Math.floor((Sys.now.getTime() - t) / 1000));
-                if (s < 60) return "now";
-                if (s < 3600) return Math.floor(s / 60) + "m";
-                if (s < 86400) return Math.floor(s / 3600) + "h";
-                return Math.floor(s / 86400) + "d";
-            }
-
-            Item {
-                id: body
+            Panel {
+                id: card
                 anchors { top: parent.top; horizontalCenter: parent.horizontalCenter; topMargin: Theme.drawerGap }
-                width: Theme.calendarWidth
-                height: card.height
-                transform: Translate { y: -(body.height + Theme.drawerGap) * (1 - Math.min(1, win.anim)) }
-
-                Rectangle {
-                    id: card
-                    anchors { top: parent.top; left: parent.left; right: parent.right }
-                    height: Math.min(col.implicitHeight + 32, win.height - Theme.space8)
-                    radius: Theme.radiusPanel
-                    color: Theme.panel
-                    border.width: Theme.borderThin
-                    border.color: Theme.line
-                    MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons }
-                }
+                width: root.calendarWidth
+                height: Math.min(col.implicitHeight + card.padding * 2, win.height - Theme.space8)
+                travel: win.travel
+                progress: win.anim
 
                 Flickable {
                     id: flick
-                    anchors { top: card.top; left: card.left; right: card.right; bottom: card.bottom; margins: Theme.space16 }
-                    opacity: win.anim
+                    anchors.fill: parent
                     contentHeight: col.implicitHeight
                     clip: true
                     boundsBehavior: Flickable.StopAtBounds
@@ -112,19 +102,19 @@ Scope {
                     ColumnLayout {
                         id: col
                         width: flick.width
-                        spacing: Theme.space14
+                        spacing: Theme.space16
 
                         ColumnLayout {
-                            spacing: Theme.space0
+                            spacing: 0
                             Text {
                                 text: Qt.formatDate(win.selectedDate, "dddd")
                                 color: Theme.dim
-                                font.family: Theme.font; font.pixelSize: Theme.fontTitle; font.weight: Font.Medium
+                                font.family: Theme.font; font.pixelSize: Theme.fontLg; font.weight: Theme.weightMedium
                             }
                             Text {
                                 text: Qt.formatDate(win.selectedDate, "d MMMM yyyy")
                                 color: Theme.text
-                                font.family: Theme.font; font.pixelSize: Theme.panelTitleSize; font.weight: Font.DemiBold; font.letterSpacing: Theme.panelTitleTracking
+                                font.family: Theme.font; font.pixelSize: Theme.font2xl; font.weight: Theme.weightSemibold; font.letterSpacing: Theme.trackTight
                             }
                         }
 
@@ -137,39 +127,39 @@ Scope {
 
                             ColumnLayout {
                                 id: wxCol
-                                anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space14 }
-                                spacing: Theme.space10
+                                anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space16 }
+                                spacing: Theme.space12
 
                                 RowLayout {
                                     Layout.fillWidth: true
                                     spacing: Theme.space12
                                     Glyph {
                                         visible: Sys.weather.available
-                                        Layout.preferredWidth: Theme.icon30; Layout.preferredHeight: Theme.icon30
+                                        Layout.preferredWidth: root.weatherIconSize; Layout.preferredHeight: root.weatherIconSize
                                         name: Sys.weather.available ? Sys.weather.iconFor(Sys.weather.current.code, Sys.weather.current.isDay) : ""
                                         color: Theme.text
                                     }
                                     Text {
                                         text: Sys.weather.available ? Math.round(Sys.weather.current.temp) + "°" : "–"
                                         color: Theme.text
-                                        font.family: Theme.font; font.pixelSize: Theme.fontDisplay; font.weight: Font.DemiBold
+                                        font.family: Theme.font; font.pixelSize: Theme.font2xl; font.weight: Theme.weightSemibold
                                     }
                                     ColumnLayout {
                                         Layout.fillWidth: true
-                                        spacing: Theme.space0
+                                        spacing: 0
                                         Text {
                                             Layout.fillWidth: true
                                             text: Sys.weather.available ? Sys.weather.describe(Sys.weather.current.code)
                                                 : (Sys.weather.loading ? "Updating…" : (Sys.weather.error !== "" ? Sys.weather.error : "No data yet"))
                                             color: Theme.text
-                                            font.family: Theme.font; font.pixelSize: Theme.fontTitle; font.weight: Font.Medium
+                                            font.family: Theme.font; font.pixelSize: Theme.fontLg; font.weight: Theme.weightMedium
                                             elide: Text.ElideRight
                                         }
                                         Text {
                                             Layout.fillWidth: true
                                             text: Sys.weather.placeName + (Sys.weather.available ? "  ·  Feels like " + Math.round(Sys.weather.current.feels) + "°" : "")
                                             color: Theme.dim
-                                            font.family: Theme.font; font.pixelSize: Theme.fontBody
+                                            font.family: Theme.font; font.pixelSize: Theme.fontSm
                                             elide: Text.ElideRight
                                         }
                                     }
@@ -192,11 +182,11 @@ Scope {
                                                 horizontalAlignment: Text.AlignHCenter
                                                 text: Qt.formatDate(new Date(wxDay.modelData.date + "T00:00:00"), "ddd")
                                                 color: Theme.dim
-                                                font.family: Theme.font; font.pixelSize: Theme.fontSmall
+                                                font.family: Theme.font; font.pixelSize: Theme.fontXs
                                             }
                                             Glyph {
                                                 anchors.horizontalCenter: parent.horizontalCenter
-                                                width: Theme.icon20; height: Theme.icon20
+                                                width: Theme.iconLg; height: Theme.iconLg
                                                 name: Sys.weather.iconFor(wxDay.modelData.code, true)
                                                 color: Theme.text
                                             }
@@ -205,14 +195,14 @@ Scope {
                                                 horizontalAlignment: Text.AlignHCenter
                                                 text: Math.round(wxDay.modelData.max) + "°"
                                                 color: Theme.text
-                                                font.family: Theme.font; font.pixelSize: Theme.fontBody; font.weight: Font.Medium
+                                                font.family: Theme.font; font.pixelSize: Theme.fontSm; font.weight: Theme.weightMedium
                                             }
                                             Text {
                                                 width: parent.width
                                                 horizontalAlignment: Text.AlignHCenter
                                                 text: Math.round(wxDay.modelData.min) + "°"
                                                 color: Theme.dim
-                                                font.family: Theme.font; font.pixelSize: Theme.fontBody
+                                                font.family: Theme.font; font.pixelSize: Theme.fontSm
                                             }
                                         }
                                     }
@@ -221,8 +211,8 @@ Scope {
                                 Text {
                                     Layout.fillWidth: true
                                     text: "Weather data by Open-Meteo.com"
-                                    color: Theme.muted
-                                    font.family: Theme.font; font.pixelSize: Theme.fontSmall
+                                    color: Theme.faint
+                                    font.family: Theme.font; font.pixelSize: Theme.fontXs
                                 }
                             }
                         }
@@ -235,8 +225,8 @@ Scope {
 
                             ColumnLayout {
                                 id: calCol
-                                anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space14 }
-                                spacing: Theme.space10
+                                anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space16 }
+                                spacing: Theme.space12
 
                                 RowLayout {
                                     Layout.fillWidth: true
@@ -244,7 +234,7 @@ Scope {
                                         Layout.fillWidth: true
                                         text: Qt.formatDate(new Date(win.viewYear, win.viewMonth, 1), "MMMM yyyy")
                                         color: Theme.text
-                                        font.family: Theme.font; font.pixelSize: Theme.fontTitle; font.weight: Font.DemiBold
+                                        font.family: Theme.font; font.pixelSize: Theme.fontLg; font.weight: Theme.weightSemibold
                                         MouseArea {
                                             anchors.fill: parent
                                             onClicked: {
@@ -260,13 +250,13 @@ Scope {
                                         delegate: MouseArea {
                                             id: nav
                                             required property int modelData
-                                            Layout.preferredWidth: Theme.calendarNavSize; Layout.preferredHeight: Theme.calendarNavSize
+                                            Layout.preferredWidth: root.calendarNavSize; Layout.preferredHeight: root.calendarNavSize
                                             hoverEnabled: true
                                             onClicked: win.shiftMonth(modelData)
-                                            Rectangle { anchors.fill: parent; radius: Theme.radiusXs; color: nav.containsMouse ? Theme.tileHover : Theme.transparent }
+                                            Rectangle { anchors.fill: parent; radius: Theme.radiusControl; color: nav.containsMouse ? Theme.tileHover : Theme.transparent }
                                             Glyph {
                                                 anchors.centerIn: parent
-                                                width: Theme.icon15; height: Theme.icon15
+                                                width: Theme.iconMd; height: Theme.iconMd
                                                 name: "chevron"
                                                 rotation: nav.modelData < 0 ? 90 : -90
                                                 color: Theme.text
@@ -284,12 +274,12 @@ Scope {
                                         model: ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
                                         delegate: Text {
                                             required property string modelData
-                                            width: grid.cw; height: Theme.calendarWeekdayHeight
+                                            width: grid.cw; height: root.calendarWeekdayHeight
                                             horizontalAlignment: Text.AlignHCenter
                                             verticalAlignment: Text.AlignVCenter
                                             text: modelData
                                             color: Theme.faint
-                                            font.family: Theme.font; font.pixelSize: Theme.fontBody; font.weight: Font.Medium
+                                            font.family: Theme.font; font.pixelSize: Theme.fontSm; font.weight: Theme.weightMedium
                                         }
                                     }
                                     Repeater {
@@ -297,20 +287,20 @@ Scope {
                                         delegate: Item {
                                             id: dayCell
                                             required property var modelData
-                                            width: grid.cw; height: Theme.calendarDayHeight
+                                            width: grid.cw; height: root.calendarDayHeight
                                             Rectangle {
                                                 anchors.centerIn: parent
-                                                width: Theme.calendarDayCircle; height: Theme.calendarDayCircle; radius: Math.min(width, height) / 2
-                                                color: dayArea.containsMouse && !isSelected ? Theme.tileHover : (isSelected ? Theme.inverse : Theme.transparent)
+                                                width: root.calendarDayCircle; height: root.calendarDayCircle; radius: Math.min(width, height) / 2
+                                                color: dayArea.containsMouse && !isSelected ? Theme.tileHover : (isSelected ? Theme.accent : Theme.transparent)
                                                 border.width: modelData.today && !isSelected ? 1 : 0
                                                 border.color: Theme.dim
                                             }
                                             Text {
                                                 anchors.centerIn: parent
                                                 text: modelData.day
-                                                color: isSelected ? Theme.inverseText : (modelData.inMonth ? Theme.text : Theme.faint)
-                                                font.family: Theme.font; font.pixelSize: Theme.fontTitle
-                                                font.weight: isSelected || modelData.today ? Font.DemiBold : Font.Normal
+                                                color: isSelected ? Theme.textOnAccent : (modelData.inMonth ? Theme.text : Theme.faint)
+                                                font.family: Theme.font; font.pixelSize: Theme.fontLg
+                                                font.weight: isSelected || modelData.today ? Theme.weightSemibold : Theme.weightRegular
                                             }
                                             readonly property bool isSelected: modelData.date.getFullYear() === win.selectedDate.getFullYear()
                                                 && modelData.date.getMonth() === win.selectedDate.getMonth()
@@ -327,113 +317,7 @@ Scope {
                             }
                         }
 
-                        RowLayout {
-                            Layout.fillWidth: true
-                            Text {
-                                Layout.fillWidth: true
-                                text: "NOTIFICATIONS"
-                                color: Theme.labelCapsText
-                                font.family: Theme.font; font.pixelSize: Theme.labelCapsSize; font.weight: Font.DemiBold
-                                font.letterSpacing: Theme.labelCapsTracking
-                            }
-                            MouseArea {
-                                id: dndBtn
-                                Layout.preferredWidth: Theme.calendarSmallButton; Layout.preferredHeight: Theme.calendarSmallButton
-                                hoverEnabled: true
-                                onClicked: Sys.dnd = !Sys.dnd
-                                Rectangle {
-                                    anchors.fill: parent; radius: Math.min(width, height) / 2
-                                    color: Sys.dnd ? Theme.inverse : (dndBtn.containsMouse ? Theme.tileHover : Theme.transparent)
-                                }
-                                Glyph {
-                                    anchors.centerIn: parent; width: Theme.icon14; height: Theme.icon14
-                                    name: "moon"
-                                    color: Sys.dnd ? Theme.inverseText : Theme.text
-                                }
-                            }
-                            MouseArea {
-                                id: clearBtn
-                                visible: Sys.notifHistory.length > 0
-                                Layout.preferredWidth: clearText.implicitWidth + 18; Layout.preferredHeight: Theme.calendarClearHeight
-                                hoverEnabled: true
-                                onClicked: Sys.clearNotifs()
-                                Rectangle { anchors.fill: parent; radius: Math.min(width, height) / 2; color: clearBtn.containsMouse ? Theme.tileHover : Theme.tile }
-                                Text {
-                                    id: clearText
-                                    anchors.centerIn: parent
-                                    text: "Clear all"
-                                    color: Theme.text
-                                    font.family: Theme.font; font.pixelSize: Theme.fontSmall
-                                }
-                            }
-                        }
 
-                        Text {
-                            visible: Sys.notifHistory.length === 0
-                            Layout.fillWidth: true
-                            Layout.topMargin: Theme.space6; Layout.bottomMargin: Theme.space10
-                            horizontalAlignment: Text.AlignHCenter
-                            text: Sys.dnd ? "Do Not Disturb is on" : "No notifications"
-                            color: Theme.dim
-                            font.family: Theme.font; font.pixelSize: Theme.fontBody
-                        }
-
-                        Repeater {
-                            model: Sys.notifHistory
-                            delegate: Rectangle {
-                                id: nrow
-                                required property var modelData
-                                Layout.fillWidth: true
-                                implicitHeight: ncol.implicitHeight + 20
-                                radius: Theme.radiusCard
-                                color: nArea.containsMouse ? Theme.tileHover : Theme.tile
-
-                                ColumnLayout {
-                                    id: ncol
-                                    anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space10; leftMargin: Theme.space12; rightMargin: Theme.space12 }
-                                    spacing: Theme.space2
-                                    RowLayout {
-                                        Layout.fillWidth: true
-                                        Text {
-                                            Layout.fillWidth: true
-                                            elide: Text.ElideRight
-                                            text: nrow.modelData.app || "Notification"
-                                            color: Theme.dim
-                                            font.family: Theme.font; font.pixelSize: Theme.fontSmall
-                                        }
-                                        Text {
-                                            text: nArea.containsMouse ? "✕" : win.ago(nrow.modelData.time)
-                                            color: Theme.faint
-                                            font.family: Theme.font; font.pixelSize: Theme.fontSmall
-                                        }
-                                    }
-                                    Text {
-                                        Layout.fillWidth: true
-                                        elide: Text.ElideRight
-                                        text: nrow.modelData.summary
-                                        color: Theme.text
-                                        font.family: Theme.font; font.pixelSize: Theme.fontBodyLg; font.weight: Font.DemiBold
-                                    }
-                                    Text {
-                                        visible: text !== ""
-                                        Layout.fillWidth: true
-                                        wrapMode: Text.Wrap
-                                        maximumLineCount: 3
-                                        elide: Text.ElideRight
-                                        textFormat: Text.PlainText
-                                        text: nrow.modelData.body
-                                        color: Theme.dim
-                                        font.family: Theme.font; font.pixelSize: Theme.fontBody
-                                    }
-                                }
-                                MouseArea {
-                                    id: nArea
-                                    anchors.fill: parent
-                                    hoverEnabled: true
-                                    onClicked: Sys.removeNotif(nrow.modelData.id)
-                                }
-                            }
-                        }
                     }
                 }
             }

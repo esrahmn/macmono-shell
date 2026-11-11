@@ -12,6 +12,9 @@ Scope {
 
     PanelWindow {
     id: root
+
+    readonly property int trayBackHeight: 30
+    readonly property int trayCheckWidth: 14
     required property var modelData
     screen: modelData
 
@@ -29,6 +32,7 @@ Scope {
 
     Reveal { id: reveal; open: root.shown }
     readonly property real anim: reveal.progress
+    readonly property real travel: reveal.travel
     readonly property bool present: reveal.present
     onShownChanged: {
         if (shown) { stack = []; keys.forceActiveFocus(); }
@@ -58,12 +62,12 @@ Scope {
         Rectangle {
             width: Math.max(190, Math.min(420, list.implicitWidth + 16))
             height: list.implicitHeight + 16
-            y: Theme.drawerGap + 2 - (height + Theme.drawerGap + 2) * (1 - Math.min(1, root.anim))
+            y: Theme.drawerGap + 2 + Theme.drawerOffset(height + Theme.drawerGap + 2, root.travel)
             x: Math.max(8, Math.min(root.width - width - 8, Sys.trayMenuX - width + 18))
             radius: Theme.radiusCard
-            color: Theme.popup
+            color: Theme.panel
             border.width: Theme.borderThin
-            border.color: Theme.lineStrong
+            border.color: Theme.line
             clip: true
 
             MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons }
@@ -71,17 +75,17 @@ Scope {
             ColumnLayout {
                 id: list
                 anchors { fill: parent; margins: Theme.space8 }
-                spacing: Theme.space1
+                spacing: Theme.space2
 
                 Rectangle {
                     visible: root.stack.length > 0
-                    Layout.fillWidth: true; implicitHeight: Theme.trayBackHeight; radius: Theme.radiusXs
+                    Layout.fillWidth: true; implicitHeight: root.trayBackHeight; radius: Theme.radiusControl
                     color: backMa.containsMouse ? Theme.tileHover : Theme.transparent
                     Text {
-                        anchors { left: parent.left; leftMargin: Theme.space10; verticalCenter: parent.verticalCenter }
+                        anchors { left: parent.left; leftMargin: Theme.space12; verticalCenter: parent.verticalCenter }
                         text: "‹  Back"
                         color: Theme.dim
-                        font.family: Theme.font; font.pixelSize: Theme.fontBodyLg
+                        font.family: Theme.font; font.pixelSize: Theme.fontMd
                     }
                     MouseArea {
                         id: backMa
@@ -102,47 +106,47 @@ Scope {
 
                         Rectangle {
                             visible: row.sep
-                            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; leftMargin: Theme.space6; rightMargin: Theme.space6 }
+                            anchors { left: parent.left; right: parent.right; verticalCenter: parent.verticalCenter; leftMargin: Theme.space8; rightMargin: Theme.space8 }
                             height: Theme.borderThin
-                            color: Theme.tileMid
+                            color: Theme.tile
                         }
 
                         Rectangle {
                             visible: !row.sep
                             anchors.fill: parent
-                            radius: Theme.radiusXs
+                            radius: Theme.radiusControl
                             color: (ma.containsMouse && row.modelData.enabled) ? Theme.tileHover : Theme.transparent
 
                             Text {
                                 id: chk
-                                anchors { left: parent.left; leftMargin: Theme.space10; verticalCenter: parent.verticalCenter }
-                                width: Theme.trayCheckWidth
+                                anchors { left: parent.left; leftMargin: Theme.space12; verticalCenter: parent.verticalCenter }
+                                width: root.trayCheckWidth
                                 text: row.modelData.buttonType === QsMenuButtonType.None ? ""
                                     : (row.modelData.checkState === Qt.Checked ? (row.modelData.buttonType === QsMenuButtonType.RadioButton ? "●" : "✓") : "")
                                 color: Theme.text
-                                font.pixelSize: Theme.fontBody
+                                font.pixelSize: Theme.fontSm
                             }
                             IconImage {
                                 id: ico
                                 visible: row.modelData.icon !== ""
                                 anchors { left: chk.right; leftMargin: Theme.space4; verticalCenter: parent.verticalCenter }
-                                width: Theme.icon16; height: Theme.icon16
+                                width: Theme.iconMd; height: Theme.iconMd
                                 source: row.modelData.icon
                             }
                             Text {
                                 id: lbl
-                                anchors { left: ico.visible ? ico.right : chk.right; leftMargin: Theme.space8; right: parent.right; rightMargin: Theme.space30; verticalCenter: parent.verticalCenter }
+                                anchors { left: ico.visible ? ico.right : chk.right; leftMargin: Theme.space8; right: parent.right; rightMargin: Theme.space32; verticalCenter: parent.verticalCenter }
                                 text: row.modelData.text
                                 elide: Text.ElideRight
                                 color: row.modelData.enabled ? Theme.text : Theme.faint
-                                font.family: Theme.font; font.pixelSize: Theme.fontBodyLg
+                                font.family: Theme.font; font.pixelSize: Theme.fontMd
                             }
                             Text {
                                 visible: row.modelData.hasChildren
-                                anchors { right: parent.right; rightMargin: Theme.space10; verticalCenter: parent.verticalCenter }
+                                anchors { right: parent.right; rightMargin: Theme.space12; verticalCenter: parent.verticalCenter }
                                 text: "›"
                                 color: Theme.dim
-                                font.pixelSize: Theme.fontHeading
+                                font.pixelSize: Theme.fontLg
                             }
                             MouseArea {
                                 id: ma

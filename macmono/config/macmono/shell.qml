@@ -11,7 +11,6 @@ import "features/clipboard"
 import "features/controlCenter"
 import "features/emojiPicker"
 import "features/launcher"
-import "features/commandPalette"
 import "features/lock"
 import "features/media"
 import "features/menubar"
@@ -21,7 +20,6 @@ import "features/overview"
 import "features/power"
 import "features/regionSelector"
 import "features/settings"
-import "features/tools"
 import "features/tray"
 import "features/wallpaper"
 
@@ -30,9 +28,9 @@ ShellRoot {
 
     Wallpaper {}
     MenuBar {}
+    LauncherMenu {}
+    OverviewSurface {}
     TrayMenu {}
-    Launcher {}
-    CommandPalette {}
     Clipboard {}
     EmojiPicker {}
     PowerMenu {}

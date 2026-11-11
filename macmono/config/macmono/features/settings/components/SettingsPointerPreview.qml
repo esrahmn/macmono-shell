@@ -10,34 +10,34 @@ Rectangle {
     property real t: 0
     readonly property real mult: Math.pow(3, sens)
 
-    height: Theme.settingsDemoHeight + Theme.settingsRowPadY * 2
+    height: SettingsMetrics.settingsDemoHeight + SettingsMetrics.settingsRowPadY * 2
     radius: Theme.radiusCard
     color: Theme.tile
     border.width: Theme.borderThin
-    border.color: Theme.cardStroke
+    border.color: Theme.line
 
     SequentialAnimation on t {
         running: root.running
         loops: Animation.Infinite
-        NumberAnimation { from: 0; to: 1; duration: Theme.settingsDemoMs; easing.type: Easing.InOutQuad }
-        PauseAnimation { duration: Theme.settingsDemoPauseMs }
+        NumberAnimation { from: 0; to: 1; duration: SettingsMetrics.settingsDemoMs; easing.type: Easing.InOutQuad }
+        PauseAnimation { duration: SettingsMetrics.settingsDemoPauseMs }
     }
 
     Row {
-        x: Theme.settingsRowPadX
+        x: SettingsMetrics.settingsRowPadX
         anchors.verticalCenter: parent.verticalCenter
-        spacing: Theme.space22
+        spacing: Theme.space24
 
         Rectangle {
             id: pad
-            width: Theme.settingsDemoPadW
-            height: Theme.settingsDemoHeight
+            width: SettingsMetrics.settingsDemoPadW
+            height: SettingsMetrics.settingsDemoHeight
             radius: Theme.radiusCard
-            color: Theme.tileFaint
+            color: Theme.tile
             border.width: Theme.borderThin
             border.color: Theme.line
             Rectangle {
-                width: Theme.space22
+                width: Theme.space24
                 height: width
                 radius: width / 2
                 color: Theme.text
@@ -49,10 +49,10 @@ Rectangle {
 
         Rectangle {
             id: scr
-            width: Theme.settingsDemoPageW
-            height: Theme.settingsDemoHeight
+            width: SettingsMetrics.settingsDemoPageW
+            height: SettingsMetrics.settingsDemoHeight
             radius: Theme.radiusCard
-            color: Theme.tileFaint
+            color: Theme.tile
             border.width: Theme.borderThin
             border.color: Theme.line
             clip: true
@@ -60,7 +60,7 @@ Rectangle {
             Shape {
                 id: cursor
                 readonly property real startX: Theme.space16
-                readonly property real maxX: scr.width - Theme.space22
+                readonly property real maxX: scr.width - Theme.space24
                 x: startX + Math.min(maxX - startX, (scr.width * 0.3) * root.mult * root.t)
                 y: (scr.height - height) / 2
                 width: Theme.space12
@@ -77,8 +77,8 @@ Rectangle {
         Column {
             anchors.verticalCenter: parent.verticalCenter
             spacing: Theme.space4
-            SettingsText { text: root.sens === 0 ? "Normal speed" : (root.sens > 0 ? "Faster pointer" : "Slower pointer"); font.weight: Font.DemiBold; font.pixelSize: Theme.fontBody }
-            SettingsText { text: "Same hand movement, different distance"; color: Theme.settingsDescText; font.pixelSize: Theme.fontBody }
+            SettingsText { text: root.sens === 0 ? "Normal speed" : (root.sens > 0 ? "Faster pointer" : "Slower pointer"); font.weight: Theme.weightSemibold; font.pixelSize: Theme.fontSm }
+            SettingsText { text: "Same hand movement, different distance"; color: SettingsMetrics.settingsDescText; font.pixelSize: Theme.fontSm }
         }
     }
 }

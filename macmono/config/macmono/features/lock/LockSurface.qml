@@ -11,6 +11,19 @@ import "../media"
 Item {
     id: root
 
+    readonly property int lockPasswordWidth: 260
+    readonly property int lockDateSize: 14
+    readonly property real lockDateTracking: 3.1
+    readonly property real lockClockTracking: -6
+    readonly property real lockClockTopRatio: 0.09
+    readonly property real lockInputBottomRatio: 0.1
+    readonly property real lockWallpaperDim: -0.3
+    readonly property int lockShakeAmplitude: 12
+    readonly property int lockShakeAmplitudeSoft: 8
+    readonly property int animShakeFast: 50
+    readonly property int animShakeMid: 60
+    readonly property int animShakeSlow: 70
+
     required property var lock
 
     readonly property int cardWidth: 400
@@ -22,9 +35,9 @@ Item {
         id: wall
         anchors.fill: parent
         source: Sys.wallpaper !== "" ? "file://" + Sys.wallpaper : ""
-        sourceSize.width: 640
+        sourceSize.width: 2560
         fillMode: Image.PreserveAspectCrop
-        asynchronous: true
+        asynchronous: false      // first frame must already be the wallpaper, not a black screen
         cache: true
         visible: false
     }
@@ -33,12 +46,12 @@ Item {
         source: wall
         autoPaddingEnabled: false
         blurEnabled: true
-        blur: 1.0
+        blur: reveal.progress    // 0 = same as desktop; rises to 1 on lock, falls on unlock
         blurMax: 48
         saturation: Sys.wallpaperMono ? -1.0 : 0.0
-        brightness: Theme.lockWallpaperDim
+        brightness: root.lockWallpaperDim * reveal.progress
         opacity: wall.status === Image.Ready ? 1 : 0
-        Behavior on opacity { NumberAnimation { duration: Theme.animFade } }
+        Behavior on opacity { Tween {} }
     }
 
     MouseArea {
@@ -46,38 +59,47 @@ Item {
         onPressed: input.forceActiveFocus()
     }
 
+    // Masuk: wallpaper desktop -> blur + redup, elemen naik berurutan. Keluar (unlock): kebalikannya,
+    // then LockScreen.finishUnlock() opens the session. The surface is destroyed after the scene ends.
+    readonly property int rise: 28
+    Reveal {
+        id: reveal
+        open: !root.lock.unlocking
+        openStiff: Theme.revealSceneOpenStiff
+        closeStiff: Theme.revealSceneCloseStiff
+        onSettled: (isOpen) => { if (!isOpen) root.lock.finishUnlock(); }
+    }
+
     Item {
         id: content
         anchors.fill: parent
-        opacity: 0
-        Component.onCompleted: opacity = 1
-        Behavior on opacity { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
 
         RowLayout {
             anchors.top: parent.top
             anchors.right: parent.right
-            anchors.margins: Theme.space22
+            anchors.margins: Theme.space24
             spacing: Theme.space16
+            opacity: reveal.span(0.45, 1)
 
             RowLayout {
                 visible: Sys.wifiName !== ""
-                spacing: Theme.space6
-                Glyph { name: "wifi"; color: Theme.text; Layout.preferredWidth: Theme.icon16; Layout.preferredHeight: Theme.icon16 }
+                spacing: Theme.space8
+                Glyph { name: "wifi"; color: Theme.text; Layout.preferredWidth: Theme.iconMd; Layout.preferredHeight: Theme.iconMd }
                 Text {
                     text: Sys.wifiName
                     color: Theme.text
                     font.family: Theme.font
-                    font.pixelSize: Theme.fontBodyLg
+                    font.pixelSize: Theme.fontMd
                 }
             }
             RowLayout {
                 visible: Sys.batAvailable
-                spacing: Theme.space6
+                spacing: Theme.space8
                 Text {
                     text: Math.round(Sys.batPercent * 100) + "%"
                     color: Theme.text
                     font.family: Theme.font
-                    font.pixelSize: Theme.fontBodyLg
+                    font.pixelSize: Theme.fontMd
                 }
                 BatteryIcon {}
                 Glyph {
@@ -93,33 +115,38 @@ Item {
         ColumnLayout {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.top: parent.top
-            anchors.topMargin: parent.height * Theme.lockClockTopRatio
+            anchors.topMargin: parent.height * root.lockClockTopRatio
             spacing: 0
 
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: Qt.formatDateTime(Sys.now, "dddd  \u00B7  d MMMM").toUpperCase()
+                opacity: reveal.span(0.05, 0.6)
+                transform: Translate { y: -root.rise * (1 - reveal.spanTravel(0.05, 0.65)) }
                 color: Theme.dim
                 font.family: Theme.font
-                font.pixelSize: Theme.lockDateSize
-                font.weight: Font.DemiBold
-                font.letterSpacing: Theme.lockDateTracking
+                font.pixelSize: root.lockDateSize
+                font.weight: Theme.weightSemibold
+                font.letterSpacing: root.lockDateTracking
             }
             Text {
                 Layout.alignment: Qt.AlignHCenter
                 text: Qt.formatDateTime(Sys.now, "HH:mm")
+                opacity: reveal.span(0.12, 0.7)
+                scale: 0.94 + 0.06 * reveal.spanTravel(0.12, 0.8)
+                transform: Translate { y: -root.rise * (1 - reveal.spanTravel(0.12, 0.8)) }
                 color: Theme.text
                 font.family: Theme.font
                 font.pixelSize: root.clockSize
-                font.weight: Font.DemiBold
-                font.letterSpacing: Theme.lockClockTracking
+                font.weight: Theme.weightSemibold
+                font.letterSpacing: root.lockClockTracking
             }
         }
 
         ColumnLayout {
             anchors.horizontalCenter: parent.horizontalCenter
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: parent.height * Theme.lockInputBottomRatio
+            anchors.bottomMargin: parent.height * root.lockInputBottomRatio
             spacing: Theme.space16
 
             MediaCard {
@@ -127,6 +154,8 @@ Item {
                 player: root.player
                 players: [root.player]
                 panelShown: root.visible && Sys.locked
+                opacity: reveal.span(0.3, 0.85)
+                transform: Translate { y: root.rise * (1 - reveal.spanTravel(0.3, 0.9)) }
             }
 
             Rectangle {
@@ -135,13 +164,17 @@ Item {
                 Layout.preferredHeight: loginCol.implicitHeight + Theme.space16 * 2
                 color: Theme.transparent
 
-                transform: Translate { id: shakeT }
+                opacity: reveal.span(0.4, 0.95)
+                transform: [
+                    Translate { id: shakeT },
+                    Translate { y: root.rise * 1.3 * (1 - reveal.spanTravel(0.4, 1.0)) }
+                ]
                 SequentialAnimation {
                     id: shakeAnim
-                    NumberAnimation { target: shakeT; property: "x"; to: -Theme.lockShakeAmplitude; duration: Theme.animShakeFast }
-                    NumberAnimation { target: shakeT; property: "x"; to: Theme.lockShakeAmplitude; duration: Theme.animShakeSlow }
-                    NumberAnimation { target: shakeT; property: "x"; to: -Theme.lockShakeAmplitudeSoft; duration: Theme.animShakeMid }
-                    NumberAnimation { target: shakeT; property: "x"; to: 0; duration: Theme.animShakeFast }
+                    NumberAnimation { target: shakeT; property: "x"; to: -root.lockShakeAmplitude; duration: root.animShakeFast; easing.type: Theme.easeInOut }
+                    NumberAnimation { target: shakeT; property: "x"; to: root.lockShakeAmplitude; duration: root.animShakeSlow; easing.type: Theme.easeInOut }
+                    NumberAnimation { target: shakeT; property: "x"; to: -root.lockShakeAmplitudeSoft; duration: root.animShakeMid; easing.type: Theme.easeInOut }
+                    NumberAnimation { target: shakeT; property: "x"; to: 0; duration: root.animShakeFast; easing.type: Theme.easeInOut }
                 }
                 Connections {
                     target: root.lock
@@ -152,8 +185,8 @@ Item {
                 ColumnLayout {
                     id: loginCol
                     anchors.centerIn: parent
-                    width: parent.width - Theme.space30 * 2
-                    spacing: Theme.space14
+                    width: parent.width - Theme.space32 * 2
+                    spacing: Theme.space16
 
                     Item {
                         Layout.alignment: Qt.AlignHCenter
@@ -163,15 +196,15 @@ Item {
                         Rectangle {
                             anchors.fill: parent
                             radius: width / 2
-                            color: Theme.tileMid
+                            color: Theme.tile
                             visible: avatarImg.status !== Image.Ready
                             Text {
                                 anchors.centerIn: parent
                                 text: (root.userName[0] ?? "?").toUpperCase()
                                 color: Theme.text
                                 font.family: Theme.font
-                                font.pixelSize: Theme.fontDisplay
-                                font.weight: Font.DemiBold
+                                font.pixelSize: Theme.font2xl
+                                font.weight: Theme.weightSemibold
                             }
                         }
                         Image {
@@ -203,35 +236,35 @@ Item {
                         text: root.userName
                         color: Theme.text
                         font.family: Theme.font
-                        font.pixelSize: Theme.fontLead
-                        font.weight: Font.DemiBold
+                        font.pixelSize: Theme.fontLg
+                        font.weight: Theme.weightSemibold
                     }
 
                     Item {
                         Layout.alignment: Qt.AlignHCenter
-                        Layout.preferredWidth: Theme.lockPasswordWidth
+                        Layout.preferredWidth: root.lockPasswordWidth
                         Layout.preferredHeight: Settings.lockPasswordFieldHeight
                         opacity: root.lock.busy ? Theme.opacityDim : 1
 
                         Rectangle {
                             anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
                             height: Theme.borderThin
-                            color: (root.lock.failed || input.activeFocus) ? Theme.text : Theme.lineStrong
+                            color: (root.lock.failed || input.activeFocus) ? Theme.text : Theme.line
                         }
 
                         TextInput {
                             id: input
                             anchors.fill: parent
-                            anchors.leftMargin: Theme.space18
-                            anchors.rightMargin: Theme.space18
+                            anchors.leftMargin: Theme.space16
+                            anchors.rightMargin: Theme.space16
                             verticalAlignment: TextInput.AlignVCenter
                             horizontalAlignment: TextInput.AlignHCenter
                             echoMode: TextInput.Password
                             passwordCharacter: "\u25CF"
                             color: Theme.text
-                            selectionColor: Theme.selection
+                            selectionColor: Theme.tileHover
                             font.family: Theme.font
-                            font.pixelSize: Theme.fontSubtitle
+                            font.pixelSize: Theme.fontMd
                             font.letterSpacing: 2
                             readOnly: root.lock.busy
                             focus: true
@@ -260,9 +293,9 @@ Item {
                             text: root.lock.busy ? "Checking..."
                                 : root.lock.failed ? "Wrong password" + (root.lock.attempts > 1 ? " (" + root.lock.attempts + ")" : "")
                                 : "Enter password"
-                            color: root.lock.failed ? Theme.textSoft : Theme.muted
+                            color: root.lock.failed ? Theme.text : Theme.faint
                             font.family: Theme.font
-                            font.pixelSize: Theme.fontBodyLg
+                            font.pixelSize: Theme.fontMd
                         }
                     }
 
@@ -272,7 +305,7 @@ Item {
                         text: "Caps Lock is on"
                         color: Theme.dim
                         font.family: Theme.font
-                        font.pixelSize: Theme.fontSmall
+                        font.pixelSize: Theme.fontXs
                     }
                 }
             }

@@ -4,7 +4,7 @@ import "../../../core"
 Column {
     id: root
     readonly property var svc: Sys.weather
-    spacing: Theme.settingsGroupSpacing
+    spacing: SettingsMetrics.settingsGroupSpacing
 
     function pick(r) {
         SettingsStore.apply({ weatherName: r.label, weatherLat: r.lat, weatherLon: r.lon }, []);
@@ -14,28 +14,28 @@ Column {
 
     SettingsText {
         text: "LOCATION"
-        color: Theme.labelCapsText
-        font.pixelSize: Theme.labelCapsSize
-        font.weight: Font.DemiBold
-        font.letterSpacing: Theme.labelCapsTracking
-        leftPadding: Theme.settingsRowPadX
+        color: Theme.dim
+        font.pixelSize: Theme.fontXs
+        font.weight: Theme.weightSemibold
+        font.letterSpacing: Theme.trackCaps
+        leftPadding: SettingsMetrics.settingsRowPadX
     }
 
     Rectangle {
         width: parent.width
-        height: locRow.height + Theme.settingsRowPadY * 2
+        height: locRow.height + SettingsMetrics.settingsRowPadY * 2
         radius: Theme.radiusCard
         color: Theme.tile
         border.width: Theme.borderThin
-        border.color: Theme.cardStroke
+        border.color: Theme.line
         Row {
             id: locRow
-            x: Theme.settingsRowPadX
+            x: SettingsMetrics.settingsRowPadX
             anchors.verticalCenter: parent.verticalCenter
             spacing: Theme.space12
             SettingsText {
                 anchors.verticalCenter: parent.verticalCenter
-                width: parent.parent.width - Theme.settingsRowPadX * 2 - (clearBtn.visible ? clearBtn.width + Theme.space12 : 0)
+                width: parent.parent.width - SettingsMetrics.settingsRowPadX * 2 - (clearBtn.visible ? clearBtn.width + Theme.space12 : 0)
                 text: root.svc.hasLocation ? root.svc.placeName : "No location set. Weather is off."
                 color: root.svc.hasLocation ? Theme.text : Theme.dim
                 elide: Text.ElideRight
@@ -52,19 +52,19 @@ Column {
 
     Rectangle {
         width: parent.width
-        height: Theme.settingsSearchHeight
+        height: SettingsMetrics.settingsSearchHeight
         radius: Theme.radiusCard
         color: Theme.tile
         border.width: Theme.borderThin
-        border.color: field.activeFocus ? Theme.lineStrong : Theme.cardStroke
+        border.color: field.activeFocus ? Theme.line : Theme.line
         TextInput {
             id: field
-            anchors { fill: parent; leftMargin: Theme.settingsRowPadX; rightMargin: Theme.settingsRowPadX }
+            anchors { fill: parent; leftMargin: SettingsMetrics.settingsRowPadX; rightMargin: SettingsMetrics.settingsRowPadX }
             verticalAlignment: TextInput.AlignVCenter
             color: Theme.text
             font.family: Theme.font
-            font.pixelSize: Theme.fontBodyLg
-            selectionColor: Theme.selection
+            font.pixelSize: Theme.fontMd
+            selectionColor: Theme.tileHover
             selectedTextColor: Theme.text
             clip: true
             onAccepted: root.svc.search(text)
@@ -74,14 +74,14 @@ Column {
                 verticalAlignment: Text.AlignVCenter
                 visible: !field.text
                 text: "City name, then press Enter"
-                color: Theme.muted
+                color: Theme.faint
             }
         }
     }
 
     SettingsText {
         visible: root.svc.searching || root.svc.searchError !== ""
-        leftPadding: Theme.settingsRowPadX
+        leftPadding: SettingsMetrics.settingsRowPadX
         text: root.svc.searching ? "Searching…" : root.svc.searchError
         color: Theme.dim
     }
@@ -89,20 +89,20 @@ Column {
     Column {
         visible: root.svc.results.length > 0
         width: parent.width
-        spacing: Theme.space6
+        spacing: Theme.space8
         Repeater {
             model: root.svc.results
             delegate: Rectangle {
                 id: res
                 required property var modelData
                 width: parent.width
-                height: Theme.settingsListRowHeight
+                height: SettingsMetrics.settingsListRowHeight
                 radius: Theme.radiusCard
                 color: resArea.containsMouse ? Theme.tileHover : Theme.tile
                 border.width: Theme.borderThin
-                border.color: Theme.cardStroke
+                border.color: Theme.line
                 SettingsText {
-                    anchors { fill: parent; leftMargin: Theme.settingsRowPadX; rightMargin: Theme.settingsRowPadX }
+                    anchors { fill: parent; leftMargin: SettingsMetrics.settingsRowPadX; rightMargin: SettingsMetrics.settingsRowPadX }
                     verticalAlignment: Text.AlignVCenter
                     text: res.modelData.label
                     elide: Text.ElideRight
@@ -114,26 +114,26 @@ Column {
 
     SettingsText {
         text: "UNITS"
-        color: Theme.labelCapsText
-        font.pixelSize: Theme.labelCapsSize
-        font.weight: Font.DemiBold
-        font.letterSpacing: Theme.labelCapsTracking
-        leftPadding: Theme.settingsRowPadX
+        color: Theme.dim
+        font.pixelSize: Theme.fontXs
+        font.weight: Theme.weightSemibold
+        font.letterSpacing: Theme.trackCaps
+        leftPadding: SettingsMetrics.settingsRowPadX
     }
     Row {
-        x: Theme.settingsRowPadX
-        spacing: Theme.space6
+        x: SettingsMetrics.settingsRowPadX
+        spacing: Theme.space8
         SettingsChoice { label: "Celsius (°C)"; on: root.svc.unit === "c"; onPicked: SettingsStore.apply({ weatherUnit: "c" }, []) }
         SettingsChoice { label: "Fahrenheit (°F)"; on: root.svc.unit === "f"; onPicked: SettingsStore.apply({ weatherUnit: "f" }, []) }
     }
 
     SettingsText {
         width: parent.width
-        leftPadding: Theme.settingsRowPadX
-        rightPadding: Theme.settingsRowPadX
+        leftPadding: SettingsMetrics.settingsRowPadX
+        rightPadding: SettingsMetrics.settingsRowPadX
         wrapMode: Text.Wrap
         text: "Privacy: searching and weather updates contact open-meteo.com. Only the city name you type and its coordinates are sent.\nData refreshes when the calendar or this page opens. Weather data by Open-Meteo.com."
-        color: Theme.settingsDescText
-        font.pixelSize: Theme.fontBody
+        color: SettingsMetrics.settingsDescText
+        font.pixelSize: Theme.fontSm
     }
 }

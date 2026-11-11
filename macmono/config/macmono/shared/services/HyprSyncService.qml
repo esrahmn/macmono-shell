@@ -22,8 +22,9 @@ Scope {
         if (!list || list.length === 0) return "";
         return list.map(x => String(x).trim()).filter(x => x !== "").join(",");
     }
-    function buildInputLua() {
-        const v = inputValues;
+    // withKb=false is used for the live preview: keyboard layouts are never previewed,
+    // a bad layout would leave the keyboard unusable until the next reload.
+    function buildInputLua(v, withKb) {
         const lines = [
             "hl.config({",
             "    input = {",
@@ -36,10 +37,10 @@ Scope {
             "            disable_while_typing = " + bool(v.disableWhileTyping) + ",",
             "            clickfinger_behavior = " + bool(v.clickfinger) + ",",
             "            scroll_factor = " + Number(v.scrollFactor).toFixed(2) + ",",
-            "        }"
+            "        },"
         ];
         const kb = [["kb_layout", csv(v.kbLayouts)], ["kb_variant", csv(v.kbVariants)], ["kb_options", csv(v.kbOptions)]];
-        for (let i = 0; i < kb.length; i++)
+        for (let i = 0; i < kb.length && withKb; i++)
             if (kb[i][1] !== "") lines.push("        " + kb[i][0] + " = " + JSON.stringify(kb[i][1]) + ",");
         lines.push("    },", "})", "");
         return lines.join("\n");
@@ -60,11 +61,40 @@ Scope {
         id: inputProc
         stdinEnabled: true
         stderr: StdioCollector { id: inputErr }
-        onStarted: { write(root.buildInputLua()); stdinEnabled = false; }
+        onStarted: { write(root.buildInputLua(root.inputValues, true)); stdinEnabled = false; }
         onExited: (code) => {
             if (code !== 0) root.notify("Input settings were not applied: " + (inputErr.text.trim() || "Hyprland rejected the config.") + " The previous config was restored.");
             if (root.inputPending) { root.inputPending = false; root.runInput(); }
         }
+    }
+
+    // Live preview: pushes unsaved Settings values straight to Hyprland with `hyprctl eval`,
+    // without touching macmono-generated.lua. Apply still goes through runInput() (file + reload).
+    property bool previewActive: false
+    property bool previewPending: false
+    property var previewVals: ({})
+
+    function previewInput(v) { previewVals = v; previewActive = true; previewDebounce.restart(); }
+    // Back to the saved values (cancel / close without Apply).
+    function restoreInput() {
+        if (!previewActive) return;
+        previewActive = false;
+        previewVals = inputValues;
+        previewDebounce.restart();
+    }
+    // Apply takes over: the saved config is about to be rewritten and reloaded anyway.
+    function endPreview() { previewActive = false; previewDebounce.stop(); }
+
+    Timer { id: previewDebounce; interval: 60; onTriggered: root.runPreview() }
+
+    function runPreview() {
+        if (previewProc.running) { previewPending = true; return; }
+        previewProc.command = ["hyprctl", "eval", buildInputLua(previewVals, false).replace(/\n/g, " ")];
+        previewProc.running = true;
+    }
+    Process {
+        id: previewProc
+        onExited: if (root.previewPending) { root.previewPending = false; root.runPreview(); }
     }
 
     property bool idlePending: false

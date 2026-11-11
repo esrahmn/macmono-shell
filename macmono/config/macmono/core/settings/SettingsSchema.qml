@@ -77,8 +77,6 @@ Singleton {
 
         { id: "sound", label: "Sound", icon: "volume", desc: "Output, input, per-app volume and music visualizer", sound: true, groups: [] },
 
-        { id: "eq", label: "Equalizer", icon: "eq", desc: "Adjust bass, voice and treble for all system sound", eq: true, groups: [] },
-
         { id: "weather", label: "Location & Weather", icon: "pin", desc: "Choose the city and temperature units used by weather", weather: true, groups: [] },
 
         { id: "wallpaper", label: "Wallpaper", icon: "image", preview: "wallpaper", desc: "Choose folders used to find desktop wallpapers", groups: [

@@ -4,6 +4,19 @@ import "../../../shared/components"
 
 FocusScope {
     id: root
+
+    readonly property int settingsGutter: 16
+    readonly property int settingsHeaderHeight: 64
+    readonly property int settingsContentMax: 720
+    readonly property int settingsSideWidth: 236
+    readonly property int settingsBarHeight: 44
+    readonly property color settingsBarFill: Qt.rgba(0.11, 0.11, 0.11, 0.96)
+    readonly property int settingsPadTop: 16
+    readonly property int settingsSearchWidth: 240
+    readonly property int settingsSavedMs: 1700
+    readonly property int settingsScrollbarWidth: 3
+    readonly property int settingsScrollbarInset: 7
+    readonly property int settingsScrollbarMin: 24
     signal closeRequested()
     signal navMoved()
 
@@ -11,7 +24,7 @@ FocusScope {
     property var draft: ({})
 
     property bool savedFlash: false
-    Timer { id: savedTimer; interval: Theme.settingsSavedMs; onTriggered: root.savedFlash = false }
+    Timer { id: savedTimer; interval: root.settingsSavedMs; onTriggered: root.savedFlash = false }
 
     readonly property string query: searchInput.text
     readonly property bool searching: query.trim() !== ""
@@ -22,7 +35,7 @@ FocusScope {
 
     readonly property var navSections: [
         { title: "Personalization", ids: ["appearance", "display", "wallpaper"] },
-        { title: "Devices & Input", ids: ["input", "sound", "eq"] },
+        { title: "Devices & Input", ids: ["input", "sound"] },
         { title: "System", ids: ["weather", "notif", "power", "apps"] },
         { title: "MacMono", ids: ["keys", "backup", "about"] }
     ]
@@ -91,8 +104,8 @@ FocusScope {
     }
     readonly property var shownGroups: searching ? searchGroups : (currentPage ? currentPage.groups : [])
 
-    readonly property real contentW: Math.min(Theme.settingsContentMax, flick.width - Theme.settingsGutter * 2)
-    readonly property real contentX: Math.max(Theme.settingsGutter, (flick.width - contentW) / 2)
+    readonly property real contentW: Math.min(root.settingsContentMax, flick.width - root.settingsGutter * 2)
+    readonly property real contentX: Math.max(root.settingsGutter, (flick.width - contentW) / 2)
 
     function same(a, b) { return JSON.stringify(a) === JSON.stringify(b); }
 
@@ -107,6 +120,23 @@ FocusScope {
         if (same(v, SettingsStore.v(item.key, item.def))) delete next[item.key];
         else next[item.key] = v;
         draft = next;
+        if (previewKeys.indexOf(item.key) >= 0) previewInput();
+    }
+
+    // Input settings that are shown live while they are still a draft. Keyboard layout,
+    // variant and options are left out on purpose (a wrong layout can lock the keyboard).
+    readonly property var previewKeys: [
+        "inputSensitivity", "inputRepeatRate", "inputRepeatDelayMs", "inputNaturalScroll",
+        "inputTapToClick", "inputDisableWhileTyping", "inputClickfinger", "inputScrollFactor"
+    ]
+    function previewInput() {
+        const get = k => valueOf(SettingsSchema.find(k));
+        Sys.hyprSync.previewInput({
+            sensitivity: get("inputSensitivity"), repeatRate: get("inputRepeatRate"),
+            repeatDelay: get("inputRepeatDelayMs"), naturalScroll: get("inputNaturalScroll"),
+            tapToClick: get("inputTapToClick"), disableWhileTyping: get("inputDisableWhileTyping"),
+            clickfinger: get("inputClickfinger"), scrollFactor: get("inputScrollFactor")
+        });
     }
 
     function pageResettable(page) {
@@ -138,18 +168,22 @@ FocusScope {
         if (!currentPage) return;
         savedFlash = false;
         const next = Object.assign({}, draft);
+        let touchesInput = false;
         for (const g of currentPage.groups)
             for (const it of g.items) {
                 if (it.ro || it.live) continue;
+                if (previewKeys.indexOf(it.key) >= 0) touchesInput = true;
                 if (same(it.def, SettingsStore.v(it.key, it.def))) delete next[it.key];
                 else next[it.key] = it.def;
             }
         draft = next;
+        if (touchesInput) previewInput();
     }
 
     function revert() {
         savedFlash = false;
         draft = ({});
+        Sys.hyprSync.restoreInput();
     }
 
     function apply() {
@@ -167,6 +201,7 @@ FocusScope {
             if (it && it.sync) syncs[it.sync] = true;
         }
         SettingsStore.apply(sets, removes);
+        Sys.hyprSync.endPreview();
         if (syncs.input) Sys.hyprSync.syncInput();
         if (syncs.idle) Sys.hyprSync.syncIdle();
         draft = ({});
@@ -249,19 +284,19 @@ FocusScope {
         property bool primary: false
         signal clicked()
 
-        implicitWidth: btnLabel.implicitWidth + Theme.settingsButtonPadX * 2
-        implicitHeight: Theme.settingsButtonHeight
-        radius: Theme.radiusXs + 1
-        color: primary ? (btnArea.containsMouse ? Theme.inverseHover : Theme.inverse)
-                       : (btnArea.containsMouse ? Theme.tileHover : Theme.tileMid)
-        Behavior on color { ColorAnimation { duration: Theme.animHover } }
+        implicitWidth: btnLabel.implicitWidth + SettingsMetrics.settingsButtonPadX * 2
+        implicitHeight: SettingsMetrics.settingsButtonHeight
+        radius: Theme.radiusControl + 1
+        color: primary ? (btnArea.containsMouse ? Theme.accentHover : Theme.accent)
+                       : (btnArea.containsMouse ? Theme.tileHover : Theme.tile)
+        Behavior on color { TweenColor { duration: Theme.durFast } }
 
         SettingsText {
             id: btnLabel
             anchors.centerIn: parent
             text: btn.label
-            font.weight: Font.Medium
-            color: btn.primary ? Theme.inverseText : Theme.text
+            font.weight: Theme.weightMedium
+            color: btn.primary ? Theme.textOnAccent : Theme.text
         }
         MouseArea {
             id: btnArea
@@ -279,19 +314,19 @@ FocusScope {
         property string accessibleName: ""
         signal clicked()
 
-        width: Theme.icon22 + Theme.space6
+        width: Theme.iconXl + Theme.space8
         height: width
         radius: height / 2
         color: rbArea.containsMouse ? Theme.tileHover : Theme.tile
-        Behavior on color { ColorAnimation { duration: Theme.animHover } }
+        Behavior on color { TweenColor { duration: Theme.durFast } }
 
         Glyph {
             anchors.centerIn: parent
             name: rb.glyph
             rotation: rb.glyphRotation
-            color: Theme.textSoft
-            width: Theme.icon14
-            height: Theme.icon14
+            color: Theme.text
+            width: Theme.iconSm
+            height: Theme.iconSm
         }
         MouseArea {
             id: rbArea
@@ -312,7 +347,7 @@ FocusScope {
         property bool compact: false
 
         width: parent ? parent.width : 0
-        height: Theme.settingsListRowHeight
+        height: SettingsMetrics.settingsListRowHeight
 
         Connections {
             target: root
@@ -321,41 +356,41 @@ FocusScope {
 
         Rectangle {
             anchors.fill: parent
-            radius: Theme.radiusXs
-            color: navRow.current ? Theme.tileMid : (navArea.containsMouse ? Theme.tile : Theme.transparent)
-            Behavior on color { ColorAnimation { duration: Theme.animHover } }
+            radius: Theme.radiusControl
+            color: navRow.current ? Theme.tile : (navArea.containsMouse ? Theme.tile : Theme.transparent)
+            Behavior on color { TweenColor { duration: Theme.durFast } }
         }
 
         Rectangle {
             visible: navRow.rowIndex > 0 && !navRow.compact
             z: 2
-            x: Theme.settingsRowPadX + Theme.icon16 + Theme.space12
-            width: navRow.width - x - Theme.settingsRowPadX
+            x: SettingsMetrics.settingsRowPadX + Theme.iconMd + Theme.space12
+            width: navRow.width - x - SettingsMetrics.settingsRowPadX
             height: Theme.borderThin
             color: Theme.line
         }
 
         Item {
             id: iconBox
-            x: Theme.settingsRowPadX
+            x: SettingsMetrics.settingsRowPadX
             anchors.verticalCenter: parent.verticalCenter
-            width: Theme.icon16
-            height: Theme.icon16
+            width: Theme.iconMd
+            height: Theme.iconMd
 
             Glyph {
                 anchors.centerIn: parent
                 name: navRow.page ? navRow.page.icon : ""
                 color: navRow.current ? Theme.text : Theme.dim
-                width: Theme.icon16
-                height: Theme.icon16
+                width: Theme.iconMd
+                height: Theme.iconMd
             }
 
             Rectangle {
                 visible: navRow.page ? root.pageDirty(navRow.page) : false
-                width: Theme.settingsDot
-                height: Theme.settingsDot
+                width: SettingsMetrics.settingsDot
+                height: SettingsMetrics.settingsDot
                 radius: height / 2
-                color: Theme.inverse
+                color: Theme.accent
                 anchors { right: parent.right; top: parent.top; rightMargin: -Theme.space2; topMargin: -Theme.space2 }
             }
         }
@@ -363,12 +398,12 @@ FocusScope {
         Glyph {
             id: chevron
             visible: !navRow.compact
-            anchors { right: parent.right; rightMargin: Theme.settingsRowPadX; verticalCenter: parent.verticalCenter }
+            anchors { right: parent.right; rightMargin: SettingsMetrics.settingsRowPadX; verticalCenter: parent.verticalCenter }
             name: "chevron"
             rotation: -90
-            color: Theme.muted
-            width: Theme.icon14
-            height: Theme.icon14
+            color: Theme.faint
+            width: Theme.iconSm
+            height: Theme.iconSm
         }
 
         SettingsText {
@@ -379,10 +414,10 @@ FocusScope {
                 verticalCenter: parent.verticalCenter
             }
             text: navRow.page ? navRow.page.label : ""
-            color: (navRow.current || !navRow.compact) ? Theme.text : Theme.textSoft
-            font.pixelSize: navRow.compact ? Theme.fontTitle : Theme.fontHeading
-            font.weight: Font.Medium
-            font.letterSpacing: Theme.settingsRowTracking
+            color: (navRow.current || !navRow.compact) ? Theme.text : Theme.text
+            font.pixelSize: navRow.compact ? Theme.fontLg : Theme.fontLg
+            font.weight: Theme.weightMedium
+            font.letterSpacing: Theme.trackSnug
             elide: Text.ElideRight
         }
 
@@ -401,33 +436,33 @@ FocusScope {
     Rectangle {
         id: card
         anchors.fill: parent
-        radius: Theme.radiusXl
+        radius: Theme.radiusPanel
         color: Theme.panel
         border.width: Theme.borderThin
-        border.color: Theme.lineStrong
+        border.color: Theme.line
         clip: true
         MouseArea { anchors.fill: parent; acceptedButtons: Qt.AllButtons; onPressed: root.forceActiveFocus() }
 
         Item {
             id: header
             anchors { top: parent.top; left: sideNav.right; right: parent.right }
-            height: Theme.settingsHeaderHeight
+            height: root.settingsHeaderHeight
 
             SettingsText {
                 id: titleText
-                x: root.contentX + Theme.settingsRowPadX
-                width: parent.width - x - Theme.settingsSearchWidth - Theme.icon22 - Theme.space6 - Theme.settingsGutter - Theme.space10 * 2
+                x: root.contentX + SettingsMetrics.settingsRowPadX
+                width: parent.width - x - root.settingsSearchWidth - Theme.iconXl - Theme.space8 - root.settingsGutter - Theme.space12 * 2
                 anchors.verticalCenter: parent.verticalCenter
                 elide: Text.ElideRight
                 text: root.searching ? "Search" : (root.currentPage ? root.currentPage.label : "Settings")
-                font.pixelSize: Theme.settingsTitleSize
-                font.weight: Font.DemiBold
-                font.letterSpacing: Theme.settingsTitleTracking
-                font.variableAxes: ({ "opsz": 32, "wght": Font.DemiBold })
+                font.pixelSize: Theme.font2xl
+                font.weight: Theme.weightSemibold
+                font.letterSpacing: Theme.trackTight
+                font.variableAxes: ({ "opsz": 32, "wght": Theme.weightSemibold })
             }
 
             RoundBtn {
-                anchors { right: parent.right; rightMargin: Theme.settingsGutter; verticalCenter: parent.verticalCenter }
+                anchors { right: parent.right; rightMargin: root.settingsGutter; verticalCenter: parent.verticalCenter }
                 glyph: "close"
                 accessibleName: "Close"
                 onClicked: root.closeRequested()
@@ -437,7 +472,7 @@ FocusScope {
         Item {
             id: sideNav
             anchors { top: parent.top; bottom: parent.bottom; left: parent.left }
-            width: Theme.settingsSideWidth
+            width: root.settingsSideWidth
 
             Rectangle {
                 anchors { top: parent.top; bottom: parent.bottom; right: parent.right }
@@ -448,14 +483,14 @@ FocusScope {
             Item {
                 id: sideTitleBox
                 anchors { top: parent.top; left: parent.left; right: parent.right }
-                height: Theme.settingsHeaderHeight
+                height: root.settingsHeaderHeight
 
                 SettingsText {
-                    anchors { left: parent.left; leftMargin: Theme.space8 + Theme.settingsRowPadX; verticalCenter: parent.verticalCenter }
+                    anchors { left: parent.left; leftMargin: Theme.space8 + SettingsMetrics.settingsRowPadX; verticalCenter: parent.verticalCenter }
                     text: "Settings"
-                    font.pixelSize: Theme.fontTitle
-                    font.weight: Font.DemiBold
-                    font.letterSpacing: Theme.settingsRowTracking
+                    font.pixelSize: Theme.fontLg
+                    font.weight: Theme.weightSemibold
+                    font.letterSpacing: Theme.trackSnug
                 }
             }
 
@@ -463,7 +498,7 @@ FocusScope {
                 id: sideFlick
                 anchors {
                     top: sideTitleBox.bottom; bottom: parent.bottom; left: parent.left; right: parent.right
-                    leftMargin: Theme.space8; rightMargin: Theme.space8; bottomMargin: Theme.radiusXl
+                    leftMargin: Theme.space8; rightMargin: Theme.space8; bottomMargin: Theme.radiusPanel
                 }
                 contentWidth: width
                 contentHeight: sideSections.height + Theme.space16
@@ -480,7 +515,7 @@ FocusScope {
                 Column {
                     id: sideSections
                     width: parent.width
-                    spacing: Theme.settingsGroupSpacing
+                    spacing: SettingsMetrics.settingsGroupSpacing
 
                     Repeater {
                         model: root.navGroups
@@ -492,11 +527,11 @@ FocusScope {
 
                             SettingsText {
                                 text: sideSection.modelData.title.toUpperCase()
-                                color: Theme.labelCapsText
-                                font.pixelSize: Theme.labelCapsSize
-                                font.weight: Font.DemiBold
-                                font.letterSpacing: Theme.labelCapsTracking
-                                leftPadding: Theme.settingsRowPadX
+                                color: Theme.dim
+                                font.pixelSize: Theme.fontXs
+                                font.weight: Theme.weightSemibold
+                                font.letterSpacing: Theme.trackCaps
+                                leftPadding: SettingsMetrics.settingsRowPadX
                             }
 
                             Repeater {
@@ -519,13 +554,13 @@ FocusScope {
         Rectangle {
             id: searchBox
             anchors {
-                top: parent.top; topMargin: (Theme.settingsHeaderHeight - Theme.settingsSearchHeight) / 2
-                right: parent.right; rightMargin: Theme.settingsGutter + Theme.icon22 + Theme.space6 + Theme.space10
+                top: parent.top; topMargin: (root.settingsHeaderHeight - SettingsMetrics.settingsSearchHeight) / 2
+                right: parent.right; rightMargin: root.settingsGutter + Theme.iconXl + Theme.space8 + Theme.space12
             }
-            width: Theme.settingsSearchWidth
-            height: Theme.settingsSearchHeight
+            width: root.settingsSearchWidth
+            height: SettingsMetrics.settingsSearchHeight
             radius: height / 2
-            color: Theme.inset
+            color: Theme.scrim
             border.width: Theme.borderThin
             border.color: searchInput.activeFocus ? Theme.lineFocus : Theme.line
 
@@ -533,8 +568,8 @@ FocusScope {
                 id: searchIcon
                 name: "search"
                 color: Theme.dim
-                width: Theme.icon15
-                height: Theme.icon15
+                width: Theme.iconMd
+                height: Theme.iconMd
                 anchors { left: parent.left; leftMargin: Theme.space12; verticalCenter: parent.verticalCenter }
             }
 
@@ -542,9 +577,9 @@ FocusScope {
                 id: searchInput
                 anchors { left: searchIcon.right; leftMargin: Theme.space8; right: clearBtn.left; rightMargin: Theme.space4; verticalCenter: parent.verticalCenter }
                 color: Theme.text
-                selectionColor: Theme.selection
+                selectionColor: Theme.tileHover
                 font.family: Theme.font
-                font.pixelSize: Theme.fontTitle
+                font.pixelSize: Theme.fontLg
                 font.hintingPreference: Font.PreferVerticalHinting
                 renderType: TextInput.NativeRendering
                 clip: true
@@ -561,24 +596,24 @@ FocusScope {
                 SettingsText {
                     visible: searchInput.text === ""
                     text: "Search settings"
-                    color: Theme.muted
-                    font.pixelSize: Theme.fontTitle
+                    color: Theme.faint
+                    font.pixelSize: Theme.fontLg
                 }
             }
 
             Item {
                 id: clearBtn
                 visible: searchInput.text !== ""
-                width: Theme.icon22
-                height: Theme.icon22
-                anchors { right: parent.right; rightMargin: Theme.space6; verticalCenter: parent.verticalCenter }
+                width: Theme.iconXl
+                height: Theme.iconXl
+                anchors { right: parent.right; rightMargin: Theme.space8; verticalCenter: parent.verticalCenter }
 
                 Glyph {
                     anchors.centerIn: parent
                     name: "close"
                     color: Theme.dim
-                    width: Theme.icon13
-                    height: Theme.icon13
+                    width: Theme.iconSm
+                    height: Theme.iconSm
                 }
                 MouseArea {
                     anchors.fill: parent
@@ -592,8 +627,8 @@ FocusScope {
             id: flick
             anchors { top: header.bottom; topMargin: Theme.space12; bottom: parent.bottom; bottomMargin: Theme.space8; left: sideNav.right; right: parent.right }
             contentWidth: width
-            contentHeight: content.height + Theme.settingsPadTop + Theme.settingsGutter * 2
-                           + (root.barShown ? Theme.settingsBarHeight + Theme.space8 : Theme.space8)
+            contentHeight: content.height + root.settingsPadTop + root.settingsGutter * 2
+                           + (root.barShown ? root.settingsBarHeight + Theme.space8 : Theme.space8)
             clip: true
             boundsBehavior: Flickable.StopAtBounds
 
@@ -607,9 +642,9 @@ FocusScope {
             Column {
                 id: content
                 x: root.contentX
-                y: Theme.settingsPadTop
+                y: root.settingsPadTop
                 width: root.contentW
-                spacing: Theme.settingsGroupSpacing
+                spacing: SettingsMetrics.settingsGroupSpacing
                 transform: Translate { id: contentShift }
 
                 SettingsAbout {
@@ -647,11 +682,6 @@ FocusScope {
                     width: content.width
                 }
 
-                SettingsEqualizer {
-                    visible: root.atPage && root.currentPage && root.currentPage.eq === true
-                    width: content.width
-                }
-
                 SettingsNotifications {
                     visible: root.atPage && root.currentPage && root.currentPage.notifications === true
                     width: content.width
@@ -683,7 +713,7 @@ FocusScope {
 
                 SettingsText {
                     visible: root.searching && root.resultCount === 0
-                    leftPadding: Theme.settingsRowPadX
+                    leftPadding: SettingsMetrics.settingsRowPadX
                     text: "No results for “" + root.query.trim() + "”"
                     color: Theme.dim
                 }
@@ -699,11 +729,11 @@ FocusScope {
 
                         SettingsText {
                             text: group.modelData.title.toUpperCase()
-                            color: Theme.labelCapsText
-                            font.pixelSize: Theme.labelCapsSize
-                            font.weight: Font.DemiBold
-                            font.letterSpacing: Theme.labelCapsTracking
-                            leftPadding: Theme.settingsRowPadX
+                            color: Theme.dim
+                            font.pixelSize: Theme.fontXs
+                            font.weight: Theme.weightSemibold
+                            font.letterSpacing: Theme.trackCaps
+                            leftPadding: SettingsMetrics.settingsRowPadX
                         }
 
                         SettingsTouchpadPreview {
@@ -807,33 +837,33 @@ FocusScope {
 
         ParallelAnimation {
             id: pageIntro
-            NumberAnimation { target: content; property: "opacity"; from: 0; to: 1; duration: Theme.animBase; easing.type: Theme.easeOut }
-            NumberAnimation { target: contentShift; property: "y"; from: Theme.space6; to: 0; duration: Theme.animBase; easing.type: Theme.easeOut }
+            Tween { target: content; property: "opacity"; from: 0; to: 1 }
+            Tween { target: contentShift; property: "y"; from: Theme.space8; to: 0 }
             onFinished: root.doReveal()
         }
-        NumberAnimation { id: scrollAnim; target: flick; property: "contentY"; duration: Theme.animSlow; easing.type: Theme.easeOut }
+        Tween { id: scrollAnim; target: flick; property: "contentY"; duration: Theme.durSlow }
 
         Rectangle {
             visible: flick.contentHeight > flick.height
-            x: flick.x + flick.width - Theme.settingsScrollbarInset
+            x: flick.x + flick.width - root.settingsScrollbarInset
             y: flick.y + flick.visibleArea.yPosition * flick.height
-            width: Theme.settingsScrollbarWidth
-            height: Math.max(Theme.settingsScrollbarMin, flick.visibleArea.heightRatio * flick.height)
-            radius: Theme.radiusIndicator
-            color: Theme.tileStrong
+            width: root.settingsScrollbarWidth
+            height: Math.max(root.settingsScrollbarMin, flick.visibleArea.heightRatio * flick.height)
+            radius: width / 2
+            color: Theme.tilePress
         }
 
         Rectangle {
             id: statusBar
             property real slide: root.barShown ? 0 : 1
-            Behavior on slide { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
+            Behavior on slide { Tween {} }
 
-            anchors { left: sideNav.right; right: parent.right; bottom: parent.bottom; leftMargin: Theme.settingsGutter; rightMargin: Theme.settingsGutter; bottomMargin: Theme.settingsGutter }
-            height: Theme.settingsBarHeight
+            anchors { left: sideNav.right; right: parent.right; bottom: parent.bottom; leftMargin: root.settingsGutter; rightMargin: root.settingsGutter; bottomMargin: root.settingsGutter }
+            height: root.settingsBarHeight
             radius: Theme.radiusCard
-            color: Theme.settingsBarFill
+            color: root.settingsBarFill
             border.width: Theme.borderThin
-            border.color: Theme.lineStrong
+            border.color: Theme.line
             opacity: 1 - slide
             visible: opacity > 0
             transform: Translate { y: statusBar.slide * Theme.space12 }
@@ -841,7 +871,7 @@ FocusScope {
             MouseArea { anchors.fill: parent }
 
             Item {
-                anchors { left: parent.left; leftMargin: Theme.settingsRowPadX; right: barButtons.left; rightMargin: Theme.space12; verticalCenter: parent.verticalCenter }
+                anchors { left: parent.left; leftMargin: SettingsMetrics.settingsRowPadX; right: barButtons.left; rightMargin: Theme.space12; verticalCenter: parent.verticalCenter }
                 height: statusText.implicitHeight
 
                 Glyph {
@@ -850,21 +880,21 @@ FocusScope {
                     anchors { left: parent.left; verticalCenter: parent.verticalCenter }
                     name: "check"
                     color: Theme.text
-                    width: Theme.icon14
-                    height: Theme.icon14
+                    width: Theme.iconSm
+                    height: Theme.iconSm
                 }
 
                 SettingsText {
                     id: statusText
                     anchors {
                         left: savedCheck.visible ? savedCheck.right : parent.left
-                        leftMargin: savedCheck.visible ? Theme.space6 : 0
+                        leftMargin: savedCheck.visible ? Theme.space8 : 0
                         right: parent.right
                         verticalCenter: parent.verticalCenter
                     }
                     elide: Text.ElideRight
-                    font.pixelSize: Theme.fontTitle
-                    font.weight: Font.Medium
+                    font.pixelSize: Theme.fontLg
+                    font.weight: Theme.weightMedium
                     text: root.dirty
                         ? root.dirtyCount + (root.dirtyCount === 1 ? " unsaved change" : " unsaved changes")
                         : "Saved"
@@ -874,8 +904,8 @@ FocusScope {
             Row {
                 id: barButtons
                 visible: root.dirty
-                anchors { right: parent.right; rightMargin: Theme.space6; verticalCenter: parent.verticalCenter }
-                spacing: Theme.space6
+                anchors { right: parent.right; rightMargin: Theme.space8; verticalCenter: parent.verticalCenter }
+                spacing: Theme.space8
 
                 Btn { label: "Cancel"; onClicked: root.revert() }
                 Btn { label: "Apply"; primary: true; onClicked: root.apply() }

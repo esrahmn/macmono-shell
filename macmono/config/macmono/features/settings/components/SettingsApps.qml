@@ -5,6 +5,8 @@ import "../../../shared/components"
 
 Column {
     id: root
+
+    readonly property int settingsPickMax: 8
     readonly property var svc: Sys.autostart
     spacing: 0
 
@@ -29,7 +31,7 @@ Column {
             const m = x.name.toLowerCase(), n = y.name.toLowerCase();
             return m < n ? -1 : (m > n ? 1 : 0);
         });
-        return out.slice(0, Theme.settingsPickMax);
+        return out.slice(0, root.settingsPickMax);
     }
 
     function label(n) { return String(n).replace(/\s*\(disabled by macmono\)\s*$/i, ""); }
@@ -40,22 +42,22 @@ Column {
     Component.onCompleted: svc.refresh()
 
     component CapsLabel: SettingsText {
-        leftPadding: Theme.settingsRowPadX
-        color: Theme.labelCapsText
-        font.pixelSize: Theme.labelCapsSize
-        font.weight: Font.DemiBold
-        font.letterSpacing: Theme.labelCapsTracking
+        leftPadding: SettingsMetrics.settingsRowPadX
+        color: Theme.dim
+        font.pixelSize: Theme.fontXs
+        font.weight: Theme.weightSemibold
+        font.letterSpacing: Theme.trackCaps
     }
 
     component Note: SettingsText {
         width: root.width
         topPadding: Theme.space8
         bottomPadding: Theme.space4
-        leftPadding: Theme.settingsRowPadX
-        rightPadding: Theme.settingsRowPadX
+        leftPadding: SettingsMetrics.settingsRowPadX
+        rightPadding: SettingsMetrics.settingsRowPadX
         wrapMode: Text.WordWrap
         color: Theme.dim
-        font.pixelSize: Theme.fontBody
+        font.pixelSize: Theme.fontSm
     }
 
     component EntryRow: SettingsRow {
@@ -79,14 +81,14 @@ Column {
 
     Item {
         width: root.width
-        height: Theme.settingsButtonHeight
+        height: SettingsMetrics.settingsButtonHeight
 
         CapsLabel {
             anchors { left: parent.left; verticalCenter: parent.verticalCenter }
             text: "STARTUP APPLICATIONS"
         }
         SettingsButton {
-            anchors { right: parent.right; rightMargin: Theme.settingsRowPadX; verticalCenter: parent.verticalCenter }
+            anchors { right: parent.right; rightMargin: SettingsMetrics.settingsRowPadX; verticalCenter: parent.verticalCenter }
             label: root.adding ? "Close" : "+ Add"
             onClicked: root.adding = !root.adding
         }
@@ -95,24 +97,24 @@ Column {
     Column {
         visible: root.adding
         width: root.width
-        spacing: Theme.space6
+        spacing: Theme.space8
         topPadding: Theme.space8
 
         Rectangle {
             width: parent.width
-            height: Theme.settingsSearchHeight
+            height: SettingsMetrics.settingsSearchHeight
             radius: Theme.radiusCard
             color: Theme.tile
             border.width: Theme.borderThin
-            border.color: field.activeFocus ? Theme.lineStrong : Theme.cardStroke
+            border.color: field.activeFocus ? Theme.line : Theme.line
             TextInput {
                 id: field
-                anchors { fill: parent; leftMargin: Theme.settingsRowPadX; rightMargin: Theme.settingsRowPadX }
+                anchors { fill: parent; leftMargin: SettingsMetrics.settingsRowPadX; rightMargin: SettingsMetrics.settingsRowPadX }
                 verticalAlignment: TextInput.AlignVCenter
                 color: Theme.text
                 font.family: Theme.font
-                font.pixelSize: Theme.fontBodyLg
-                selectionColor: Theme.selection
+                font.pixelSize: Theme.fontMd
+                selectionColor: Theme.tileHover
                 selectedTextColor: Theme.text
                 clip: true
                 onAccepted: if (root.matches.length > 0) root.add(root.matches[0])
@@ -126,7 +128,7 @@ Column {
                     verticalAlignment: Text.AlignVCenter
                     visible: !field.text
                     text: "Search installed apps"
-                    color: Theme.muted
+                    color: Theme.faint
                 }
             }
         }
@@ -137,14 +139,14 @@ Column {
                 id: res
                 required property var modelData
                 width: parent.width
-                height: Theme.settingsListRowHeight
+                height: SettingsMetrics.settingsListRowHeight
                 radius: Theme.radiusCard
                 color: resArea.containsMouse ? Theme.tileHover : Theme.tile
                 border.width: Theme.borderThin
-                border.color: Theme.cardStroke
-                Behavior on color { ColorAnimation { duration: Theme.animHover } }
+                border.color: Theme.line
+                Behavior on color { TweenColor { duration: Theme.durFast } }
                 SettingsText {
-                    anchors { fill: parent; leftMargin: Theme.settingsRowPadX; rightMargin: Theme.settingsRowPadX }
+                    anchors { fill: parent; leftMargin: SettingsMetrics.settingsRowPadX; rightMargin: SettingsMetrics.settingsRowPadX }
                     verticalAlignment: Text.AlignVCenter
                     text: res.modelData.name
                     elide: Text.ElideRight
@@ -161,7 +163,7 @@ Column {
 
         SettingsText {
             visible: root.matches.length === 0
-            leftPadding: Theme.settingsRowPadX
+            leftPadding: SettingsMetrics.settingsRowPadX
             text: field.text.trim() === "" ? "No other apps found." : "No apps match."
             color: Theme.dim
         }
@@ -172,18 +174,18 @@ Column {
     SettingsText {
         visible: root.svc.error !== ""
         width: root.width
-        leftPadding: Theme.settingsRowPadX
-        rightPadding: Theme.settingsRowPadX
+        leftPadding: SettingsMetrics.settingsRowPadX
+        rightPadding: SettingsMetrics.settingsRowPadX
         topPadding: Theme.space4
         wrapMode: Text.WordWrap
         text: root.svc.error
-        font.pixelSize: Theme.fontBody
+        font.pixelSize: Theme.fontSm
     }
 
     SettingsText {
         visible: root.liveEntries.length === 0
         width: root.width
-        leftPadding: Theme.settingsRowPadX
+        leftPadding: SettingsMetrics.settingsRowPadX
         topPadding: Theme.space8
         text: (root.svc.loading && root.svc.entries.length === 0) ? "Reading startup entries…" : "No startup applications for Hyprland yet."
         color: Theme.dim
@@ -197,25 +199,25 @@ Column {
     Item {
         visible: root.inertEntries.length > 0
         width: root.width
-        height: visible ? Theme.settingsGroupSpacing + Theme.settingsListRowHeight : 0
+        height: visible ? SettingsMetrics.settingsGroupSpacing + SettingsMetrics.settingsListRowHeight : 0
 
         Item {
             anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-            height: Theme.settingsListRowHeight
+            height: SettingsMetrics.settingsListRowHeight
 
             CapsLabel {
                 anchors { left: parent.left; verticalCenter: parent.verticalCenter }
                 text: "NOT USED ON HYPRLAND  ·  " + root.inertEntries.length
-                color: inertArea.containsMouse ? Theme.text : Theme.labelCapsText
+                color: inertArea.containsMouse ? Theme.text : Theme.dim
             }
             Glyph {
-                anchors { right: parent.right; rightMargin: Theme.settingsRowPadX; verticalCenter: parent.verticalCenter }
-                width: Theme.icon13
-                height: Theme.icon13
+                anchors { right: parent.right; rightMargin: SettingsMetrics.settingsRowPadX; verticalCenter: parent.verticalCenter }
+                width: Theme.iconSm
+                height: Theme.iconSm
                 name: "chevron"
                 color: Theme.dim
                 rotation: root.showInert ? 0 : -90
-                Behavior on rotation { NumberAnimation { duration: Theme.animHover } }
+                Behavior on rotation { Tween { duration: Theme.durFast } }
             }
             MouseArea {
                 id: inertArea

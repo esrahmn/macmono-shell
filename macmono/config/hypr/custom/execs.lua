@@ -1,5 +1,1 @@
--- User overrides: autostart (hyprland.start)
--- Contoh:
--- hl.on("hyprland.start", function()
---     hl.exec_cmd("my-app")
--- end)
+

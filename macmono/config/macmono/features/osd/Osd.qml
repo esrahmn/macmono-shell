@@ -6,6 +6,12 @@ import "../../shared/components"
 
 Scope {
     id: root
+
+    readonly property int osdWidth: 240
+    readonly property int osdHeight: 56
+    readonly property int osdSlideFrom: 48
+    readonly property int osdLabelWidth: 34
+    readonly property int osdTrackHeight: 6
     property string kind: "volume"
     property string screenName: ""
     property bool shown: false
@@ -41,11 +47,13 @@ Scope {
 
             readonly property bool active: root.shown && root.screenName === win.modelData.name
 
-            visible: pill.opacity > 0.01
+            Reveal { id: reveal; open: win.active }
+
+            visible: reveal.present
             anchors { top: true }
             margins { top: Theme.barMargin + Theme.barHeight + Theme.space8 }
-            implicitWidth: Theme.osdWidth
-            implicitHeight: Theme.osdHeight
+            implicitWidth: root.osdWidth
+            implicitHeight: root.osdHeight
             exclusionMode: ExclusionMode.Ignore
             color: Theme.transparent
             mask: Region {}
@@ -57,53 +65,38 @@ Scope {
                 id: pill
                 anchors.fill: parent
                 radius: height / 2
-                color: Theme.popup
+                color: Theme.panel
                 border.width: Theme.borderThin
-                border.color: Theme.lineStrong
-                opacity: win.active ? 1 : 0
-                Behavior on opacity {
-                    NumberAnimation {
-                        duration: win.active ? Theme.animFade : Theme.animBase
-                        easing.type: win.active ? Theme.easeOut : Theme.easeIn
-                    }
-                }
-                transform: Translate {
-                    id: slide
-                    y: win.active ? 0 : -Theme.osdSlideFrom
-                    Behavior on y {
-                        NumberAnimation {
-                            duration: win.active ? Theme.animOpen : Theme.animBase
-                            easing.type: win.active ? Theme.easeOut : Theme.easeIn
-                        }
-                    }
-                }
+                border.color: Theme.line
+                opacity: reveal.progress
+                transform: Translate { y: -root.osdSlideFrom * (1 - reveal.progress) }
 
                 Glyph {
                     id: ic
-                    anchors { left: parent.left; leftMargin: Theme.space18; verticalCenter: parent.verticalCenter }
-                    width: Theme.icon20; height: Theme.icon20
+                    anchors { left: parent.left; leftMargin: Theme.space16; verticalCenter: parent.verticalCenter }
+                    width: Theme.iconLg; height: Theme.iconLg
                     name: root.kind === "brightness" ? "sun" : (Sys.muted ? "mute" : "volume")
                     color: Theme.text
                 }
                 Rectangle {
-                    anchors { left: ic.right; leftMargin: Theme.space14; right: pct.left; rightMargin: Theme.space12; verticalCenter: parent.verticalCenter }
-                    height: Theme.osdTrackHeight; radius: Math.min(width, height) / 2
+                    anchors { left: ic.right; leftMargin: Theme.space16; right: pct.left; rightMargin: Theme.space12; verticalCenter: parent.verticalCenter }
+                    height: root.osdTrackHeight; radius: Math.min(width, height) / 2
                     color: Theme.tileHover
                     Rectangle {
                         width: parent.width * Math.max(0, Math.min(1, root.level))
                         height: parent.height; radius: Math.min(width, height) / 2
-                        color: Theme.text
-                        Behavior on width { NumberAnimation { duration: Theme.animPress } }
+                        color: Theme.accent
+                        Behavior on width { Tween { duration: Theme.durFast } }
                     }
                 }
                 Text {
                     id: pct
-                    anchors { right: parent.right; rightMargin: Theme.space18; verticalCenter: parent.verticalCenter }
-                    width: Theme.osdLabelWidth
+                    anchors { right: parent.right; rightMargin: Theme.space16; verticalCenter: parent.verticalCenter }
+                    width: root.osdLabelWidth
                     horizontalAlignment: Text.AlignRight
                     text: Math.round(root.level * 100)
                     color: Theme.dim
-                    font.family: Theme.font; font.pixelSize: Theme.fontBodyLg; font.weight: Font.Medium
+                    font.family: Theme.font; font.pixelSize: Theme.fontMd; font.weight: Theme.weightMedium
                 }
             }
         }

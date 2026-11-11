@@ -3,36 +3,41 @@ import "../../../core"
 import "../../../shared/components"
 
 Rectangle {
+    id: root
+
+    readonly property int btHeaderHeight: 36
+    readonly property int btHintHeight: 64
+    readonly property int btToggleHeight: 30
     property bool open: false
 
     readonly property real fullHeight: col.implicitHeight + 12
     implicitHeight: open ? fullHeight : 0
-    Behavior on implicitHeight { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
+    Behavior on implicitHeight { Tween {} }
     opacity: open ? 1 : 0
-    Behavior on opacity { NumberAnimation { duration: Theme.animFade } }
+    Behavior on opacity { Tween {} }
     visible: implicitHeight > 0.5
     radius: Theme.radiusCard
-    color: Theme.well
-    border.width: Theme.borderThin; border.color: Theme.cardStroke
+    color: Theme.scrim
+    border.width: Theme.borderThin; border.color: Theme.line
     clip: true
 
     onOpenChanged: Sys.setBtScan(open)
 
     Column {
         id: col
-        anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space6 }
+        anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space8 }
 
         Text {
             visible: Sys.btOn && Sys.btDevices.length === 0
-            width: parent.width; height: Theme.btHeaderHeight
+            width: parent.width; height: root.btHeaderHeight
             horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
             text: "No paired devices"
             color: Theme.dim
-            font.family: Theme.font; font.pixelSize: Theme.fontBodyLg
+            font.family: Theme.font; font.pixelSize: Theme.fontMd
         }
         Item {
             visible: !Sys.btOn
-            width: parent.width; height: Theme.btHintHeight
+            width: parent.width; height: root.btHintHeight
             Column {
                 anchors.centerIn: parent
                 spacing: Theme.space8
@@ -40,17 +45,17 @@ Rectangle {
                     anchors.horizontalCenter: parent.horizontalCenter
                     text: Sys.btAvailable ? "Bluetooth is off" : "No Bluetooth adapter"
                     color: Theme.dim
-                    font.family: Theme.font; font.pixelSize: Theme.fontBodyLg
+                    font.family: Theme.font; font.pixelSize: Theme.fontMd
                 }
                 MouseArea {
                     id: onBtn
                     visible: Sys.btAvailable
                     anchors.horizontalCenter: parent.horizontalCenter
-                    width: onText.implicitWidth + 28; height: Theme.btToggleHeight
+                    width: onText.implicitWidth + 28; height: root.btToggleHeight
                     hoverEnabled: true
                     onClicked: Sys.toggleBt()
-                    Rectangle { anchors.fill: parent; radius: Math.min(width, height) / 2; color: onBtn.containsMouse ? Theme.inverseHover : Theme.inverse }
-                    Text { id: onText; anchors.centerIn: parent; text: "Turn On"; color: Theme.inverseText; font.family: Theme.font; font.pixelSize: Theme.fontBody; font.weight: Font.DemiBold }
+                    Rectangle { anchors.fill: parent; radius: Math.min(width, height) / 2; color: onBtn.containsMouse ? Theme.accentHover : Theme.accent }
+                    Text { id: onText; anchors.centerIn: parent; text: "Turn On"; color: Theme.textOnAccent; font.family: Theme.font; font.pixelSize: Theme.fontSm; font.weight: Theme.weightSemibold }
                 }
             }
         }
@@ -70,11 +75,11 @@ Rectangle {
         Text {
             visible: Sys.btOn
             width: parent.width; height: Theme.listSubheaderHeight
-            leftPadding: 10
+            leftPadding: Theme.space12
             verticalAlignment: Text.AlignBottom
             text: Sys.btScanning ? "Nearby devices · scanning…" : "Nearby devices"
             color: Theme.faint
-            font.family: Theme.font; font.pixelSize: Theme.fontSmall; font.weight: Font.DemiBold
+            font.family: Theme.font; font.pixelSize: Theme.fontXs; font.weight: Theme.weightSemibold
         }
         Repeater {
             model: Sys.btOn ? Sys.btNew : []
@@ -89,15 +94,15 @@ Rectangle {
 
         Item {
             width: col.width; height: Theme.listFooterHeight
-            Rectangle { anchors { left: parent.left; right: parent.right; top: parent.top; leftMargin: Theme.space6; rightMargin: Theme.space6 } height: 1; color: Theme.line }
+            Rectangle { anchors { left: parent.left; right: parent.right; top: parent.top; leftMargin: Theme.space8; rightMargin: Theme.space8 } height: 1; color: Theme.line }
             MouseArea {
                 id: setBtn
                 anchors { left: parent.left; leftMargin: Theme.space4; verticalCenter: parent.verticalCenter }
                 width: setText.implicitWidth + 20; height: Theme.listActionHeight
                 hoverEnabled: true
                 onClicked: Sys.openBtSettings()
-                Rectangle { anchors.fill: parent; radius: Math.min(width, height) / 2; color: setBtn.containsMouse ? Theme.tileMid : Theme.transparent }
-                Text { id: setText; anchors.centerIn: parent; text: "Bluetooth Settings…"; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontBodyLg }
+                Rectangle { anchors.fill: parent; radius: Math.min(width, height) / 2; color: setBtn.containsMouse ? Theme.tile : Theme.transparent }
+                Text { id: setText; anchors.centerIn: parent; text: "Bluetooth Settings…"; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontMd }
             }
         }
     }
@@ -107,29 +112,29 @@ Rectangle {
         property var dev: null
         property string sub: ""
         signal picked()
-        height: Theme.listRowHeight; radius: Theme.radiusSmall
-        color: ma.containsMouse ? Theme.tileMid : Theme.transparent
+        height: Theme.listRowHeight; radius: Theme.radiusControl
+        color: ma.containsMouse ? Theme.tile : Theme.transparent
         Column {
-            anchors { left: parent.left; leftMargin: Theme.space10; right: tick.left; rightMargin: Theme.space8; verticalCenter: parent.verticalCenter }
+            anchors { left: parent.left; leftMargin: Theme.space12; right: tick.left; rightMargin: Theme.space8; verticalCenter: parent.verticalCenter }
             Text {
                 width: parent.width; elide: Text.ElideRight
                 text: dr.dev?.name ?? ""
                 color: Theme.text
-                font.family: Theme.font; font.pixelSize: Theme.fontSubtitle
-                font.weight: dr.dev?.connected ? Font.DemiBold : Font.Normal
+                font.family: Theme.font; font.pixelSize: Theme.fontMd
+                font.weight: dr.dev?.connected ? Theme.weightSemibold : Theme.weightRegular
             }
             Text {
                 width: parent.width; elide: Text.ElideRight
                 text: dr.sub
                 color: Theme.dim
-                font.family: Theme.font; font.pixelSize: Theme.fontSmall
+                font.family: Theme.font; font.pixelSize: Theme.fontXs
             }
         }
         Glyph {
             id: tick
             visible: dr.dev?.connected ?? false
-            anchors { right: parent.right; rightMargin: Theme.space10; verticalCenter: parent.verticalCenter }
-            width: Theme.icon14; height: Theme.icon14
+            anchors { right: parent.right; rightMargin: Theme.space12; verticalCenter: parent.verticalCenter }
+            width: Theme.iconSm; height: Theme.iconSm
             name: "check"
             color: Theme.text
         }

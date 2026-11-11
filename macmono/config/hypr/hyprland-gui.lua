@@ -2,6 +2,11 @@
 
 -- Settings
 hl.config({
+    decoration = {
+        blur = {
+            popups = true,
+        },
+    },
     dwindle = {
         smart_resizing = true,
     },

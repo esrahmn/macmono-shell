@@ -4,6 +4,9 @@ import "../../../core"
 
 Item {
     id: root
+
+    readonly property int settingsPreviewSourceWidth: 960
+    readonly property int settingsThumbSourceWidth: 380
     property string path: ""
     property bool thumb: false
     property int cornerRadius: Theme.radiusCard
@@ -18,7 +21,7 @@ Item {
         visible: false
         asynchronous: true
         fillMode: Image.PreserveAspectCrop
-        sourceSize.width: root.thumb ? Theme.settingsThumbSourceWidth : Theme.settingsPreviewSourceWidth
+        sourceSize.width: root.thumb ? root.settingsThumbSourceWidth : root.settingsPreviewSourceWidth
         source: root.path === "" ? "" : "file://" + ((root.thumb && !root.useOrig) ? Sys.thumbFor(root.path) : root.path)
         onStatusChanged: if (status === Image.Error && root.thumb && !root.useOrig) root.useOrig = true
     }

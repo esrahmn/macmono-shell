@@ -1,5 +1,1 @@
--- User overrides: variabel & app default
--- Shell default (qsConfig) sudah macmono di hyprland/variables.lua
--- Contoh:
--- terminal = "kitty"
--- browser = "firefox"
+

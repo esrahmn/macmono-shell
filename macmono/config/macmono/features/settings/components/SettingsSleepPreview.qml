@@ -18,45 +18,45 @@ Rectangle {
     }
     readonly property real axisMax: Math.max(15, events.length ? events[events.length - 1].m : 0)
 
-    height: tlBody.height + Theme.settingsRowPadY * 2
+    height: tlBody.height + SettingsMetrics.settingsRowPadY * 2
     radius: Theme.radiusCard
     color: Theme.tile
     border.width: Theme.borderThin
-    border.color: Theme.cardStroke
+    border.color: Theme.line
 
     Item {
         id: tlBody
-        x: Theme.settingsRowPadX
-        y: Theme.settingsRowPadY
-        width: root.width - Theme.settingsRowPadX * 2
+        x: SettingsMetrics.settingsRowPadX
+        y: SettingsMetrics.settingsRowPadY
+        width: root.width - SettingsMetrics.settingsRowPadX * 2
         height: root.events.length === 0 ? emptyText.height
-                : Theme.settingsMarkSize + Theme.space4 + (root.events.length > 1 ? Theme.fontBody * 2 + Theme.space6 : Theme.fontBody) + Theme.space4
+                : SettingsMetrics.settingsMarkSize + Theme.space4 + (root.events.length > 1 ? Theme.fontSm * 2 + Theme.space8 : Theme.fontSm) + Theme.space4
 
         SettingsText {
             id: emptyText
             visible: root.events.length === 0
             width: parent.width
             text: "Nothing happens automatically. The screen stays on and the computer never sleeps."
-            color: Theme.settingsDescText
-            font.pixelSize: Theme.fontBody
+            color: SettingsMetrics.settingsDescText
+            font.pixelSize: Theme.fontSm
             wrapMode: Text.Wrap
         }
 
         Item {
             visible: root.events.length > 0
             anchors.fill: parent
-            readonly property real trackW: width - Theme.settingsMarkSize
+            readonly property real trackW: width - SettingsMetrics.settingsMarkSize
 
             Rectangle {
-                x: Theme.settingsMarkSize / 2
-                y: Theme.settingsMarkSize / 2 - height / 2
+                x: SettingsMetrics.settingsMarkSize / 2
+                y: SettingsMetrics.settingsMarkSize / 2 - height / 2
                 width: parent.trackW
-                height: Theme.settingsSliderTrack
+                height: SettingsMetrics.settingsSliderTrack
                 radius: height / 2
                 color: Theme.tileHover
             }
-            Rectangle { x: 0; y: 0; width: Theme.settingsMarkSize; height: width; radius: width / 2; color: Theme.dim }
-            SettingsText { x: 0; y: Theme.settingsMarkSize + Theme.space4; text: "Idle"; color: Theme.dim; font.pixelSize: Theme.fontCaption }
+            Rectangle { x: 0; y: 0; width: SettingsMetrics.settingsMarkSize; height: width; radius: width / 2; color: Theme.dim }
+            SettingsText { x: 0; y: SettingsMetrics.settingsMarkSize + Theme.space4; text: "Idle"; color: Theme.dim; font.pixelSize: Theme.fontXs }
 
             Repeater {
                 model: root.events
@@ -64,20 +64,20 @@ Rectangle {
                     id: ev
                     required property var modelData
                     required property int index
-                    readonly property real cx: Theme.settingsMarkSize / 2 + parent.trackW * (modelData.m / root.axisMax)
+                    readonly property real cx: SettingsMetrics.settingsMarkSize / 2 + parent.trackW * (modelData.m / root.axisMax)
                     Rectangle {
                         x: ev.cx - width / 2
                         y: 0
-                        width: Theme.settingsMarkSize
+                        width: SettingsMetrics.settingsMarkSize
                         height: width
                         radius: width / 2
                         color: Theme.text
                     }
                     SettingsText {
                         x: Math.max(0, Math.min(ev.parent.width - width, ev.cx - width / 2))
-                        y: Theme.settingsMarkSize + Theme.space4 + (ev.index % 2) * (Theme.fontBody + Theme.space6)
+                        y: SettingsMetrics.settingsMarkSize + Theme.space4 + (ev.index % 2) * (Theme.fontSm + Theme.space8)
                         text: ev.modelData.label + " · " + ev.modelData.m + " min"
-                        font.pixelSize: Theme.fontBody
+                        font.pixelSize: Theme.fontSm
                     }
                 }
             }

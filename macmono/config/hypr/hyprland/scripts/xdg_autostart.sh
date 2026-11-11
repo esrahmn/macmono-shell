@@ -1,7 +1,4 @@
 #!/usr/bin/env bash
-# Jalanin autostart XDG untuk Hyprland. Aturan: file ~/.config/autostart menimpa file
-# bernama sama di /etc/xdg/autostart; Hidden=true / OnlyShowIn / NotShowIn dihormati.
-# DRY=1 -> cuma cetak apa yang akan jalan.
 exec python3 - "$@" <<'PY'
 import os, subprocess, configparser, glob
 desk = os.environ.get("XDG_CURRENT_DESKTOP", "Hyprland").split(":")[0] or "Hyprland"
@@ -12,7 +9,7 @@ seen, run = set(), []
 for d in dirs:
     for f in sorted(glob.glob(os.path.join(d, "*.desktop"))):
         name = os.path.basename(f)
-        if name in seen: continue          # yang lebih dulu (user) menang
+        if name in seen: continue
         seen.add(name)
         c = configparser.RawConfigParser(strict=False, interpolation=None)
         try: c.read(f, encoding="utf-8")

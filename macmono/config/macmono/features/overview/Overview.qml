@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Hyprland
 import "../../core"
+import "../../shared/components"
 
 Rectangle {
     id: ov
@@ -32,6 +33,58 @@ Rectangle {
 
     property bool dragging: false
     property int dragTarget: -1
+
+    // Keyboard navigation: workspace cursor (arrows) and window cursor (Tab).
+    property bool kbActive: false
+    property int cursorWs: -1
+    property string cursorWin: ""
+    readonly property int cur: (cursorWs >= firstWs && cursorWs < firstWs + perGroup) ? cursorWs : activeWs
+
+    function resetCursor() { kbActive = false; cursorWs = -1; cursorWin = ""; }
+    function moveCursor(dx, dy) {
+        const i = cur - firstWs;
+        const c = Math.max(0, Math.min(cols - 1, (i % cols) + dx));
+        const r = Math.max(0, Math.min(rows - 1, Math.floor(i / cols) + dy));
+        cursorWs = firstWs + r * cols + c;
+        cursorWin = "";
+        kbActive = true;
+    }
+    function cycleWindow(dir) {
+        const list = clients.slice().sort((a, b) => a.workspace.id - b.workspace.id);
+        const n = list.length;
+        if (n === 0) return;
+        let i = list.findIndex(c => c.address === cursorWin);
+        i = i < 0 ? (dir > 0 ? 0 : n - 1) : (i + dir + n) % n;
+        cursorWin = list[i].address;
+        cursorWs = list[i].workspace.id;
+        kbActive = true;
+    }
+    function activateCursor() {
+        if (cursorWin !== "") ov.activated("hl.dsp.focus({ window = \"address:" + cursorWin + "\" })");
+        else ov.activated("hl.dsp.focus({ workspace = " + cur + " })");
+    }
+    function closeCursorWindow() {
+        if (cursorWin === "") return;
+        dispatch("hl.dsp.window.close({ window = \"address:" + cursorWin + "\" })");
+        cursorWin = "";
+    }
+    function handleKey(e) {
+        switch (e.key) {
+        case Qt.Key_Left:  case Qt.Key_H: moveCursor(-1, 0); return true;
+        case Qt.Key_Right: case Qt.Key_L: moveCursor(1, 0); return true;
+        case Qt.Key_Up:    case Qt.Key_K: moveCursor(0, -1); return true;
+        case Qt.Key_Down:  case Qt.Key_J: moveCursor(0, 1); return true;
+        case Qt.Key_Tab:     cycleWindow(1); return true;
+        case Qt.Key_Backtab: cycleWindow(-1); return true;
+        case Qt.Key_Return: case Qt.Key_Enter: case Qt.Key_Space: activateCursor(); return true;
+        case Qt.Key_Delete: case Qt.Key_Backspace: case Qt.Key_X: closeCursorWindow(); return true;
+        }
+        if (e.key >= Qt.Key_1 && e.key <= Qt.Key_9 && e.key - Qt.Key_0 <= perGroup) {
+            ov.activated("hl.dsp.focus({ workspace = " + (firstWs + e.key - Qt.Key_0 - 1) + " })");
+            return true;
+        }
+        return false;
+    }
 
     readonly property var clients: Sys.hyprClients.filter(c =>
         c.mapped && c.workspace && c.workspace.id >= firstWs && c.workspace.id < firstWs + perGroup)
@@ -75,23 +128,24 @@ Rectangle {
                 required property int index
                 readonly property int ws: ov.firstWs + index
                 readonly property bool isTarget: ov.dragging && ov.dragTarget === ws
+                readonly property bool isCursor: ov.kbActive && ov.cursorWin === "" && ov.cur === ws
                 x: (index % ov.cols) * (ov.wsW + ov.gap)
                 y: Math.floor(index / ov.cols) * (ov.wsH + ov.gap)
                 width: ov.wsW
                 height: ov.wsH
                 radius: Theme.radiusCard
-                color: isTarget ? Theme.tileHover : (cellArea.containsMouse && !ov.dragging ? Theme.tile : Theme.tileFaint)
-                border.width: isTarget ? 2 : 1
-                border.color: isTarget ? Theme.text : Theme.line
-                Behavior on color { ColorAnimation { duration: Theme.animHover } }
+                color: (isTarget || isCursor) ? Theme.tileHover : (cellArea.containsMouse && !ov.dragging ? Theme.tile : Theme.tile)
+                border.width: (isTarget || isCursor) ? 2 : 1
+                border.color: isTarget ? Theme.text : (isCursor ? Theme.text : Theme.line)
+                Behavior on color { TweenColor { duration: Theme.durFast } }
 
                 Text {
                     anchors.centerIn: parent
                     text: cell.ws
-                    color: Theme.ghost
+                    color: Theme.line
                     font.family: Theme.font
                     font.pixelSize: Math.round(ov.wsH * 0.42)
-                    font.weight: Font.Bold
+                    font.weight: Theme.weightSemibold
                 }
 
                 MouseArea {
@@ -123,6 +177,7 @@ Rectangle {
                 property real dy: 0
                 property bool held: false
                 property bool moved: false
+                readonly property bool sel: ov.kbActive && ov.cursorWin === modelData
 
                 readonly property bool wantsPreview: ov.live && Settings.overviewLivePreview && toplevel !== null
                 property bool capReset: false
@@ -147,14 +202,14 @@ Rectangle {
                 height: Math.max(10, Math.min((c?.size[1] ?? 0) * ov.s, ov.wsH))
                 z: held ? 100 : ((c?.floating ? 3 : 2) + (c?.fullscreen ? 2 : 0))
                 scale: held && moved ? 1.04 : 1
-                Behavior on x { enabled: !w.held; NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
-                Behavior on y { enabled: !w.held; NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
-                Behavior on scale { NumberAnimation { duration: Theme.animHover } }
+                Behavior on x { enabled: !w.held; Tween {} }
+                Behavior on y { enabled: !w.held; Tween {} }
+                Behavior on scale { Tween { duration: Theme.durFast } }
 
                 Rectangle {
                     anchors.fill: parent
-                    radius: Theme.radiusXs
-                    color: Theme.raised
+                    radius: Theme.radiusControl
+                    color: Theme.scrim
                 }
 
                 ScreencopyView {
@@ -174,17 +229,17 @@ Rectangle {
                     elide: Text.ElideRight
                     wrapMode: Text.Wrap
                     maximumLineCount: 3
-                    color: Theme.muted
+                    color: Theme.faint
                     font.family: Theme.font
-                    font.pixelSize: Theme.fontSmall
+                    font.pixelSize: Theme.fontXs
                 }
 
                 Rectangle {
                     anchors.fill: parent
-                    radius: Theme.radiusXs
-                    color: area.containsMouse ? Theme.tileMid : Theme.transparent
-                    border.width: area.containsMouse || w.held ? 2 : 1
-                    border.color: area.containsMouse || w.held ? Theme.text : Theme.lineStrong
+                    radius: Theme.radiusControl
+                    color: (area.containsMouse || w.sel) ? Theme.tile : Theme.transparent
+                    border.width: area.containsMouse || w.held || w.sel ? 2 : 1
+                    border.color: area.containsMouse || w.held || w.sel ? Theme.text : Theme.line
                 }
 
                 MouseArea {
@@ -244,8 +299,8 @@ Rectangle {
             color: Theme.transparent
             border.width: Theme.borderStrong
             border.color: Theme.text
-            Behavior on x { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
-            Behavior on y { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
+            Behavior on x { Tween {} }
+            Behavior on y { Tween {} }
         }
     }
 }

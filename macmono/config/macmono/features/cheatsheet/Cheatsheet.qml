@@ -5,6 +5,12 @@ import "../../core"
 import "../../shared/components"
 
 Scope {
+    id: root
+
+    readonly property int cheatsheetWidth: 400
+    readonly property int cheatsheetPadding: 20
+    readonly property int cheatsheetGroupSpacing: 22
+    readonly property int cheatsheetRowHeight: 26
     readonly property var groups: KeyList.groups
 
     Variants {
@@ -18,6 +24,7 @@ Scope {
             readonly property bool shown: Sys.cheatOpen && Sys.cheatScreen === modelData.name
             Reveal { id: reveal; open: win.shown }
             readonly property real anim: reveal.progress
+            readonly property real travel: reveal.travel
             readonly property bool present: reveal.present
             onShownChanged: if (shown) keys.forceActiveFocus()
 
@@ -46,19 +53,19 @@ Scope {
                     top: parent.top; bottom: parent.bottom; left: parent.left
                     topMargin: Theme.drawerGap; bottomMargin: Theme.space8; leftMargin: Theme.space8
                 }
-                width: Math.min(Theme.cheatsheetWidth, win.width - Theme.space8 * 2)
+                width: Math.min(root.cheatsheetWidth, win.width - Theme.space8 * 2)
                 radius: Theme.radiusPanel
                 color: Theme.panel
                 border.width: Theme.borderThin
                 border.color: Theme.line
                 clip: true
-                transform: Translate { x: -(card.width + Theme.space8) * (1 - Math.min(1, win.anim)) }
+                transform: Translate { x: Theme.drawerOffset(card.width + Theme.space8, win.travel) }
 
                 MouseArea { anchors.fill: parent }
 
                 Flickable {
                     id: flick
-                    anchors { fill: parent; margins: Theme.cheatsheetPadding }
+                    anchors { fill: parent; margins: root.cheatsheetPadding }
                     contentWidth: width
                     contentHeight: content.height
                     clip: true
@@ -68,12 +75,12 @@ Scope {
                     Column {
                         id: content
                         width: flick.width
-                        spacing: Theme.cheatsheetGroupSpacing
+                        spacing: root.cheatsheetGroupSpacing
 
                         Text {
                             text: "Keyboard shortcuts"
                             color: Theme.text
-                            font.family: Theme.font; font.pixelSize: Theme.panelTitleSize; font.weight: Font.DemiBold; font.letterSpacing: Theme.panelTitleTracking
+                            font.family: Theme.font; font.pixelSize: Theme.font2xl; font.weight: Theme.weightSemibold; font.letterSpacing: Theme.trackTight
                         }
 
                         Repeater {
@@ -86,9 +93,9 @@ Scope {
 
                                 Text {
                                     text: grp.modelData.title.toUpperCase()
-                                    color: Theme.labelCapsText
-                                    font.family: Theme.font; font.pixelSize: Theme.labelCapsSize; font.weight: Font.DemiBold
-                                    font.letterSpacing: Theme.labelCapsTracking
+                                    color: Theme.dim
+                                    font.family: Theme.font; font.pixelSize: Theme.fontXs; font.weight: Theme.weightSemibold
+                                    font.letterSpacing: Theme.trackCaps
                                 }
                                 Repeater {
                                     model: grp.modelData.items
@@ -96,27 +103,16 @@ Scope {
                                         id: row
                                         required property var modelData
                                         width: grp.width
-                                        height: Theme.cheatsheetRowHeight
+                                        height: root.cheatsheetRowHeight
                                         Row {
                                             id: caps
                                             anchors.verticalCenter: parent.verticalCenter
                                             spacing: Theme.space4
                                             Repeater {
                                                 model: row.modelData[0].split(" + ")
-                                                delegate: Rectangle {
+                                                delegate: UiKeycap {
                                                     required property string modelData
-                                                    width: Math.max(Theme.cheatsheetKeycapMinWidth, capText.implicitWidth + Theme.cheatsheetKeycapPadding)
-                                                    height: Theme.cheatsheetKeycapHeight
-                                                    radius: Theme.radiusKey
-                                                    color: Theme.tileMid
-                                                    border.width: Theme.borderThin; border.color: Theme.lineStrong
-                                                    Text {
-                                                        id: capText
-                                                        anchors.centerIn: parent
-                                                        text: parent.modelData
-                                                        color: Theme.text
-                                                        font.family: Theme.font; font.pixelSize: Theme.fontSmall; font.weight: Font.Medium
-                                                    }
+                                                    label: modelData
                                                 }
                                             }
                                         }
@@ -126,7 +122,7 @@ Scope {
                                             elide: Text.ElideRight
                                             text: row.modelData[1]
                                             color: Theme.dim
-                                            font.family: Theme.font; font.pixelSize: Theme.fontBody
+                                            font.family: Theme.font; font.pixelSize: Theme.fontSm
                                         }
                                     }
                                 }
@@ -136,7 +132,7 @@ Scope {
                         Text {
                             text: "Press any key to close"
                             color: Theme.faint
-                            font.family: Theme.font; font.pixelSize: Theme.fontBody
+                            font.family: Theme.font; font.pixelSize: Theme.fontSm
                         }
                     }
                 }

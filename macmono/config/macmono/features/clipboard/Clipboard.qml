@@ -8,6 +8,15 @@ import "../../shared/components"
 Scope {
     id: root
 
+    readonly property int clipHeaderHeight: 62
+    readonly property int clipClearHeight: 34
+    readonly property int clipListWidth: 300
+    readonly property int clipRowHeight: 50
+    readonly property int clipTypeIconSize: 32
+    readonly property int clipTrashSize: 26
+    readonly property int clipPaneHeadHeight: 30
+    readonly property int clipPaneChipHeight: 28
+
     property var entries: []
     property bool loading: false
 
@@ -75,6 +84,7 @@ Scope {
             readonly property bool shown: Sys.clipboardOpen && Sys.clipboardScreen === modelData.name
             Reveal { id: reveal; open: win.shown }
             readonly property real anim: reveal.progress
+            readonly property real travel: reveal.travel
             readonly property bool present: reveal.present
 
             visible: present
@@ -86,11 +96,7 @@ Scope {
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: (shown && !Sys.capturing) ? WlrKeyboardFocus.Exclusive : WlrKeyboardFocus.None
 
-            readonly property var filtered: {
-                const q = search.text.trim().toLowerCase();
-                if (!q) return root.entries;
-                return root.entries.filter(e => e.preview.toLowerCase().includes(q) || e.meta.toLowerCase().includes(q));
-            }
+            readonly property var filtered: root.entries
             property int current: 0
             readonly property var sel: filtered[current] ?? null
             onFilteredChanged: current = Math.min(current, Math.max(0, filtered.length - 1))
@@ -144,17 +150,13 @@ Scope {
                 detailText = "";
                 detailImage = "";
                 detailFor = "";
-                search.text = "";
             }
 
             onShownChanged: {
                 if (!shown) return;
-                {
-                    search.text = "";
-                    current = 0;
-                    detailFor = "";
-                    search.forceActiveFocus();
-                }
+                current = 0;
+                detailFor = "";
+                keyNav.forceActiveFocus();
             }
 
             MouseArea { anchors.fill: parent; enabled: win.shown; onClicked: Sys.clipboardOpen = false }
@@ -163,13 +165,13 @@ Scope {
                 id: panel
                 anchors.horizontalCenter: parent.horizontalCenter
                 y: Theme.drawerGap
-                width: Math.min(1120, parent.width - 32)
-                height: Math.min(720, parent.height - y - 32)
+                width: Math.min(960, parent.width - 32)
+                height: Math.min(620, parent.height - y - 32)
                 radius: Theme.radiusPanel
                 color: Theme.panel
                 border.width: Theme.borderThin
                 border.color: Theme.line
-                transform: Translate { y: -(panel.height + Theme.drawerGap) * (1 - win.anim) }
+                transform: Translate { y: Theme.drawerOffset(panel.height + Theme.drawerGap, win.travel) }
 
                 MouseArea { anchors.fill: parent }
 
@@ -180,40 +182,40 @@ Scope {
                     Item {
                         id: header
                         anchors { left: parent.left; right: parent.right; top: parent.top }
-                        height: Theme.clipHeaderHeight
+                        height: root.clipHeaderHeight
 
                         Row {
-                            anchors { left: parent.left; leftMargin: Theme.space18; verticalCenter: parent.verticalCenter }
-                            spacing: Theme.space10
-                            Glyph { anchors.verticalCenter: parent.verticalCenter; width: Theme.icon18; height: Theme.icon18; name: "clipboard"; color: Theme.text }
+                            anchors { left: parent.left; leftMargin: Theme.space16; verticalCenter: parent.verticalCenter }
+                            spacing: Theme.space12
+                            Glyph { anchors.verticalCenter: parent.verticalCenter; width: Theme.iconLg; height: Theme.iconLg; name: "clipboard"; color: Theme.text }
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: "Clipboard"
                                 color: Theme.text
-                                font.family: Theme.font; font.pixelSize: Theme.panelTitleSize; font.weight: Font.DemiBold; font.letterSpacing: Theme.panelTitleTracking
+                                font.family: Theme.font; font.pixelSize: Theme.font2xl; font.weight: Theme.weightSemibold; font.letterSpacing: Theme.trackTight
                             }
                             Text {
                                 anchors.verticalCenter: parent.verticalCenter
                                 text: root.loading ? "Loading…" : (win.filtered.length + (win.filtered.length === 1 ? " item" : " items"))
                                 color: Theme.dim
-                                font.family: Theme.font; font.pixelSize: Theme.fontBody
+                                font.family: Theme.font; font.pixelSize: Theme.fontSm
                             }
                         }
 
                         Rectangle {
                             id: clearAllButton
-                            anchors { right: searchBox.left; rightMargin: Theme.space8; verticalCenter: parent.verticalCenter }
+                            anchors { right: parent.right; rightMargin: Theme.space16; verticalCenter: parent.verticalCenter }
                             width: clearLabel.implicitWidth + 34
-                            height: Theme.clipClearHeight
+                            height: root.clipClearHeight
                             radius: Math.min(width, height) / 2
                             color: clearArea.containsMouse ? Theme.tileHover : Theme.tile
                             opacity: root.entries.length > 0 ? 1 : 0.45
                             Row {
                                 anchors.centerIn: parent
-                                spacing: Theme.space6
+                                spacing: Theme.space8
                                 Glyph {
                                     anchors.verticalCenter: parent.verticalCenter
-                                    width: Theme.icon13; height: Theme.icon13
+                                    width: Theme.iconSm; height: Theme.iconSm
                                     name: "trash"
                                     color: Theme.dim
                                 }
@@ -223,8 +225,8 @@ Scope {
                                     text: "Clear All"
                                     color: Theme.text
                                     font.family: Theme.font
-                                    font.pixelSize: Theme.fontSmall
-                                    font.weight: Font.DemiBold
+                                    font.pixelSize: Theme.fontXs
+                                    font.weight: Theme.weightSemibold
                                 }
                             }
                             MouseArea {
@@ -236,61 +238,28 @@ Scope {
                             }
                         }
 
-                        Rectangle {
-                            id: searchBox
-                            anchors { right: parent.right; rightMargin: Theme.space14; verticalCenter: parent.verticalCenter }
-                            width: Theme.clipSearchWidth
-                            height: Theme.clipSearchHeight
-                            radius: Math.min(width, height) / 2
-                            color: Theme.tile
-                            border.width: search.activeFocus ? 1 : 0
-                            border.color: Theme.faint
+                        Item {
+                            id: keyNav
+                            focus: true
 
-                            Glyph {
-                                id: sIcon
-                                anchors { left: parent.left; leftMargin: Theme.space12; verticalCenter: parent.verticalCenter }
-                                width: Theme.icon15; height: Theme.icon15
-                                name: "search"
-                                color: Theme.dim
-                            }
-                            TextInput {
-                                id: search
-                                anchors { left: sIcon.right; leftMargin: Theme.space8; right: parent.right; rightMargin: Theme.space14; verticalCenter: parent.verticalCenter }
-                                color: Theme.text
-                                selectionColor: Theme.text
-                                selectedTextColor: Theme.inverseText
-                                font.family: Theme.font; font.pixelSize: Theme.fontBodyLg
-                                clip: true
-                                focus: true
-
-                                Keys.onPressed: (e) => {
-                                    const n = win.filtered.length;
-                                    const ctrl = e.modifiers & Qt.ControlModifier;
-                                    if (e.key === Qt.Key_Down || (ctrl && (e.key === Qt.Key_J || e.key === Qt.Key_N))) {
-                                        if (n > 0) win.current = Math.min(win.current + 1, n - 1); e.accepted = true;
-                                    } else if (e.key === Qt.Key_Up || (ctrl && (e.key === Qt.Key_K || e.key === Qt.Key_P))) {
-                                        win.current = Math.max(win.current - 1, 0); e.accepted = true;
-                                    } else if (e.key === Qt.Key_PageDown) {
-                                        win.current = Math.min(win.current + 8, Math.max(0, n - 1)); e.accepted = true;
-                                    } else if (e.key === Qt.Key_PageUp) {
-                                        win.current = Math.max(win.current - 8, 0); e.accepted = true;
-                                    } else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
-                                        win.copySelected(); e.accepted = true;
-                                    } else if (e.key === Qt.Key_Delete && (e.modifiers & Qt.ShiftModifier)) {
-                                        win.deleteSelected(); e.accepted = true;
-                                    } else if (e.key === Qt.Key_Escape) {
-                                        if (search.text !== "") search.text = "";
-                                        else Sys.clipboardOpen = false;
-                                        e.accepted = true;
-                                    }
-                                }
-
-                                Text {
-                                    visible: search.text === ""
-                                    anchors.verticalCenter: parent.verticalCenter
-                                    text: "Search clipboard"
-                                    color: Theme.faint
-                                    font: search.font
+                            Keys.onPressed: (e) => {
+                                const n = win.filtered.length;
+                                const ctrl = e.modifiers & Qt.ControlModifier;
+                                if (e.key === Qt.Key_Down || (ctrl && (e.key === Qt.Key_J || e.key === Qt.Key_N))) {
+                                    if (n > 0) win.current = Math.min(win.current + 1, n - 1); e.accepted = true;
+                                } else if (e.key === Qt.Key_Up || (ctrl && (e.key === Qt.Key_K || e.key === Qt.Key_P))) {
+                                    win.current = Math.max(win.current - 1, 0); e.accepted = true;
+                                } else if (e.key === Qt.Key_PageDown) {
+                                    win.current = Math.min(win.current + 8, Math.max(0, n - 1)); e.accepted = true;
+                                } else if (e.key === Qt.Key_PageUp) {
+                                    win.current = Math.max(win.current - 8, 0); e.accepted = true;
+                                } else if (e.key === Qt.Key_Return || e.key === Qt.Key_Enter) {
+                                    win.copySelected(); e.accepted = true;
+                                } else if (e.key === Qt.Key_Delete && (e.modifiers & Qt.ShiftModifier)) {
+                                    win.deleteSelected(); e.accepted = true;
+                                } else if (e.key === Qt.Key_Escape) {
+                                    Sys.clipboardOpen = false;
+                                    e.accepted = true;
                                 }
                             }
                         }
@@ -307,7 +276,7 @@ Scope {
                     ListView {
                         id: list
                         anchors { left: parent.left; top: headerLine.bottom; bottom: parent.bottom; margins: Theme.space8 }
-                        width: Theme.clipListWidth
+                        width: root.clipListWidth
                         clip: true
                         spacing: Theme.space2
                         model: win.filtered
@@ -323,8 +292,8 @@ Scope {
                             required property int index
                             readonly property bool sel: index === win.current
                             width: list.width
-                            height: Theme.clipRowHeight
-                            radius: Theme.radiusXs
+                            height: root.clipRowHeight
+                            radius: Theme.radiusControl
                             color: Theme.transparent
                             readonly property color fg: Theme.text
                             readonly property color fgDim: Theme.dim
@@ -333,18 +302,18 @@ Scope {
 
                             Rectangle {
                                 id: typeIcon
-                                anchors { left: parent.left; leftMargin: Theme.space10; verticalCenter: parent.verticalCenter }
-                                width: Theme.clipTypeIconSize; height: Theme.clipTypeIconSize; radius: Theme.radiusXs
+                                anchors { left: parent.left; leftMargin: Theme.space12; verticalCenter: parent.verticalCenter }
+                                width: root.clipTypeIconSize; height: root.clipTypeIconSize; radius: Theme.radiusControl
                                 color: Theme.tile
                                 Glyph {
                                     anchors.centerIn: parent
-                                    width: Theme.icon16; height: Theme.icon16
+                                    width: Theme.iconMd; height: Theme.iconMd
                                     name: row.modelData.type === "image" ? "image" : (row.modelData.type === "link" ? "link" : "text")
                                     color: row.fg
                                 }
                             }
                             Column {
-                                anchors { left: typeIcon.right; leftMargin: Theme.space12; right: trash.left; rightMargin: Theme.space6; verticalCenter: parent.verticalCenter }
+                                anchors { left: typeIcon.right; leftMargin: Theme.space12; right: trash.left; rightMargin: Theme.space8; verticalCenter: parent.verticalCenter }
                                 spacing: Theme.space2
                                 Text {
                                     width: parent.width
@@ -353,14 +322,14 @@ Scope {
                                     text: row.modelData.preview.replace(/\s+/g, " ")
                                     textFormat: Text.PlainText
                                     color: row.fg
-                                    font.family: Theme.font; font.pixelSize: Theme.fontBodyLg; font.weight: Font.Medium
+                                    font.family: Theme.font; font.pixelSize: Theme.fontMd; font.weight: Theme.weightMedium
                                 }
                                 Text {
                                     width: parent.width
                                     elide: Text.ElideRight
                                     text: row.modelData.meta
                                     color: row.fgDim
-                                    font.family: Theme.font; font.pixelSize: Theme.fontCaption
+                                    font.family: Theme.font; font.pixelSize: Theme.fontXs
                                 }
                             }
                             MouseArea {
@@ -374,22 +343,19 @@ Scope {
                                 id: trash
                                 visible: rowArea.containsMouse || containsMouse
                                 anchors { right: parent.right; rightMargin: Theme.space8; verticalCenter: parent.verticalCenter }
-                                width: Theme.clipTrashSize; height: Theme.clipTrashSize
+                                width: root.clipTrashSize; height: root.clipTrashSize
                                 hoverEnabled: true
                                 onClicked: { win.current = row.index; win.deleteSelected(); }
-                                Rectangle { anchors.fill: parent; radius: Theme.radiusXs; color: parent.containsMouse ? Theme.tileHover : Theme.transparent }
-                                Glyph { anchors.centerIn: parent; width: Theme.icon14; height: Theme.icon14; name: "trash"; color: row.fgDim }
+                                Rectangle { anchors.fill: parent; radius: Theme.radiusControl; color: parent.containsMouse ? Theme.tileHover : Theme.transparent }
+                                Glyph { anchors.centerIn: parent; width: Theme.iconSm; height: Theme.iconSm; name: "trash"; color: row.fgDim }
                             }
                         }
                     }
 
-                    Text {
+                    UiEmptyState {
                         visible: !root.loading && win.filtered.length === 0
                         anchors.centerIn: list
-                        horizontalAlignment: Text.AlignHCenter
-                        text: root.entries.length === 0 ? "Clipboard is empty" : "No matches"
-                        color: Theme.dim
-                        font.family: Theme.font; font.pixelSize: Theme.fontBodyLg
+                        title: "Clipboard is empty"
                     }
 
                     Rectangle {
@@ -400,32 +366,32 @@ Scope {
                     }
 
                     Item {
-                        anchors { left: vline.right; right: parent.right; top: headerLine.bottom; bottom: parent.bottom; margins: Theme.space18 }
+                        anchors { left: vline.right; right: parent.right; top: headerLine.bottom; bottom: parent.bottom; margins: Theme.space16 }
 
                         Item {
                             id: paneHead
                             anchors { left: parent.left; right: parent.right; top: parent.top }
-                            height: Theme.clipPaneHeadHeight
+                            height: root.clipPaneHeadHeight
                             visible: win.sel !== null
 
                             Text {
                                 anchors { left: parent.left; verticalCenter: parent.verticalCenter }
                                 text: win.sel ? (win.sel.meta + (win.sel.type !== "image" && win.detailText ? " · " + win.detailText.length + " characters" : "")) : ""
                                 color: Theme.dim
-                                font.family: Theme.font; font.pixelSize: Theme.fontSmall
+                                font.family: Theme.font; font.pixelSize: Theme.fontXs
                             }
                             Rectangle {
                                 anchors { right: parent.right; verticalCenter: parent.verticalCenter }
                                 width: copyRow.implicitWidth + 22
-                                height: Theme.clipPaneChipHeight
+                                height: root.clipPaneChipHeight
                                 radius: Math.min(width, height) / 2
                                 color: copyArea.containsMouse ? Theme.tileHover : Theme.tile
                                 Row {
                                     id: copyRow
                                     anchors.centerIn: parent
-                                    spacing: Theme.space6
-                                    Glyph { anchors.verticalCenter: parent.verticalCenter; width: Theme.icon13; height: Theme.icon13; name: "clipboard"; color: Theme.dim }
-                                    Text { anchors.verticalCenter: parent.verticalCenter; text: "Copy"; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontBody; font.weight: Font.DemiBold }
+                                    spacing: Theme.space8
+                                    Glyph { anchors.verticalCenter: parent.verticalCenter; width: Theme.iconSm; height: Theme.iconSm; name: "clipboard"; color: Theme.dim }
+                                    Text { anchors.verticalCenter: parent.verticalCenter; text: "Copy"; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontSm; font.weight: Theme.weightSemibold }
                                 }
                                 MouseArea { id: copyArea; anchors.fill: parent; hoverEnabled: true; onClicked: win.copySelected() }
                             }
@@ -434,7 +400,7 @@ Scope {
                         Rectangle {
                             anchors { left: parent.left; right: parent.right; top: paneHead.bottom; topMargin: Theme.space12; bottom: parent.bottom }
                             radius: Theme.radiusCard
-                            color: Theme.inset
+                            color: Theme.scrim
                             border.width: Theme.borderThin
                             border.color: Theme.line
                             clip: true
@@ -443,7 +409,7 @@ Scope {
                             Flickable {
                                 id: textFlick
                                 visible: win.sel?.type !== "image"
-                                anchors { fill: parent; margins: Theme.space14 }
+                                anchors { fill: parent; margins: Theme.space16 }
                                 contentHeight: body.paintedHeight
                                 clip: true
                                 boundsBehavior: Flickable.StopAtBounds
@@ -456,16 +422,16 @@ Scope {
                                     textFormat: TextEdit.PlainText
                                     text: win.detailText || (win.sel?.preview ?? "")
                                     color: Theme.text
-                                    selectionColor: Theme.text
-                                    selectedTextColor: Theme.inverseText
+                                    selectionColor: Theme.accent
+                                    selectedTextColor: Theme.textOnAccent
                                     font.family: Theme.fontMono
-                                    font.pixelSize: Theme.fontBody
+                                    font.pixelSize: Theme.fontSm
                                 }
                             }
 
                             Image {
                                 visible: win.sel?.type === "image"
-                                anchors { fill: parent; margins: Theme.space10 }
+                                anchors { fill: parent; margins: Theme.space12 }
                                 source: visible && win.detailImage !== "" ? "file://" + win.detailImage : ""
                                 sourceSize.width: Math.round(width)
                                 sourceSize.height: Math.round(height)

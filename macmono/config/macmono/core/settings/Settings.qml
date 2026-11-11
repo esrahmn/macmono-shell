@@ -29,7 +29,7 @@ Singleton {
 
     readonly property int clipboardMaxItems: SettingsStore.v("clipboardMaxItems", 200)
 
-    readonly property int notifDefaultTimeoutMs: SettingsStore.v("notifDefaultTimeoutMs", 5000)
+    readonly property int notifDefaultTimeoutMs: SettingsStore.v("notifDefaultTimeoutMs", 3000)
 
     readonly property int notifHistoryMax: SettingsStore.v("notifHistoryMax", 50)
 

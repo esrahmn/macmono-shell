@@ -7,13 +7,19 @@ import "../../../shared/components"
 ColumnLayout {
     id: root
 
+    readonly property int mediaPosterTitleSize: 24
+    readonly property int mediaPosterTitleSizeCompact: 20
+    readonly property int mediaArtSizeSmall: 44
+    readonly property int mediaProgressHairline: 2
+    readonly property int mediaProgressRow: 10
+
     property var player: null
     property var players: []
     property bool panelShown: false
     property bool roomy: false
     signal playerChangeRequested(int index)
 
-    readonly property int artRadius: roomy ? Theme.radiusCard : Theme.radiusMedium
+    readonly property int artRadius: roomy ? Theme.radiusCard : Theme.radiusCard
     readonly property int artGlyph: roomy ? 24 : 22
     readonly property int switchSize: roomy ? 28 : 26
     readonly property int bigButton: roomy ? 48 : 44
@@ -24,7 +30,7 @@ ColumnLayout {
     readonly property real len: player?.length ?? 0
     property real pos: 0
 
-    spacing: roomy ? Theme.space12 : Theme.space10
+    spacing: roomy ? Theme.space12 : Theme.space12
 
     MediaClock {
         id: clock
@@ -51,12 +57,12 @@ ColumnLayout {
 
     RowLayout {
         Layout.fillWidth: true
-        spacing: root.roomy ? Theme.space14 : Theme.space12
+        spacing: root.roomy ? Theme.space16 : Theme.space12
         layoutDirection: Qt.RightToLeft
 
         Rectangle {
-            Layout.preferredWidth: Theme.mediaArtSizeSmall
-            Layout.preferredHeight: Theme.mediaArtSizeSmall
+            Layout.preferredWidth: root.mediaArtSizeSmall
+            Layout.preferredHeight: root.mediaArtSizeSmall
             Layout.alignment: Qt.AlignTop
             radius: root.artRadius
             color: Theme.tile
@@ -102,18 +108,18 @@ ColumnLayout {
                 lineHeight: 0.95
                 text: root.player?.trackTitle || "Unknown title"
                 color: Theme.text
-                font.family: Theme.font; font.weight: Font.DemiBold
-                font.pixelSize: root.roomy ? Theme.mediaPosterTitleSize : Theme.mediaPosterTitleSizeCompact
-                font.letterSpacing: Theme.panelTitleTracking
+                font.family: Theme.font; font.weight: Theme.weightSemibold
+                font.pixelSize: root.roomy ? root.mediaPosterTitleSize : root.mediaPosterTitleSizeCompact
+                font.letterSpacing: Theme.trackTight
             }
             Text {
                 Layout.fillWidth: true
-                Layout.topMargin: Theme.space6
+                Layout.topMargin: Theme.space8
                 elide: Text.ElideRight
                 text: ((root.player?.trackArtist || "") + ((root.player?.trackArtist && root.player?.identity) ? "  ·  " : "") + (root.player?.identity || "")).toUpperCase()
-                color: Theme.labelCapsText
-                font.family: Theme.font; font.pixelSize: Theme.labelCapsSize; font.weight: Font.DemiBold
-                font.letterSpacing: Theme.labelCapsTracking
+                color: Theme.dim
+                font.family: Theme.font; font.pixelSize: Theme.fontXs; font.weight: Theme.weightSemibold
+                font.letterSpacing: Theme.trackCaps
             }
         }
 
@@ -125,8 +131,8 @@ ColumnLayout {
             Layout.alignment: Qt.AlignTop
             hoverEnabled: true
             onClicked: root.playerChangeRequested((root.players.indexOf(root.player) + 1) % root.players.length)
-            Rectangle { anchors.fill: parent; radius: Theme.radiusXs; color: switchArea.containsMouse ? Theme.tileHover : Theme.transparent }
-            Glyph { anchors.centerIn: parent; width: Theme.icon13; height: Theme.icon13; name: "chevron"; rotation: -90; color: Theme.dim }
+            Rectangle { anchors.fill: parent; radius: Theme.radiusControl; color: switchArea.containsMouse ? Theme.tileHover : Theme.transparent }
+            Glyph { anchors.centerIn: parent; width: Theme.iconSm; height: Theme.iconSm; name: "chevron"; rotation: -90; color: Theme.dim }
         }
     }
 
@@ -136,15 +142,15 @@ ColumnLayout {
         spacing: Theme.space4
         Item {
             Layout.fillWidth: true
-            Layout.preferredHeight: Theme.mediaProgressRow
+            Layout.preferredHeight: root.mediaProgressRow
             Rectangle {
                 anchors.verticalCenter: parent.verticalCenter
-                width: parent.width; height: Theme.mediaProgressHairline; radius: Math.min(width, height) / 2
+                width: parent.width; height: root.mediaProgressHairline; radius: Math.min(width, height) / 2
                 color: Theme.tileHover
                 Rectangle {
                     width: parent.width * Math.max(0, Math.min(1, root.pos / Math.max(1, root.len)))
                     height: parent.height; radius: Math.min(width, height) / 2
-                    color: Theme.text
+                    color: Theme.accent
                 }
             }
             MouseArea {
@@ -160,15 +166,15 @@ ColumnLayout {
         }
         RowLayout {
             Layout.fillWidth: true
-            Text { text: Sys.formatMediaTime(root.pos); color: Theme.dim; font.family: Theme.font; font.pixelSize: Theme.fontCaption }
+            Text { text: Sys.formatMediaTime(root.pos); color: Theme.dim; font.family: Theme.font; font.pixelSize: Theme.fontXs }
             Item { Layout.fillWidth: true }
-            Text { text: "-" + Sys.formatMediaTime(root.len - root.pos); color: Theme.dim; font.family: Theme.font; font.pixelSize: Theme.fontCaption }
+            Text { text: "-" + Sys.formatMediaTime(root.len - root.pos); color: Theme.dim; font.family: Theme.font; font.pixelSize: Theme.fontXs }
         }
     }
 
     RowLayout {
         Layout.fillWidth: true
-        spacing: Theme.space0
+        spacing: 0
         Item { Layout.fillWidth: true }
         Repeater {
             model: ["prev", "toggle", "next"]
@@ -194,7 +200,7 @@ ColumnLayout {
                     radius: Math.min(width, height) / 2
                     color: control.containsMouse ? Theme.tileHover : (control.big ? Theme.tile : Theme.transparent)
                     border.width: control.big ? Theme.borderThin : 0
-                    border.color: Theme.lineStrong
+                    border.color: Theme.line
                 }
                 Glyph {
                     anchors.centerIn: parent

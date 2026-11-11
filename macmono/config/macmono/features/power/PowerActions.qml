@@ -12,9 +12,9 @@ Rectangle {
 
     Layout.fillWidth: true
     implicitHeight: open ? powerCol.implicitHeight : 0
-    Behavior on implicitHeight { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
+    Behavior on implicitHeight { Tween {} }
     opacity: open ? 1 : 0
-    Behavior on opacity { NumberAnimation { duration: Theme.animFade } }
+    Behavior on opacity { Tween {} }
     visible: implicitHeight > 0.5
     color: Theme.transparent
     clip: true
@@ -66,7 +66,7 @@ Rectangle {
             horizontalAlignment: Text.AlignHCenter
             text: "Click again to " + (root.labels[root.armed] ?? "")
             color: Theme.dim
-            font.family: Theme.font; font.pixelSize: Theme.fontSmall
+            font.family: Theme.font; font.pixelSize: Theme.fontXs
         }
     }
 }

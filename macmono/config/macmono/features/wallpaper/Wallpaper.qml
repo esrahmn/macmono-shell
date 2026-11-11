@@ -7,6 +7,16 @@ import "../../core"
 import "../../shared/components"
 
 Scope {
+    id: root
+
+    readonly property real openDrop: 24
+    readonly property int wpPillTop: 52
+    readonly property int wpPillHeight: 40
+    readonly property int wpTrayHeight: 176
+    readonly property int wpTrayMargin: 24
+    readonly property int wpBadgeHeight: 18
+    readonly property int wpChipHeight: 28
+    readonly property int wpCloseDelay: 170
     Variants {
         model: Quickshell.screens
 
@@ -17,27 +27,124 @@ Scope {
 
             anchors { top: true; bottom: true; left: true; right: true }
             exclusionMode: ExclusionMode.Ignore
-            color: Theme.canvas
+            color: Theme.scrim
             WlrLayershell.namespace: "macmono:wallpaper"
             WlrLayershell.layer: WlrLayer.Background
 
-            Image {
+            Item {
+                id: wall
                 anchors.fill: parent
-                visible: Sys.wallpaper !== ""
-                property string wallpaperPath: Sys.wallpaper
-                source: Sys.wallpaper !== "" ? "file://" + Sys.wallpaper : ""
-                fillMode: Image.PreserveAspectCrop
-                asynchronous: true
-                cache: false
-                sourceSize.width: Math.round(bg.width * (bg.screen ? bg.screen.devicePixelRatio : 1))
-                sourceSize.height: Math.round(bg.height * (bg.screen ? bg.screen.devicePixelRatio : 1))
-                opacity: status === Image.Ready ? 1 : 0
-                Behavior on opacity { NumberAnimation { duration: Theme.animSlow } }
-                layer.enabled: Sys.wallpaperMono
-                layer.effect: MultiEffect { saturation: -1.0 }
-                onStatusChanged: {
-                    if (status === Image.Ready) Sys.markWallpaperReady(wallpaperPath, bg.modelData.name);
-                    else if (status === Image.Error) Sys.markWallpaperLoadError(wallpaperPath);
+                clip: true
+
+                property bool frontA: true
+                property bool fading: false
+                property string frontPath: ""
+                property int dir: 1
+                property var incoming: null
+                readonly property string wanted: Sys.wallpaper
+                readonly property real dpr: bg.screen ? bg.screen.devicePixelRatio : 1
+
+                function front() { return wall.frontA ? layerA : layerB; }
+                function back() { return wall.frontA ? layerB : layerA; }
+
+                // Completes a running crossfade at once and frees the old image.
+                function finish() {
+                    if (!wall.fading) return;
+                    fade.stop();
+                    wall.fading = false;
+                    const old = wall.front();
+                    const incoming = wall.back();
+                    incoming.reveal = 1;
+                    old.outgoing = false;
+                    old.reveal = 0;
+                    old.wallpaperPath = "";
+                    wall.incoming = null;
+                    wall.frontPath = incoming.wallpaperPath;
+                    wall.frontA = !wall.frontA;
+                }
+
+                function present(layer) {
+                    Sys.markWallpaperReady(layer.wallpaperPath, bg.modelData.name);
+                    wall.front().z = 1;
+                    layer.z = 2;
+                    wall.front().outgoing = true;
+                    layer.outgoing = false;
+                    wall.incoming = layer;
+                    wall.fading = true;
+                    if (Sys.wallpaperOpen) {
+                        layer.reveal = 1;
+                        wall.finish();
+                        return;
+                    }
+                    fade.target = layer;
+                    fade.restart();
+                }
+
+                function load(path) {
+                    wall.finish();
+                    if (path === wall.frontPath) {
+                        wall.back().wallpaperPath = "";
+                        return;
+                    }
+                    if (path === "") {
+                        wall.front().wallpaperPath = "";
+                        wall.front().reveal = 0;
+                        wall.frontPath = "";
+                        return;
+                    }
+                    const list = Sys.wallpapers;
+                    const a = list.indexOf(wall.frontPath), b = list.indexOf(path);
+                    if (a >= 0 && b >= 0 && a !== b) {
+                        let fwd = b > a;
+                        if (Math.abs(b - a) > list.length / 2) fwd = !fwd;
+                        wall.dir = fwd ? 1 : -1;
+                    }
+                    wall.back().wallpaperPath = path;
+                }
+
+                function layerLoaded(layer, path) {
+                    if (wall.fading || layer !== wall.back() || path !== wall.wanted) return;
+                    wall.present(layer);
+                }
+
+                onWantedChanged: wall.load(wall.wanted)
+                Component.onCompleted: wall.load(wall.wanted)
+
+                NumberAnimation {
+                    id: fade
+                    property: "reveal"
+                    from: 0
+                    to: 1
+                    duration: Theme.wallpaperFadeMs
+                    easing.type: Easing.Linear   // class C: curve shaped in WallMotion
+                    onFinished: wall.finish()
+                }
+
+                // dim in the middle of the change
+                Rectangle {
+                    anchors.fill: parent
+                    z: 3
+                    color: "black"
+                    opacity: wall.incoming ? Theme.wallDip * Math.sin(Math.PI * wall.incoming.reveal) : 0
+                }
+
+                WallLayer {
+                    id: layerA
+                    partner: layerB
+                    dir: wall.dir
+                    pixelWidth: Math.round(bg.width * wall.dpr)
+                    pixelHeight: Math.round(bg.height * wall.dpr)
+                    onLoaded: (path) => wall.layerLoaded(layerA, path)
+                    onFailed: (path) => Sys.markWallpaperLoadError(path)
+                }
+                WallLayer {
+                    id: layerB
+                    partner: layerA
+                    dir: wall.dir
+                    pixelWidth: Math.round(bg.width * wall.dpr)
+                    pixelHeight: Math.round(bg.height * wall.dpr)
+                    onLoaded: (path) => wall.layerLoaded(layerB, path)
+                    onFailed: (path) => Sys.markWallpaperLoadError(path)
                 }
             }
 
@@ -53,12 +160,12 @@ Scope {
 
             readonly property bool shown: Sys.wallpaperOpen && Sys.wallpaperScreen === modelData.name
 
-            property real anim: 0
+            readonly property real anim: reveal.progress
             property real uiOut: 0
             readonly property real ui: anim * (1 - uiOut)
-            NumberAnimation { id: openAnim; target: picker; property: "anim"; from: 0; to: 1; duration: Theme.animBase; easing.type: Theme.easeOut }
-            NumberAnimation { id: keepAnim; target: picker; property: "uiOut"; from: 0; to: 1; duration: Theme.animFade; easing.type: Theme.easeIn }
-            Timer { id: closeTimer; interval: Theme.wpCloseDelay; onTriggered: Sys.wallpaperOpen = false }
+            Reveal { id: reveal; open: picker.shown }
+            Tween { id: keepAnim; target: picker; property: "uiOut"; from: 0; to: 1; easing.type: Theme.easeIn }
+            Timer { id: closeTimer; interval: root.wpCloseDelay; onTriggered: Sys.wallpaperOpen = false }
             Timer {
                 id: wallpaperReadyTimeout; interval: Settings.wallpaperReadyTimeoutMs
                 onTriggered: {
@@ -73,6 +180,16 @@ Scope {
             property bool keeping: false
             property bool frontA: true
             property real wheelAcc: 0
+            property real swapT: 1       // progres pergantian preview (linear 0..1)
+            property int swapDir: 1
+            onFrontAChanged: swapAnim.restart()
+            NumberAnimation {
+                id: swapAnim
+                target: picker; property: "swapT"
+                from: 0; to: 1
+                duration: Theme.wallpaperFadeMs
+                easing.type: Easing.Linear   // class C: curve shaped in WallMotion
+            }
 
             readonly property var folders: {
                 const seen = {};
@@ -91,6 +208,7 @@ Scope {
 
             function select(p) {
                 if (keeping) return;
+                swapDir = pics.indexOf(p) >= selIndex ? 1 : -1;
                 selPath = p;
                 previewTimer.restart();
                 keys.forceActiveFocus();
@@ -188,8 +306,8 @@ Scope {
             onShownChanged: {
                 if (!shown) {
                     if (keeping && Sys.wallpaper === selPath) Sys.wallpaper = previousWallpaper;
-                    openAnim.stop(); keepAnim.stop(); closeTimer.stop(); wallpaperReadyTimeout.stop(); previewTimer.stop();
-                    anim = 0; uiOut = 0; keeping = false; wheelAcc = 0;
+                    keepAnim.stop(); swapAnim.stop(); swapT = 1; closeTimer.stop(); wallpaperReadyTimeout.stop(); previewTimer.stop();
+                    reveal.value = 0; reveal.velocity = 0; uiOut = 0; keeping = false; wheelAcc = 0;
                     return;
                 }
                 folder = "";
@@ -197,7 +315,7 @@ Scope {
                 frontA = true;
                 imgB.source = "";
                 imgA.source = selPath !== "" ? "file://" + selPath : "";
-                openAnim.restart();
+                swapAnim.stop(); swapT = 1;
                 keys.forceActiveFocus();
                 Qt.callLater(syncStrip);
             }
@@ -205,11 +323,14 @@ Scope {
             Item {
                 id: preview
                 anchors.fill: parent
-                opacity: picker.anim
+                opacity: picker.ui
+                clip: true
                 layer.enabled: Sys.wallpaperMono
                 layer.effect: MultiEffect { saturation: -1.0 }
 
-                Rectangle { anchors.fill: parent; color: Theme.canvas }
+                WallMotion { id: swapMotion; t: picker.swapT; dir: picker.swapDir; span: picker.width }
+
+                Rectangle { anchors.fill: parent; color: Theme.scrim }
                 Image {
                     id: imgA
                     anchors.fill: parent
@@ -217,8 +338,10 @@ Scope {
                     asynchronous: true
                     cache: false
                     sourceSize.width: picker.width
-                    opacity: picker.frontA ? 1 : 0
-                    Behavior on opacity { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
+                    z: picker.frontA ? 2 : 1
+                    opacity: picker.frontA ? swapMotion.inOpacity : 1
+                    scale: picker.frontA ? swapMotion.inScale : swapMotion.outScale
+                    transform: Translate { x: picker.frontA ? swapMotion.inX : swapMotion.outX }
                     onStatusChanged: if (status === Image.Ready && !picker.frontA) picker.frontA = true
                 }
                 Image {
@@ -228,10 +351,14 @@ Scope {
                     asynchronous: true
                     cache: false
                     sourceSize.width: picker.width
-                    opacity: picker.frontA ? 0 : 1
-                    Behavior on opacity { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
+                    z: picker.frontA ? 1 : 2
+                    opacity: picker.frontA ? 1 : swapMotion.inOpacity
+                    scale: picker.frontA ? swapMotion.outScale : swapMotion.inScale
+                    transform: Translate { x: picker.frontA ? swapMotion.outX : swapMotion.inX }
                     onStatusChanged: if (status === Image.Ready && picker.frontA) picker.frontA = false
                 }
+
+                Rectangle { anchors.fill: parent; z: 5; color: "black"; opacity: swapMotion.dip }
             }
 
             MouseArea {
@@ -271,13 +398,13 @@ Scope {
                 id: pill
                 visible: picker.selPath !== ""
                 anchors.horizontalCenter: parent.horizontalCenter
-                y: Theme.wpPillTop - Theme.openDrop * (1 - picker.anim)
+                y: root.wpPillTop - root.openDrop * (1 - reveal.travel)
                 width: pillRow.implicitWidth + Theme.space16 * 2
-                height: Theme.wpPillHeight
+                height: root.wpPillHeight
                 radius: Math.min(width, height) / 2
                 color: Theme.panel
                 border.width: Theme.borderThin
-                border.color: Theme.lineStrong
+                border.color: Theme.line
                 opacity: picker.ui
 
                 MouseArea { anchors.fill: parent }
@@ -287,22 +414,22 @@ Scope {
                     anchors.left: parent.left
                     anchors.leftMargin: Theme.space16
                     anchors.verticalCenter: parent.verticalCenter
-                    spacing: Theme.space18
+                    spacing: Theme.space16
 
                     Text {
                         Layout.maximumWidth: Settings.wallpaperPillTextMaxWidth
                         elide: Text.ElideMiddle
                         text: picker.baseOf(picker.selPath).replace(/\.[^.]+$/, "")
                         color: Theme.text
-                        font.family: Theme.font; font.pixelSize: Theme.fontBodyLg; font.weight: Font.DemiBold
+                        font.family: Theme.font; font.pixelSize: Theme.fontMd; font.weight: Theme.weightSemibold
                     }
                     Chip {
-                        implicitHeight: Theme.wpChipHeight
+                        implicitHeight: root.wpChipHeight
                         label: "Cancel"
                         onTapped: Sys.wallpaperOpen = false
                     }
                     Chip {
-                        implicitHeight: Theme.wpChipHeight
+                        implicitHeight: root.wpChipHeight
                         label: "Keep"
                         strong: true
                         onTapped: picker.keep()
@@ -315,29 +442,29 @@ Scope {
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                anchors.leftMargin: Theme.wpTrayMargin
-                anchors.rightMargin: Theme.wpTrayMargin
-                anchors.bottomMargin: Theme.wpTrayMargin - Theme.wpTrayMargin * (1 - picker.anim)
-                height: Theme.wpTrayHeight
-                radius: Theme.radiusXl
+                anchors.leftMargin: root.wpTrayMargin
+                anchors.rightMargin: root.wpTrayMargin
+                anchors.bottomMargin: root.wpTrayMargin - root.wpTrayMargin * (1 - reveal.travel)
+                height: root.wpTrayHeight
+                radius: Theme.radiusPanel
                 color: Theme.panel
                 border.width: Theme.borderThin
-                border.color: Theme.lineStrong
+                border.color: Theme.line
                 opacity: picker.ui
 
                 MouseArea { anchors.fill: parent }
 
                 ColumnLayout {
                     anchors.fill: parent
-                    anchors.topMargin: Theme.space14
-                    anchors.bottomMargin: Theme.space14
+                    anchors.topMargin: Theme.space16
+                    anchors.bottomMargin: Theme.space16
                     anchors.leftMargin: Theme.space16
                     anchors.rightMargin: Theme.space16
                     spacing: Theme.space12
 
                     RowLayout {
                         Layout.fillWidth: true
-                        spacing: Theme.space18
+                        spacing: Theme.space16
 
                         Chip {
                             label: "All"
@@ -358,7 +485,7 @@ Scope {
                             visible: picker.pics.length > 0
                             text: (picker.selIndex >= 0 ? (picker.selIndex + 1) + " of " : "") + picker.pics.length
                             color: Theme.faint
-                            font.family: Theme.font; font.pixelSize: Theme.fontBody
+                            font.family: Theme.font; font.pixelSize: Theme.fontSm
                             font.features: ({ "tnum": 1 })
                         }
                         Chip {
@@ -399,16 +526,16 @@ Scope {
                                 readonly property bool live: modelData === Sys.wallpaper
                                 width: picked ? 190 : 150
                                 height: ListView.view.height
-                                Behavior on width { NumberAnimation { duration: Theme.animFade; easing.type: Theme.easeOut } }
+                                Behavior on width { Tween {} }
 
                                 Item {
                                     id: frame
                                     anchors.centerIn: parent
                                     width: parent.width
                                     height: cell.picked ? 118 : 94
-                                    Behavior on height { NumberAnimation { duration: Theme.animFade; easing.type: Theme.easeOut } }
+                                    Behavior on height { Tween {} }
 
-                                    Rectangle { anchors.fill: parent; radius: Theme.radiusMedium; color: Theme.tile }
+                                    Rectangle { anchors.fill: parent; radius: Theme.radiusCard; color: Theme.tile }
 
                                     Image {
                                         id: thumb
@@ -423,7 +550,7 @@ Scope {
                                         asynchronous: true
                                         sourceSize.width: 380
                                     }
-                                    Rectangle { id: thumbMask; anchors.fill: parent; radius: Theme.radiusMedium; visible: false; layer.enabled: true }
+                                    Rectangle { id: thumbMask; anchors.fill: parent; radius: Theme.radiusCard; visible: false; layer.enabled: true }
                                     MultiEffect {
                                         anchors.fill: parent
                                         visible: thumb.status === Image.Ready
@@ -434,11 +561,11 @@ Scope {
                                         maskThresholdMin: 0.5
                                         maskSpreadAtMin: 1.0
                                         opacity: (cell.picked || cellArea.containsMouse) ? 1.0 : Theme.opacityDim
-                                        Behavior on opacity { NumberAnimation { duration: Theme.animHover } }
+                                        Behavior on opacity { Tween { duration: Theme.durFast } }
                                     }
                                     Rectangle {
                                         anchors.fill: parent
-                                        radius: Theme.radiusMedium
+                                        radius: Theme.radiusCard
                                         color: Theme.transparent
                                         border.width: cell.picked ? 2 : 1
                                         border.color: cell.picked ? Theme.text : Theme.line
@@ -447,17 +574,17 @@ Scope {
                                         visible: cell.live
                                         anchors.left: parent.left
                                         anchors.bottom: parent.bottom
-                                        anchors.margins: Theme.space7
+                                        anchors.margins: Theme.space8
                                         width: curText.implicitWidth + 12
-                                        height: Theme.wpBadgeHeight
+                                        height: root.wpBadgeHeight
                                         radius: Math.min(width, height) / 2
-                                        color: Theme.badge
+                                        color: Theme.scrim
                                         Text {
                                             id: curText
                                             anchors.centerIn: parent
                                             text: "Current"
                                             color: Theme.text
-                                            font.family: Theme.font; font.pixelSize: Theme.fontCaption; font.weight: Font.Medium
+                                            font.family: Theme.font; font.pixelSize: Theme.fontXs; font.weight: Theme.weightMedium
                                         }
                                     }
                                 }
@@ -483,13 +610,14 @@ Scope {
                     horizontalAlignment: Text.AlignHCenter
                     text: "No images yet.\nPut wallpapers in ~/Pictures/Wallpapers"
                     color: Theme.dim
-                    font.family: Theme.font; font.pixelSize: Theme.fontBodyLg
+                    font.family: Theme.font; font.pixelSize: Theme.fontMd
                 }
             }
         }
     }
 
     component Chip: Item {
+        readonly property int wpChipDefaultHeight: 30
         id: chip
         property string label: ""
         property bool selected: false
@@ -499,15 +627,15 @@ Scope {
         readonly property bool underlined: selected || strong
         readonly property bool bright: underlined || on || chipArea.containsMouse
         implicitWidth: chipText.implicitWidth + 4
-        implicitHeight: Theme.wpChipDefaultHeight
+        implicitHeight: wpChipDefaultHeight
         Text {
             id: chipText
             anchors.centerIn: parent
             text: chip.label
             color: chip.bright ? Theme.text : Theme.dim
-            font.family: Theme.font; font.pixelSize: Theme.fontBody
-            font.weight: chip.strong ? Font.DemiBold : Font.Medium
-            Behavior on color { ColorAnimation { duration: Theme.animHover } }
+            font.family: Theme.font; font.pixelSize: Theme.fontSm
+            font.weight: chip.strong ? Theme.weightSemibold : Theme.weightMedium
+            Behavior on color { TweenColor { duration: Theme.durFast } }
         }
         Rectangle {
             anchors { left: chipText.left; right: chipText.right; top: chipText.bottom; topMargin: Theme.space2 }

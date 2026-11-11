@@ -345,7 +345,7 @@ Item {
         boundsBehavior: Flickable.StopAtBounds
         visible: root.lines.length > 0
         highlightRangeMode: ListView.NoHighlightRange
-        NumberAnimation { id: scrollAnim; target: lyricList; property: "contentY"; duration: Theme.animScroll; easing.type: Theme.easeOut }
+        Tween { id: scrollAnim; target: lyricList; property: "contentY"; duration: Theme.durSlow }
         delegate: Text {
             required property var modelData
             required property int index
@@ -355,11 +355,11 @@ Item {
             horizontalAlignment: Text.AlignHCenter
             color: index === root.activeLine ? Theme.text : Theme.dim
             opacity: root.activeLine < 0 || index === root.activeLine ? 1 : Theme.opacityDim
-            Behavior on color { ColorAnimation { duration: Theme.animBase } }
-            Behavior on opacity { NumberAnimation { duration: Theme.animBase } }
+            Behavior on color { TweenColor {} }
+            Behavior on opacity { Tween {} }
             font.family: Theme.font
-            font.pixelSize: index === root.activeLine ? Theme.fontDisplayMd : Theme.fontHeading
-            font.weight: index === root.activeLine ? Font.DemiBold : Font.Normal
+            font.pixelSize: index === root.activeLine ? Theme.fontXl : Theme.fontLg
+            font.weight: index === root.activeLine ? Theme.weightSemibold : Theme.weightRegular
         }
     }
 
@@ -370,7 +370,7 @@ Item {
         horizontalAlignment: Text.AlignHCenter
         text: root.loading ? "Looking for lyrics…" : root.status
         color: Theme.faint
-        font.family: Theme.font; font.pixelSize: Theme.fontBody
+        font.family: Theme.font; font.pixelSize: Theme.fontSm
         font.underline: root.retryAvailable
         MouseArea {
             anchors.fill: parent

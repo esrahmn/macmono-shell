@@ -1,8 +1,12 @@
 import QtQuick
 import "../../../core"
+import "../../../shared/components"
 
 Item {
     id: row
+
+    readonly property int settingsFlashHoldMs: 450
+    readonly property int settingsFlashFadeMs: 700
     property string title: ""
     property string valueText: ""
     property bool modified: false
@@ -18,10 +22,10 @@ Item {
 
     default property alias content: slot.data
 
-    readonly property int padX: Theme.settingsRowPadX
-    readonly property int padY: Theme.settingsRowPadY
+    readonly property int padX: SettingsMetrics.settingsRowPadX
+    readonly property int padY: SettingsMetrics.settingsRowPadY
     readonly property int padBottom: padY
-    readonly property int bodyHeight: stacked ? texts.height + Theme.space10 + slot.height : Math.max(texts.height, slot.height)
+    readonly property int bodyHeight: stacked ? texts.height + Theme.space12 + slot.height : Math.max(texts.height, slot.height)
 
     implicitHeight: padY + bodyHeight + padBottom
 
@@ -29,15 +33,15 @@ Item {
         id: flashRect
         z: -1
         anchors.fill: parent
-        radius: Theme.radiusXs
+        radius: Theme.radiusControl
         color: Theme.tileHover
         opacity: 0
     }
     SequentialAnimation {
         id: flashAnim
-        NumberAnimation { target: flashRect; property: "opacity"; to: 1; duration: Theme.animBase; easing.type: Theme.easeOut }
-        PauseAnimation { duration: Theme.settingsFlashHoldMs }
-        NumberAnimation { target: flashRect; property: "opacity"; to: 0; duration: Theme.settingsFlashFadeMs; easing.type: Theme.easeOut }
+        Tween { target: flashRect; property: "opacity"; to: 1 }
+        PauseAnimation { duration: row.settingsFlashHoldMs }
+        Tween { target: flashRect; property: "opacity"; to: 0; duration: row.settingsFlashFadeMs }
     }
 
     Rectangle {
@@ -53,8 +57,8 @@ Item {
         id: texts
         x: row.padX
         y: row.stacked ? row.padY : row.padY + (row.bodyHeight - height) / 2
-        width: row.stacked ? row.width - row.padX * 2 : row.width - row.padX * 2 - slot.width - Theme.space18
-        spacing: Theme.space3
+        width: row.stacked ? row.width - row.padX * 2 : row.width - row.padX * 2 - slot.width - Theme.space16
+        spacing: Theme.space2
 
         Item {
             width: parent.width
@@ -66,8 +70,8 @@ Item {
                 SettingsText {
                     id: titleText
                     text: row.title
-                    font.pixelSize: Theme.fontHeading
-                    font.weight: Font.Medium
+                    font.pixelSize: Theme.fontLg
+                    font.weight: Theme.weightMedium
                     font.underline: row.titleLink && titleArea.containsMouse
 
                     MouseArea {
@@ -82,14 +86,14 @@ Item {
 
                 Item {
                     visible: row.modified
-                    width: Theme.settingsDot
+                    width: SettingsMetrics.settingsDot
                     height: titleText.height
                     Rectangle {
                         anchors.centerIn: parent
-                        width: Theme.settingsDot
-                        height: Theme.settingsDot
+                        width: SettingsMetrics.settingsDot
+                        height: SettingsMetrics.settingsDot
                         radius: height / 2
-                        color: Theme.inverse
+                        color: Theme.accent
                     }
                 }
 
@@ -102,8 +106,8 @@ Item {
                         id: resetText
                         anchors.verticalCenter: parent.verticalCenter
                         text: row.resetLabel
-                        font.pixelSize: Theme.fontBodyLg
-                        color: resetArea.containsMouse ? Theme.text : Theme.muted
+                        font.pixelSize: Theme.fontMd
+                        color: resetArea.containsMouse ? Theme.text : Theme.faint
                         font.underline: resetArea.containsMouse
                     }
                     MouseArea {
@@ -122,8 +126,8 @@ Item {
                 anchors.right: parent.right
                 anchors.verticalCenter: parent.verticalCenter
                 text: row.valueText
-                color: Theme.textSoft
-                font.pixelSize: Theme.fontHeading
+                color: Theme.text
+                font.pixelSize: Theme.fontLg
                 font.features: ({ "tnum": 1 })
             }
         }
@@ -133,7 +137,7 @@ Item {
     Item {
         id: slot
         x: row.stacked ? row.padX : row.width - row.padX - width
-        y: row.stacked ? row.padY + texts.height + Theme.space10 : row.padY + (row.bodyHeight - height) / 2
+        y: row.stacked ? row.padY + texts.height + Theme.space12 : row.padY + (row.bodyHeight - height) / 2
         width: row.stacked ? row.width - row.padX * 2 : childrenRect.width
         height: childrenRect.height
     }

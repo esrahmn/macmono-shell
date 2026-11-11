@@ -27,24 +27,48 @@ Column {
     }
     function mute(name) { SettingsStore.apply({ notifMutedApps: (Settings.notifMutedApps ?? []).concat([name]) }, []); }
 
-    property bool confirmClear: false
-    Timer { id: confirmTimer; interval: Theme.settingsConfirmMs; onTriggered: root.confirmClear = false }
+    // Fixed presets, so the choice stays predictable instead of a free-form number.
+    readonly property var notifDurations: [
+        { ms: 2000, label: "2s" },
+        { ms: 3000, label: "3s" },
+        { ms: 5000, label: "5s" },
+        { ms: 10000, label: "10s" }
+    ]
 
     component SectionLabel: SettingsText {
         property bool first: false
-        topPadding: first ? 0 : Theme.settingsGroupSpacing
+        topPadding: first ? 0 : SettingsMetrics.settingsGroupSpacing
         bottomPadding: Theme.space8
-        color: Theme.labelCapsText
-        font.pixelSize: Theme.labelCapsSize
-        font.weight: Font.DemiBold
-        font.letterSpacing: Theme.labelCapsTracking
-        leftPadding: Theme.settingsRowPadX
+        color: Theme.dim
+        font.pixelSize: Theme.fontXs
+        font.weight: Theme.weightSemibold
+        font.letterSpacing: Theme.trackCaps
+        leftPadding: SettingsMetrics.settingsRowPadX
     }
 
 
     SettingsNotifPreview {
         width: root.width
         dnd: Sys.dnd
+    }
+
+    SectionLabel { first: false; text: "NOTIFICATION CARDS" }
+
+    SettingsRow {
+        width: root.width
+        title: "Hide after"
+        Row {
+            spacing: Theme.space8
+            Repeater {
+                model: root.notifDurations
+                delegate: SettingsChoice {
+                    required property var modelData
+                    label: modelData.label
+                    on: Settings.notifDefaultTimeoutMs === modelData.ms
+                    onPicked: SettingsStore.apply({ notifDefaultTimeoutMs: modelData.ms }, [])
+                }
+            }
+        }
     }
 
     SectionLabel { first: false; text: "DO NOT DISTURB" }
@@ -92,17 +116,17 @@ Column {
         separator: true
         title: "Turn on at"
         Row {
-            spacing: Theme.space6
+            spacing: Theme.space8
             SettingsStepper {
                 value: Math.floor(Settings.dndStartMin / 60)
                 minValue: 0; maxValue: 23; step: 1; pad: 2
                 onMoved: (v) => root.setStart(v * 60 + (Settings.dndStartMin % 60))
             }
             SettingsText {
-                height: Theme.settingsStepperHeight
+                height: SettingsMetrics.settingsStepperHeight
                 verticalAlignment: Text.AlignVCenter
                 text: ":"
-                color: Theme.textSoft
+                color: Theme.text
             }
             SettingsStepper {
                 value: Settings.dndStartMin % 60
@@ -118,17 +142,17 @@ Column {
         separator: true
         title: "Turn off at"
         Row {
-            spacing: Theme.space6
+            spacing: Theme.space8
             SettingsStepper {
                 value: Math.floor(Settings.dndEndMin / 60)
                 minValue: 0; maxValue: 23; step: 1; pad: 2
                 onMoved: (v) => root.setEnd(v * 60 + (Settings.dndEndMin % 60))
             }
             SettingsText {
-                height: Theme.settingsStepperHeight
+                height: SettingsMetrics.settingsStepperHeight
                 verticalAlignment: Text.AlignVCenter
                 text: ":"
-                color: Theme.textSoft
+                color: Theme.text
             }
             SettingsStepper {
                 value: Settings.dndEndMin % 60
@@ -138,7 +162,7 @@ Column {
         }
     }
 
-    Item { width: 1; height: Theme.settingsGroupSpacing }
+    Item { width: 1; height: SettingsMetrics.settingsGroupSpacing }
 
     SettingsRow {
         width: root.width
@@ -153,14 +177,14 @@ Column {
 
     Column {
         visible: root.recentApps.length > 0
-        x: Theme.settingsRowPadX
-        width: root.width - Theme.settingsRowPadX * 2
-        spacing: Theme.space6
+        x: SettingsMetrics.settingsRowPadX
+        width: root.width - SettingsMetrics.settingsRowPadX * 2
+        spacing: Theme.space8
         topPadding: Theme.space4
-        SettingsText { text: "Recently notified. Tap to mute."; color: Theme.dim; font.pixelSize: Theme.fontCaption }
+        SettingsText { text: "Recently notified. Tap to mute."; color: Theme.dim; font.pixelSize: Theme.fontXs }
         Flow {
             width: parent.width
-            spacing: Theme.space6
+            spacing: Theme.space8
             Repeater {
                 model: root.recentApps
                 delegate: SettingsChoice {
@@ -176,29 +200,11 @@ Column {
     SettingsText {
         width: root.width
         topPadding: Theme.space8
-        leftPadding: Theme.settingsRowPadX
-        rightPadding: Theme.settingsRowPadX
+        leftPadding: SettingsMetrics.settingsRowPadX
+        rightPadding: SettingsMetrics.settingsRowPadX
         wrapMode: Text.WordWrap
         text: "Type an app name exactly as it appears on its notifications. Notifications from muted apps are dismissed right away."
         color: Theme.dim
-        font.pixelSize: Theme.fontBody
-    }
-
-
-    SectionLabel { text: "HISTORY" }
-
-    SettingsRow {
-        width: root.width
-        title: "Notification history"
-        valueText: Sys.notifHistory.length === 0 ? "Empty" : Sys.notifHistory.length + " stored"
-        SettingsButton {
-            label: root.confirmClear ? "Tap again to clear" : "Clear all"
-            primary: root.confirmClear
-            enabled: Sys.notifHistory.length > 0
-            onClicked: {
-                if (root.confirmClear) { Sys.clearNotifs(); root.confirmClear = false; confirmTimer.stop(); }
-                else { root.confirmClear = true; confirmTimer.restart(); }
-            }
-        }
+        font.pixelSize: Theme.fontSm
     }
 }

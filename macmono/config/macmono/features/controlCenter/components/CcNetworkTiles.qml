@@ -3,97 +3,89 @@ import QtQuick.Layouts
 import "../../../core"
 import "../../../shared/components"
 
-Rectangle {
+RowLayout {
     id: root
+
+    readonly property int ccNetworkTileHeight: 64
+    readonly property int ccNetworkIconHit: 36
+    readonly property int ccNetworkTextInset: 44
     property string expanded: ""
     signal requestExpand(string key)
 
     Layout.fillWidth: true
-    Layout.preferredWidth: 1
-    Layout.fillHeight: true
-    implicitHeight: netCol.implicitHeight + Theme.space16
-    radius: Theme.radiusCard
-    color: Theme.tile
-    border.width: Theme.borderThin; border.color: Theme.cardStroke
+    spacing: Theme.space8
 
-    Column {
-        id: netCol
-        anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space8 }
-        spacing: Theme.space2
-        Repeater {
-            model: [
-                { key: "wifi", glyph: "wifi",      title: "Wi-Fi",
-                  on: Sys.wifiOn, sub: Sys.wifiOn ? (Sys.wifiName || "On") : "Off", list: true },
-                { key: "bt",   glyph: "bluetooth", title: "Bluetooth",
-                  on: Sys.btOn, sub: !Sys.btAvailable ? "Unavailable" : (Sys.btOn ? (Sys.btConnected ? Sys.btConnected.name : "On") : "Off"), list: true },
-                { key: "awake", glyph: "coffee",   title: "Keep Awake",
-                  on: Sys.keepAwake, sub: Sys.keepAwake ? "On" : "Off", list: false }
-            ]
-            delegate: Rectangle {
-                id: nr
-                required property var modelData
-                readonly property bool open: root.expanded === modelData.key
-                width: netCol.width
-                height: Theme.ccNetworkTileHeight
-                radius: Theme.radiusCard
-                scale: rowArea.pressed ? Theme.buttonPressedScale : 1
-                color: open ? Theme.tileMid : (rowArea.containsMouse ? Theme.tileFaint : Theme.transparent)
-                Behavior on color { ColorAnimation { duration: Theme.animHover; easing.type: Theme.easeOut } }
-                Behavior on scale { NumberAnimation { duration: Theme.animPress; easing.type: Theme.easeOut } }
+    Repeater {
+        model: ["wifi", "bt"]
+        delegate: CcTile {
+            id: tile
+            required property string modelData
+            readonly property bool isWifi: modelData === "wifi"
+            readonly property bool isOn: isWifi ? Sys.wifiOn : Sys.btOn
+            readonly property bool open: root.expanded === modelData
+            readonly property string sub: isWifi
+                ? (Sys.wifiOn ? (Sys.wifiName || "On") : "Off")
+                : (!Sys.btAvailable ? "Unavailable" : (Sys.btOn ? (Sys.btConnected ? Sys.btConnected.name : "On") : "Off"))
 
-                function toggle() {
-                    if (modelData.key === "wifi") Sys.toggleWifi();
-                    else if (modelData.key === "bt") Sys.toggleBt();
-                    else Sys.keepAwake = !Sys.keepAwake;
-                }
+            Layout.fillWidth: true
+            Layout.preferredWidth: 1
+            Layout.preferredHeight: root.ccNetworkTileHeight
+            active: isOn
+            // Tile body opens the list; the icon on the left toggles on/off.
+            onClicked: root.requestExpand(modelData)
 
-                MouseArea {
-                    id: rowArea
-                    anchors.fill: parent
-                    hoverEnabled: true
-                    onClicked: nr.modelData.list ? root.requestExpand(nr.modelData.key) : nr.toggle()
-                }
+            function toggle() {
+                if (isWifi) Sys.toggleWifi();
+                else Sys.toggleBt();
+            }
+
+            Item {
+                anchors { left: parent.left; leftMargin: Theme.space4; verticalCenter: parent.verticalCenter }
+                width: root.ccNetworkIconHit; height: root.ccNetworkIconHit
                 Rectangle {
-                    id: dot
-                    anchors { left: parent.left; leftMargin: Theme.space8; verticalCenter: parent.verticalCenter }
-                    width: Theme.ccNetworkIconCircle; height: Theme.ccNetworkIconCircle; radius: Math.min(width, height) / 2
-                    scale: dotArea.pressed ? Theme.buttonPressedScale : 1
-                    color: nr.modelData.on ? Theme.inverse : (dotArea.containsMouse ? Theme.tileStrong : Theme.tileMid)
-                    Behavior on color { ColorAnimation { duration: Theme.animHover; easing.type: Theme.easeOut } }
-                    Behavior on scale { NumberAnimation { duration: Theme.animPress; easing.type: Theme.easeOut } }
-                    Glyph {
-                        anchors.centerIn: parent
-                        width: Theme.icon18; height: Theme.icon18
-                        name: nr.modelData.glyph
-                        color: nr.modelData.on ? Theme.inverseText : Theme.text
-                    }
-                    MouseArea { id: dotArea; anchors.fill: parent; hoverEnabled: true; onClicked: nr.toggle() }
-                }
-                Column {
-                    anchors { left: dot.right; leftMargin: Theme.space12; right: chev.left; rightMargin: Theme.space4; verticalCenter: parent.verticalCenter }
-                    Text {
-                        width: parent.width; elide: Text.ElideRight
-                        text: nr.modelData.title
-                        color: Theme.text
-                        font.family: Theme.font; font.pixelSize: Theme.fontSubtitle; font.weight: Font.DemiBold
-                    }
-                    Text {
-                        width: parent.width; elide: Text.ElideRight
-                        text: nr.modelData.sub
-                        color: Theme.dim
-                        font.family: Theme.font; font.pixelSize: Theme.fontBody
-                    }
+                    anchors.fill: parent
+                    radius: width / 2
+                    color: iconArea.pressed ? Theme.tilePress : iconArea.containsMouse ? Theme.tileHover : Theme.transparent
+                    Behavior on color { TweenColor { duration: Theme.durFast } }
                 }
                 Glyph {
-                    id: chev
-                    visible: nr.modelData.list
-                    anchors { right: parent.right; rightMargin: Theme.space8; verticalCenter: parent.verticalCenter }
-                    width: visible ? Theme.icon13 : 0; height: Theme.icon13
-                    name: "chevron"
-                    rotation: nr.open ? 180 : -90
-                    color: Theme.dim
-                    Behavior on rotation { NumberAnimation { duration: Theme.animBase } }
+                    anchors.centerIn: parent
+                    width: Theme.iconLg; height: Theme.iconLg
+                    name: tile.isWifi ? "wifi" : "bluetooth"
+                    color: Theme.text
                 }
+                MouseArea {
+                    id: iconArea
+                    anchors.fill: parent
+                    hoverEnabled: true
+                    onClicked: tile.toggle()
+                }
+            }
+
+            Column {
+                anchors { left: parent.left; leftMargin: root.ccNetworkTextInset; right: chev.left; rightMargin: Theme.space4; verticalCenter: parent.verticalCenter }
+                Text {
+                    width: parent.width; elide: Text.ElideRight
+                    text: tile.isWifi ? "Wi-Fi" : "Bluetooth"
+                    color: Theme.text
+                    font.family: Theme.font; font.pixelSize: Theme.fontMd; font.weight: Theme.weightSemibold
+                }
+                Text {
+                    width: parent.width; elide: Text.ElideRight
+                    text: tile.sub
+                    color: Theme.dim
+                    font.family: Theme.font; font.pixelSize: Theme.fontSm
+                }
+            }
+
+            Glyph {
+                id: chev
+                anchors { right: parent.right; rightMargin: Theme.space12; verticalCenter: parent.verticalCenter }
+                width: Theme.iconSm; height: Theme.iconSm
+                name: "chevron"
+                rotation: tile.open ? 180 : -90
+                color: Theme.dim
+                Behavior on rotation { Tween {} }
             }
         }
     }

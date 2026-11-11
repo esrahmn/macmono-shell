@@ -4,6 +4,11 @@ import "../../../shared/components"
 
 Rectangle {
     id: root
+
+    readonly property int settingsWeatherHeight: 96
+    readonly property int settingsWeatherIcon: 40
+    readonly property int settingsWeatherTempSize: 44
+    readonly property real settingsWeatherTempTracking: -1.4
     readonly property var svc: Sys.weather
     readonly property bool ready: svc.available
     readonly property bool failed: !ready && !svc.loading && svc.error !== ""
@@ -18,24 +23,24 @@ Rectangle {
     readonly property string headline: ready ? svc.describe(svc.current.code)
         : (svc.loading ? "Updating…" : (failed ? svc.error : "No data yet"))
 
-    height: Theme.settingsWeatherHeight
+    height: root.settingsWeatherHeight
     radius: Theme.radiusCard
     color: Theme.tile
     border.width: Theme.borderThin
-    border.color: Theme.cardStroke
+    border.color: Theme.line
 
     onVisibleChanged: if (visible) svc.ensureFresh()
     Component.onCompleted: if (visible) svc.ensureFresh()
 
     Row {
-        x: Theme.settingsRowPadX
+        x: SettingsMetrics.settingsRowPadX
         anchors.verticalCenter: parent.verticalCenter
-        spacing: Theme.space14
+        spacing: Theme.space16
 
         Glyph {
             visible: root.ready
             anchors.verticalCenter: parent.verticalCenter
-            width: Theme.settingsWeatherIcon
+            width: root.settingsWeatherIcon
             height: width
             name: root.ready ? root.svc.iconFor(root.svc.current.code, root.svc.current.isDay) : ""
             color: Theme.text
@@ -44,10 +49,10 @@ Rectangle {
         SettingsText {
             anchors.verticalCenter: parent.verticalCenter
             text: root.ready ? Math.round(root.svc.current.temp) + "°" : "–"
-            color: root.ready ? Theme.text : Theme.muted
-            font.pixelSize: Theme.settingsWeatherTempSize
-            font.weight: Font.DemiBold
-            font.letterSpacing: Theme.settingsWeatherTempTracking
+            color: root.ready ? Theme.text : Theme.faint
+            font.pixelSize: root.settingsWeatherTempSize
+            font.weight: Theme.weightSemibold
+            font.letterSpacing: root.settingsWeatherTempTracking
         }
 
         Column {
@@ -56,21 +61,21 @@ Rectangle {
             SettingsText {
                 text: root.headline
                 color: root.ready ? Theme.text : Theme.dim
-                font.pixelSize: Theme.fontTitle
-                font.weight: Font.Medium
+                font.pixelSize: Theme.fontLg
+                font.weight: Theme.weightMedium
             }
             SettingsText {
                 visible: root.ready
                 text: root.detail
                 color: Theme.dim
-                font.pixelSize: Theme.fontBody
+                font.pixelSize: Theme.fontSm
             }
         }
     }
 
     SettingsButton {
         visible: root.failed
-        anchors { right: parent.right; rightMargin: Theme.settingsRowPadX; verticalCenter: parent.verticalCenter }
+        anchors { right: parent.right; rightMargin: SettingsMetrics.settingsRowPadX; verticalCenter: parent.verticalCenter }
         label: "Retry"
         onClicked: root.svc.refresh()
     }

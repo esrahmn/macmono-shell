@@ -6,7 +6,7 @@ import Quickshell
 Singleton {
     readonly property var groups: [
         { title: "Shell", items: [
-            ["Super", "Launcher & overview"], ["Super + K", "Command palette"], ["Super + Tab", "Overview"], ["Super + V", "Clipboard"],
+            ["Super", "App launcher"], ["Super + K", "Command palette"], ["Super + Tab", "Window overview"], ["Super + V", "Clipboard"],
             ["Super + .", "Emoji"], ["Super + N", "Control Center"], ["Super + A", "Calendar & notifications"],
             ["Super + M", "Media controls"], ["Super + /", "This cheatsheet"], ["Super + J", "Toggle bar"],
             ["Ctrl + Alt + Del", "Power menu"], ["Ctrl + Super + T", "Wallpaper picker"],

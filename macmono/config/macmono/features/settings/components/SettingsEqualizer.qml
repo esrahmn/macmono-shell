@@ -5,6 +5,14 @@ import "../../../shared/components"
 
 Column {
     id: root
+
+    readonly property int settingsEqAxisW: 34
+    readonly property int settingsEqPlotHeight: 112
+    readonly property int settingsEqBandHeight: 150
+    readonly property int settingsEqBandPad: 10
+    readonly property int settingsEqKnob: 16
+    readonly property int settingsEqTick: 14
+    readonly property real settingsEqOffOpacity: 0.55
     spacing: 0
 
     readonly property var freqs: Sys.eq.freqs
@@ -103,24 +111,24 @@ Column {
 
     component SectionLabel: SettingsText {
         property bool first: false
-        topPadding: first ? 0 : Theme.settingsGroupSpacing
+        topPadding: first ? 0 : SettingsMetrics.settingsGroupSpacing
         bottomPadding: Theme.space8
-        color: Theme.labelCapsText
-        font.pixelSize: Theme.labelCapsSize
-        font.weight: Font.DemiBold
-        font.letterSpacing: Theme.labelCapsTracking
-        leftPadding: Theme.settingsRowPadX
+        color: Theme.dim
+        font.pixelSize: Theme.fontXs
+        font.weight: Theme.weightSemibold
+        font.letterSpacing: Theme.trackCaps
+        leftPadding: SettingsMetrics.settingsRowPadX
     }
 
     Rectangle {
         id: hero
         width: root.width
-        height: heroText.height + Theme.settingsRowPadY * 2
+        height: heroText.height + SettingsMetrics.settingsRowPadY * 2
         radius: Theme.radiusCard
         color: heroArea.containsMouse ? Theme.tileHover : Theme.tile
         border.width: Theme.borderThin
-        border.color: Theme.cardStroke
-        Behavior on color { ColorAnimation { duration: Theme.animHover } }
+        border.color: Theme.line
+        Behavior on color { TweenColor { duration: Theme.durFast } }
 
         readonly property bool failed: Settings.eqEnabled && !Sys.eq.ok
         readonly property string statusText: !Settings.eqEnabled
@@ -137,28 +145,28 @@ Column {
 
         Column {
             id: heroText
-            x: Theme.settingsRowPadX
-            y: Theme.settingsRowPadY
-            width: parent.width - Theme.settingsRowPadX * 2 - heroToggle.width - Theme.space18
-            spacing: Theme.space3
+            x: SettingsMetrics.settingsRowPadX
+            y: SettingsMetrics.settingsRowPadY
+            width: parent.width - SettingsMetrics.settingsRowPadX * 2 - heroToggle.width - Theme.space16
+            spacing: Theme.space2
             SettingsText {
                 text: "Enable equalizer"
-                font.pixelSize: Theme.fontHeading
-                font.weight: Font.Medium
-                font.letterSpacing: Theme.settingsRowTracking
+                font.pixelSize: Theme.fontLg
+                font.weight: Theme.weightMedium
+                font.letterSpacing: Theme.trackSnug
             }
             SettingsText {
                 width: parent.width
                 wrapMode: Text.Wrap
                 text: hero.statusText
-                color: hero.failed ? Theme.text : Theme.settingsDescText
-                font.pixelSize: Theme.fontBody
+                color: hero.failed ? Theme.text : SettingsMetrics.settingsDescText
+                font.pixelSize: Theme.fontSm
             }
         }
 
         SettingsToggle {
             id: heroToggle
-            anchors { right: parent.right; rightMargin: Theme.settingsRowPadX; verticalCenter: parent.verticalCenter }
+            anchors { right: parent.right; rightMargin: SettingsMetrics.settingsRowPadX; verticalCenter: parent.verticalCenter }
             checked: Settings.eqEnabled
             onToggled: (v) => root.setEnabled(v)
         }
@@ -172,9 +180,9 @@ Column {
 
         Flow {
             id: presetFlow
-            x: Theme.settingsRowPadX
-            width: parent.width - Theme.settingsRowPadX * 2
-            spacing: Theme.space6
+            x: SettingsMetrics.settingsRowPadX
+            width: parent.width - SettingsMetrics.settingsRowPadX * 2
+            spacing: Theme.space8
 
             Repeater {
                 model: root.presets
@@ -204,11 +212,11 @@ Column {
         radius: Theme.radiusCard
         color: Theme.tile
         border.width: Theme.borderThin
-        border.color: Theme.cardStroke
-        opacity: Settings.eqEnabled ? 1 : Theme.settingsEqOffOpacity
-        Behavior on opacity { NumberAnimation { duration: Theme.animBase } }
+        border.color: Theme.line
+        opacity: Settings.eqEnabled ? 1 : root.settingsEqOffOpacity
+        Behavior on opacity { Tween {} }
 
-        readonly property real axisW: Theme.settingsEqAxisW
+        readonly property real axisW: root.settingsEqAxisW
         readonly property real plotW: width - Theme.space16 * 2 - axisW
         readonly property real cw: plotW / root.n
 
@@ -222,7 +230,7 @@ Column {
             Item {
                 id: plot
                 width: parent.width
-                height: Theme.settingsEqPlotHeight
+                height: root.settingsEqPlotHeight
 
                 Repeater {
                     model: [12, 6, 0, -6, -12]
@@ -232,7 +240,7 @@ Column {
                         width: card.plotW
                         height: Theme.borderThin
                         y: plot.height / 2 - modelData / root.range * (plot.height / 2)
-                        color: modelData === 0 ? Theme.lineStrong : Theme.line
+                        color: modelData === 0 ? Theme.line : Theme.line
                     }
                 }
                 Repeater {
@@ -244,7 +252,7 @@ Column {
                         y: plot.height / 2 - modelData / root.range * (plot.height / 2) - height / 2
                         text: root.fmtDb(modelData)
                         color: Theme.dim
-                        font.pixelSize: Theme.fontSmall
+                        font.pixelSize: Theme.fontXs
                         font.features: ({ "tnum": 1 })
                     }
                 }
@@ -281,7 +289,7 @@ Column {
                         horizontalAlignment: Text.AlignHCenter
                         text: root.fmtDb(root.gains[index])
                         color: root.gains[index] === 0 ? Theme.dim : Theme.text
-                        font.pixelSize: Theme.fontSmall
+                        font.pixelSize: Theme.fontXs
                         font.features: ({ "tnum": 1 })
                     }
                 }
@@ -294,19 +302,19 @@ Column {
                     delegate: Item {
                         id: band
                         required property int index
-                        readonly property real padV: Theme.settingsEqBandPad
+                        readonly property real padV: root.settingsEqBandPad
                         readonly property real railH: height - padV * 2
                         readonly property real g: root.gains[index]
                         function yFor(v) { return padV + (root.range - v) / (2 * root.range) * railH; }
 
                         width: card.cw
-                        height: Theme.settingsEqBandHeight
+                        height: root.settingsEqBandHeight
 
                         Rectangle {
                             id: rail
                             x: (parent.width - width) / 2
                             y: band.padV
-                            width: Theme.settingsSliderTrack
+                            width: SettingsMetrics.settingsSliderTrack
                             height: band.railH
                             radius: width / 2
                             color: Theme.tileHover
@@ -314,9 +322,9 @@ Column {
                         Rectangle {
                             x: (parent.width - width) / 2
                             y: band.yFor(0)
-                            width: Theme.settingsEqTick
+                            width: root.settingsEqTick
                             height: Theme.borderThin
-                            color: Theme.lineStrong
+                            color: Theme.line
                         }
                         Rectangle {
                             x: rail.x
@@ -324,18 +332,16 @@ Column {
                             radius: width / 2
                             y: Math.min(band.yFor(0), band.yFor(band.g))
                             height: Math.abs(band.yFor(0) - band.yFor(band.g))
-                            color: Theme.inverse
+                            color: Theme.accent
                         }
                         Rectangle {
                             id: knob
-                            width: Theme.settingsEqKnob
+                            width: root.settingsEqKnob
                             height: width
                             radius: width / 2
                             x: (parent.width - width) / 2
                             y: band.yFor(band.g) - height / 2
-                            color: Theme.inverse
-                            scale: area.pressed ? Theme.settingsSliderKnobPressed : 1
-                            Behavior on scale { NumberAnimation { duration: Theme.animPress } }
+                            color: Theme.accent
                         }
 
                         Accessible.role: Accessible.Slider
@@ -367,7 +373,7 @@ Column {
                     horizontalAlignment: Text.AlignRight
                     text: "Hz"
                     color: Theme.dim
-                    font.pixelSize: Theme.fontSmall
+                    font.pixelSize: Theme.fontXs
                 }
                 Repeater {
                     model: root.n
@@ -377,7 +383,7 @@ Column {
                         horizontalAlignment: Text.AlignHCenter
                         text: root.fmtHz(root.freqs[index])
                         color: Theme.dim
-                        font.pixelSize: Theme.fontSmall
+                        font.pixelSize: Theme.fontXs
                     }
                 }
             }

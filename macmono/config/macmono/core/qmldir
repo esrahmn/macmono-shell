@@ -4,3 +4,4 @@ singleton SettingsSchema 1.0 settings/SettingsSchema.qml
 singleton Theme 1.0 theme/Theme.qml
 singleton Sys 1.0 system/Sys.qml
 singleton KeyList 1.0 shortcuts/KeyList.qml
+singleton SettingsMetrics 1.0 theme/SettingsMetrics.qml

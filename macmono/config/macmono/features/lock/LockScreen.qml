@@ -14,6 +14,8 @@ Scope {
     property bool failed: false
     property int attempts: 0
     property bool capsLock: false
+    // PAM success: play the exit scene first; the session only really opens in finishUnlock().
+    property bool unlocking: false
     property string fullName: ""
 
     signal shake()
@@ -25,8 +27,22 @@ Scope {
         failed = false;
     }
 
+    function beginUnlock() {
+        if (unlocking) return;
+        unlocking = true;
+        unlockFallback.restart();
+    }
+
+    function finishUnlock() {
+        if (!unlocking) return;
+        unlockFallback.stop();
+        unlocking = false;
+        reset();
+        Sys.locked = false;
+    }
+
     function submit() {
-        if (busy || password === "") return;
+        if (busy || unlocking || password === "") return;
         busy = true;
         failed = false;
         pam.start();
@@ -40,6 +56,7 @@ Scope {
         target: Sys
         function onLockedChanged() {
             if (!Sys.locked) return;
+            root.unlocking = false;
             root.reset();
             root.attempts = 0;
             root.checkCaps();
@@ -55,8 +72,7 @@ Scope {
         onCompleted: result => {
             root.busy = false;
             if (result === PamResult.Success) {
-                root.reset();
-                Sys.locked = false;
+                root.beginUnlock();
                 return;
             }
             root.password = "";
@@ -75,9 +91,12 @@ Scope {
         }
     }
 
+    // Safety net: if the exit scene never finishes, open the session anyway.
+    Timer { id: unlockFallback; interval: 1500; onTriggered: root.finishUnlock() }
+
     Timer {
         interval: Settings.lockClearPasswordMs
-        running: Sys.locked && root.password !== "" && !root.busy
+        running: Sys.locked && root.password !== "" && !root.busy && !root.unlocking
         onTriggered: root.password = ""
     }
 
@@ -110,7 +129,7 @@ Scope {
 
         WlSessionLockSurface {
             id: surface
-            color: Theme.canvas
+            color: Theme.scrim
 
             LockSurface {
                 anchors.fill: parent

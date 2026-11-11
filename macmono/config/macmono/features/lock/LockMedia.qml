@@ -13,10 +13,10 @@ Rectangle {
     readonly property real len: player?.length ?? 0
 
     implicitHeight: row.implicitHeight + Theme.space16 * 2
-    radius: Theme.radiusXl
+    radius: Theme.radiusPanel
     color: Theme.panel
     border.width: 1
-    border.color: Theme.lineStrong
+    border.color: Theme.line
 
     function fmt(sec) {
         const s = Math.max(0, Math.floor(sec || 0));
@@ -50,15 +50,17 @@ Rectangle {
         property string glyph: ""
         property bool primary: false
         signal clicked()
-        implicitWidth: primary ? Theme.lockMediaButtonPrimary : Theme.lockMediaButton
+        readonly property int sizeNormal: 32
+        readonly property int sizePrimary: 40
+        implicitWidth: primary ? sizePrimary : sizeNormal
         implicitHeight: implicitWidth
         radius: width / 2
         color: primary ? Theme.inverse : (hover.hovered ? Theme.tileHover : Theme.transparent)
-        scale: tap.pressed ? Theme.buttonPressedScale : 1
-        Behavior on color { ColorAnimation { duration: Theme.animHover } }
+        scale: tap.pressed ? Theme.pressScale : 1
+        Behavior on color { TweenColor { duration: Theme.durFast } }
         Glyph {
             anchors.centerIn: parent
-            width: btn.primary ? Theme.icon16 : Theme.icon15
+            width: btn.primary ? Theme.iconMd : Theme.iconMd
             height: width
             name: btn.glyph
             color: btn.primary ? Theme.inverseText : Theme.text
@@ -71,7 +73,7 @@ Rectangle {
         id: row
         anchors.fill: parent
         anchors.margins: Theme.space16
-        spacing: Theme.space14
+        spacing: Theme.space16
 
         Item {
             Layout.preferredWidth: Settings.lockMediaCoverSize
@@ -79,10 +81,10 @@ Rectangle {
 
             Rectangle {
                 anchors.fill: parent
-                radius: Theme.radius
+                radius: Theme.radiusCard
                 color: Theme.tile
                 visible: art.status !== Image.Ready
-                Glyph { anchors.centerIn: parent; width: Theme.icon22; height: Theme.icon22; name: "play"; color: Theme.dim }
+                Glyph { anchors.centerIn: parent; width: Theme.iconXl; height: Theme.iconXl; name: "play"; color: Theme.dim }
             }
             Image {
                 id: art
@@ -94,7 +96,7 @@ Rectangle {
                 asynchronous: true
                 visible: false
             }
-            Rectangle { id: artMask; anchors.fill: parent; radius: Theme.radius; visible: false; layer.enabled: true }
+            Rectangle { id: artMask; anchors.fill: parent; radius: Theme.radiusCard; visible: false; layer.enabled: true }
             MultiEffect {
                 anchors.fill: parent
                 visible: art.status === Image.Ready
@@ -117,8 +119,8 @@ Rectangle {
                 text: root.player?.trackTitle || "Unknown title"
                 color: Theme.text
                 font.family: Theme.font
-                font.pixelSize: Theme.fontTitle
-                font.weight: Font.DemiBold
+                font.pixelSize: Theme.fontLg
+                font.weight: Theme.weightSemibold
             }
             Text {
                 Layout.fillWidth: true
@@ -126,7 +128,7 @@ Rectangle {
                 text: root.player?.trackArtist || "Unknown artist"
                 color: Theme.dim
                 font.family: Theme.font
-                font.pixelSize: Theme.fontBody
+                font.pixelSize: Theme.fontSm
             }
 
             Rectangle {
@@ -134,13 +136,13 @@ Rectangle {
                 Layout.topMargin: Theme.space4
                 Layout.preferredHeight: Settings.lockMediaProgressHeight
                 radius: height / 2
-                color: Theme.tileMid
+                color: Theme.tile
                 visible: root.len > 0
                 Rectangle {
                     height: parent.height
                     radius: parent.radius
                     width: parent.width * Math.min(1, root.pos / Math.max(1, root.len))
-                    color: Theme.text
+                    color: Theme.accent
                 }
             }
 
@@ -153,7 +155,7 @@ Rectangle {
                     text: root.fmt(root.pos) + " / " + root.fmt(root.len)
                     color: Theme.dim
                     font.family: Theme.font
-                    font.pixelSize: Theme.fontCaption
+                    font.pixelSize: Theme.fontXs
                 }
                 Item { Layout.fillWidth: true }
                 CtlButton {

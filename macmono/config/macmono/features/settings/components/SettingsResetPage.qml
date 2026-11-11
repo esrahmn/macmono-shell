@@ -16,18 +16,18 @@ Column {
 
     Timer {
         id: confirmTimer
-        interval: Theme.settingsConfirmMs
+        interval: SettingsMetrics.settingsConfirmMs
         onTriggered: root.armed = false
     }
 
     Item {
         width: root.width
-        height: Theme.settingsGroupSpacing * 2
+        height: SettingsMetrics.settingsGroupSpacing * 2
 
         Rectangle {
-            x: Theme.settingsRowPadX
+            x: SettingsMetrics.settingsRowPadX
             y: (parent.height - height) / 2
-            width: parent.width - Theme.settingsRowPadX * 2
+            width: parent.width - SettingsMetrics.settingsRowPadX * 2
             height: Theme.borderThin
             color: Theme.line
         }

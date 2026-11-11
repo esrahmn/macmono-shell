@@ -1,18 +1,21 @@
 import QtQuick
-import QtQuick.Effects
 import QtQuick.Layouts
 import Quickshell
 import Quickshell.Wayland
+import Quickshell.Widgets
 import Quickshell.Services.Mpris
 import "../../core"
 import "../../shared/components"
 import "components"
-import "../power"
-import "../tools"
-import "../battery"
-import "../media"
+import "../notifications"
 
 Scope {
+    id: root
+
+    readonly property int ccWidth: 480
+    readonly property int ccPadding: 20
+    readonly property int ccAvatarSize: 44
+    readonly property int ccHeaderButtonSize: 36
     Variants {
         model: Quickshell.screens
 
@@ -24,6 +27,7 @@ Scope {
             readonly property bool shown: Sys.ccOpen && Sys.ccScreen === modelData.name
             Reveal { id: reveal; open: win.shown }
             readonly property real anim: reveal.progress
+            readonly property real travel: reveal.travel
             readonly property bool present: reveal.present
 
             visible: present
@@ -45,6 +49,8 @@ Scope {
                 if (expanded === "wifi") Sys.scanWifi();
             }
             onVisibleChanged: if (!visible) expanded = ""
+            // The panel always opens from the top, not at the last scroll position.
+            onShownChanged: if (shown) flick.contentY = 0
 
             readonly property bool holdOpen: wifiList.typing || Sys.wifiConnecting !== ""
 
@@ -61,18 +67,18 @@ Scope {
             Item {
                 id: body
                 anchors { top: parent.top; right: parent.right; topMargin: Theme.drawerGap; rightMargin: Theme.space8 }
-                width: Theme.ccWidth
+                width: root.ccWidth
                 height: card.height
-                transform: Translate { y: -(body.height + Theme.drawerGap) * (1 - Math.min(1, win.anim)) }
+                transform: Translate { y: Theme.drawerOffset(body.height + Theme.drawerGap, win.travel) }
 
                 Rectangle {
                     id: card
                     anchors { top: parent.top; left: parent.left; right: parent.right }
-                    height: Math.min(col.implicitHeight + Theme.ccCardPadding, win.height - Theme.space8)
+                    height: Math.min(col.implicitHeight + 2 * root.ccPadding, win.height - Theme.space8)
                     Behavior on height {
-                        NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut }
+                        Tween {}
                     }
-                    radius: Theme.radiusXl
+                    radius: Theme.radiusPanel
                     color: Theme.panel
                     border.width: Theme.borderThin
                     border.color: Theme.line
@@ -81,7 +87,7 @@ Scope {
 
                 Flickable {
                     id: flick
-                    anchors { top: card.top; left: card.left; right: card.right; bottom: card.bottom; margins: Theme.space16 }
+                    anchors { top: card.top; left: card.left; right: card.right; bottom: card.bottom; margins: root.ccPadding }
                     opacity: win.anim
                     contentHeight: col.implicitHeight
                     clip: true
@@ -90,45 +96,41 @@ Scope {
                     ColumnLayout {
                         id: col
                         width: flick.width
-                        spacing: Theme.space12
+                        spacing: Theme.space16
 
                         RowLayout {
                             Layout.fillWidth: true
-                            spacing: Theme.space6
+                            spacing: Theme.space12
 
                             Rectangle {
-                                implicitWidth: Theme.ccAvatarSize; implicitHeight: Theme.ccAvatarSize; radius: Math.min(width, height) / 2
-                                color: Theme.tile
-                                border.width: Theme.borderThin; border.color: Theme.line
-                                Image {
-                                    id: avatarImg
+                                implicitWidth: root.ccAvatarSize; implicitHeight: root.ccAvatarSize; radius: Math.min(width, height) / 2
+                                color: Theme.tileHover
+                                // Round avatar without a color effect: ClippingRectangle clips the corners directly,
+                                // with no separate layer mask + shader effect (two offscreen renders).
+                                ClippingRectangle {
                                     anchors.fill: parent
-                                    source: Sys.avatar !== "" ? "file://" + Sys.avatar : ""
-                                    fillMode: Image.PreserveAspectCrop
-                                    sourceSize.width: 72; sourceSize.height: 72
-                                    asynchronous: true
-                                    visible: false
-                                }
-                                Rectangle { id: avatarMask; anchors.fill: parent; radius: width / 2; visible: false; layer.enabled: true }
-                                MultiEffect {
-                                    anchors.fill: parent
+                                    radius: parent.radius
+                                    color: Theme.transparent
                                     visible: avatarImg.status === Image.Ready
-                                    source: avatarImg
-                                    maskEnabled: true
-                                    maskSource: avatarMask
-                                    maskThresholdMin: 0.5
-                                    maskSpreadAtMin: 1.0
+                                    Image {
+                                        id: avatarImg
+                                        anchors.fill: parent
+                                        source: Sys.avatar !== "" ? "file://" + Sys.avatar : ""
+                                        fillMode: Image.PreserveAspectCrop
+                                        sourceSize.width: 72; sourceSize.height: 72
+                                        asynchronous: true
+                                    }
                                 }
                                 Text {
                                     visible: avatarImg.status !== Image.Ready
                                     anchors.centerIn: parent
                                     text: (Quickshell.env("USER") || "?").charAt(0).toUpperCase()
                                     color: Theme.text
-                                    font.family: Theme.font; font.pixelSize: Theme.fontHeading; font.weight: Font.DemiBold
+                                    font.family: Theme.font; font.pixelSize: Theme.fontLg; font.weight: Theme.weightSemibold
                                 }
                             }
                             ColumnLayout {
-                                spacing: Theme.space0
+                                spacing: 0
                                 Layout.fillWidth: true
                                 Layout.minimumWidth: 0
                                 Text {
@@ -136,52 +138,39 @@ Scope {
                                     elide: Text.ElideRight
                                     text: Quickshell.env("USER") || "user"
                                     color: Theme.text
-                                    font.family: Theme.font; font.pixelSize: Theme.panelTitleSize; font.weight: Font.DemiBold
-                                    font.letterSpacing: Theme.panelTitleTracking
+                                    font.family: Theme.font; font.pixelSize: Theme.fontXl; font.weight: Theme.weightSemibold
+                                    font.letterSpacing: Theme.trackSnug
                                 }
                                 Text {
                                     Layout.fillWidth: true
                                     elide: Text.ElideRight
                                     text: Qt.formatDate(Sys.now, "dddd, d MMMM")
                                     color: Theme.dim
-                                    font.family: Theme.font; font.pixelSize: Theme.fontBody
+                                    font.family: Theme.font; font.pixelSize: Theme.fontSm
                                 }
                             }
 
-                            Repeater {
-                                model: [ { key: "tools", glyph: "more" }, { key: "power", glyph: "power" } ]
-                                delegate: Rectangle {
-                                    id: hb
-                                    required property var modelData
-                                    readonly property bool on: win.expanded === modelData.key
-                                    implicitWidth: Theme.ccHeaderButtonSize; implicitHeight: Theme.ccHeaderButtonSize
-                                    radius: Math.min(width, height) / 2
-                                    scale: hbArea.pressed ? Theme.buttonPressedScale : 1
-                                    color: on ? Theme.inverse : (hbArea.containsMouse ? Theme.tileHover : Theme.tile)
-                                    Behavior on color { ColorAnimation { duration: Theme.animHover; easing.type: Theme.easeOut } }
-                                    Behavior on scale { NumberAnimation { duration: Theme.animPress; easing.type: Theme.easeOut } }
-                                    Glyph {
-                                        anchors.centerIn: parent; width: Theme.icon18; height: Theme.icon18
-                                        name: hb.modelData.glyph
-                                        color: hb.on ? Theme.inverseText : Theme.text
-                                    }
-                                    MouseArea {
-                                        id: hbArea
-                                        anchors.fill: parent
-                                        hoverEnabled: true
-                                        onClicked: win.toggleExpand(hb.modelData.key)
-                                    }
+                            CcTile {
+                                Layout.preferredWidth: root.ccHeaderButtonSize
+                                Layout.preferredHeight: root.ccHeaderButtonSize
+                                radius: height / 2
+                                active: Sys.recActive || Sys.recStartPending
+                                onClicked: {
+                                    if (Sys.recActive) Sys.recordStop();
+                                    else if (!Sys.recStartPending) Sys.recordStart("full", "none");
+                                }
+                                Glyph {
+                                    anchors.centerIn: parent; width: Theme.iconLg; height: Theme.iconLg
+                                    name: Sys.recActive ? "stop" : "record"
+                                    color: Theme.text
                                 }
                             }
                         }
 
-                        ToolsPanel { open: win.expanded === "tools" }
-                        PowerActions { open: win.expanded === "power" }
 
-                        GridLayout {
+                        ColumnLayout {
                             Layout.fillWidth: true
-                            columns: 2
-                            columnSpacing: Theme.space12; rowSpacing: Theme.space12
+                            spacing: Theme.space8
 
                             CcNetworkTiles {
                                 expanded: win.expanded
@@ -205,14 +194,14 @@ Scope {
                             onRequestExpand: (key) => win.toggleExpand(key)
                         }
 
-                        MediaCard {
+                        CcMedia {
                             player: win.player
                             players: Mpris.players.values
                             panelShown: win.shown
                             onPlayerChangeRequested: (index) => win.playerIndex = index
                         }
 
-                        BatteryStatus {}
+                        NotificationHistory { Layout.fillWidth: true }
                     }
                 }
             }

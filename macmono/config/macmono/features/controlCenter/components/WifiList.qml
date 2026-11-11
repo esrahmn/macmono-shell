@@ -4,19 +4,25 @@ import "../../../shared/components"
 
 Rectangle {
     id: root
+
+    readonly property int wifiPasswordHeight: 32
+    readonly property int wifiShowPwWidth: 28
+    readonly property int wifiShowPwHeight: 24
+    readonly property int wifiJoinWidth: 64
+    readonly property int wifiJoinHeight: 32
     property bool open: false
     property string pwFor: ""
     readonly property bool typing: pwFor !== ""
 
     readonly property real fullHeight: col.implicitHeight + 12
     implicitHeight: open ? fullHeight : 0
-    Behavior on implicitHeight { NumberAnimation { duration: Theme.animBase; easing.type: Theme.easeOut } }
+    Behavior on implicitHeight { Tween {} }
     opacity: open ? 1 : 0
-    Behavior on opacity { NumberAnimation { duration: Theme.animFade } }
+    Behavior on opacity { Tween {} }
     visible: implicitHeight > 0.5
     radius: Theme.radiusCard
-    color: Theme.well
-    border.width: Theme.borderThin; border.color: Theme.cardStroke
+    color: Theme.scrim
+    border.width: Theme.borderThin; border.color: Theme.line
     clip: true
 
     onOpenChanged: if (!open) pwFor = ""
@@ -40,7 +46,7 @@ Rectangle {
 
     Column {
         id: col
-        anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space6 }
+        anchors { left: parent.left; right: parent.right; top: parent.top; margins: Theme.space8 }
 
         Text {
             visible: Sys.wifiList.length === 0
@@ -48,7 +54,7 @@ Rectangle {
             horizontalAlignment: Text.AlignHCenter; verticalAlignment: Text.AlignVCenter
             text: Sys.wifiOn ? "Searching for networks…" : "Wi-Fi is off"
             color: Theme.dim
-            font.family: Theme.font; font.pixelSize: Theme.fontBodyLg
+            font.family: Theme.font; font.pixelSize: Theme.fontMd
         }
 
         Repeater {
@@ -66,26 +72,26 @@ Rectangle {
                 Text {
                     visible: entry.section !== ""
                     width: parent.width; height: Theme.listSubheaderHeight
-                    leftPadding: 10
+                    leftPadding: Theme.space12
                     verticalAlignment: Text.AlignBottom
-                    bottomPadding: 4
+                    bottomPadding: Theme.space4
                     text: entry.section
                     color: Theme.faint
-                    font.family: Theme.font; font.pixelSize: Theme.fontSmall; font.weight: Font.DemiBold
+                    font.family: Theme.font; font.pixelSize: Theme.fontXs; font.weight: Theme.weightSemibold
                 }
 
                 Rectangle {
-                    width: parent.width; height: Theme.listRowHeight; radius: Theme.radiusSmall
-                    color: area.containsMouse || entry.asking ? Theme.tileMid : Theme.transparent
+                    width: parent.width; height: Theme.listRowHeight; radius: Theme.radiusControl
+                    color: area.containsMouse || entry.asking ? Theme.tile : Theme.transparent
 
                     Column {
-                        anchors { left: parent.left; leftMargin: Theme.space10; right: status.left; rightMargin: Theme.space8; verticalCenter: parent.verticalCenter }
+                        anchors { left: parent.left; leftMargin: Theme.space12; right: status.left; rightMargin: Theme.space8; verticalCenter: parent.verticalCenter }
                         Text {
                             width: parent.width; elide: Text.ElideRight
                             text: entry.modelData.ssid
                             color: Theme.text
-                            font.family: Theme.font; font.pixelSize: Theme.fontSubtitle
-                            font.weight: entry.isActive ? Font.DemiBold : Font.Normal
+                            font.family: Theme.font; font.pixelSize: Theme.fontMd
+                            font.weight: entry.isActive ? Theme.weightSemibold : Theme.weightRegular
                         }
                         Text {
                             width: parent.width; elide: Text.ElideRight
@@ -96,20 +102,20 @@ Rectangle {
                             : ((entry.modelData.known ? "Saved · " : "")
                             + (entry.modelData.secure ? "Secured · " : "Open · ") + entry.modelData.signal + "%")
                             color: Theme.dim
-                            font.family: Theme.font; font.pixelSize: Theme.fontSmall
+                            font.family: Theme.font; font.pixelSize: Theme.fontXs
                         }
                     }
                     Text {
                         id: status
-                        anchors { right: parent.right; rightMargin: Theme.space10; verticalCenter: parent.verticalCenter }
+                        anchors { right: parent.right; rightMargin: Theme.space12; verticalCenter: parent.verticalCenter }
                         text: entry.isActive ? (area.containsMouse ? "Disconnect" : "✓") : ""
                         color: entry.isActive && area.containsMouse ? Theme.dim : Theme.text
-                        font.family: Theme.font; font.pixelSize: entry.isActive && area.containsMouse ? Theme.fontSmall : Theme.fontBody
+                        font.family: Theme.font; font.pixelSize: entry.isActive && area.containsMouse ? Theme.fontXs : Theme.fontSm
                     }
                     Glyph {
                         visible: !entry.isActive && entry.modelData.secure && !entry.modelData.known
-                        anchors { right: parent.right; rightMargin: Theme.space10; verticalCenter: parent.verticalCenter }
-                        width: Theme.icon13; height: Theme.icon13
+                        anchors { right: parent.right; rightMargin: Theme.space12; verticalCenter: parent.verticalCenter }
+                        width: Theme.iconSm; height: Theme.iconSm
                         name: "lock"
                         color: Theme.dim
                     }
@@ -126,18 +132,18 @@ Rectangle {
                     visible: entry.asking
                     width: parent.width; height: visible ? Settings.wifiPasswordRowHeight : 0
                     Rectangle {
-                        anchors { left: parent.left; right: joinBtn.left; rightMargin: Theme.space6; verticalCenter: parent.verticalCenter; leftMargin: Theme.space6 }
-                        height: Theme.wifiPasswordHeight; radius: Math.min(width, height) / 2
-                        color: Theme.inset
+                        anchors { left: parent.left; right: joinBtn.left; rightMargin: Theme.space8; verticalCenter: parent.verticalCenter; leftMargin: Theme.space8 }
+                        height: root.wifiPasswordHeight; radius: Math.min(width, height) / 2
+                        color: Theme.scrim
                         border.width: Theme.borderThin; border.color: pw.activeFocus ? Theme.lineFocus : Theme.line
                         TextInput {
                             id: pw
-                            anchors { fill: parent; leftMargin: Theme.space14; rightMargin: 34 }
+                            anchors { fill: parent; leftMargin: Theme.space16; rightMargin: root.wifiShowPwWidth + Theme.space8 }
                             verticalAlignment: TextInput.AlignVCenter
                             echoMode: showPw.checked ? TextInput.Normal : TextInput.Password
                             color: Theme.text
-                            selectionColor: Theme.selection
-                            font.family: Theme.font; font.pixelSize: Theme.fontBody
+                            selectionColor: Theme.tileHover
+                            font.family: Theme.font; font.pixelSize: Theme.fontSm
                             clip: true
                             Keys.onReturnPressed: joinBtn.join()
                             Keys.onEnterPressed: joinBtn.join()
@@ -154,31 +160,31 @@ Rectangle {
                             id: showPw
                             property bool checked: false
                             anchors { right: parent.right; rightMargin: Theme.space4; verticalCenter: parent.verticalCenter }
-                            width: Theme.wifiShowPwWidth; height: Theme.wifiShowPwHeight
+                            width: root.wifiShowPwWidth; height: root.wifiShowPwHeight
                             onClicked: checked = !checked
                             Text {
                                 anchors.centerIn: parent
                                 text: showPw.checked ? "Hide" : "Show"
                                 color: Theme.dim
-                                font.family: Theme.font; font.pixelSize: Theme.fontMicro
+                                font.family: Theme.font; font.pixelSize: Theme.fontXs
                             }
                         }
                     }
                     MouseArea {
                         id: joinBtn
                         function join() { if (pw.text.length >= 8) { Sys.connectWifi(entry.modelData.ssid, pw.text); root.pwFor = ""; } }
-                        anchors { right: parent.right; rightMargin: Theme.space6; verticalCenter: parent.verticalCenter }
-                        width: Theme.wifiJoinWidth; height: Theme.wifiJoinHeight
+                        anchors { right: parent.right; rightMargin: Theme.space8; verticalCenter: parent.verticalCenter }
+                        width: root.wifiJoinWidth; height: root.wifiJoinHeight
                         hoverEnabled: true
                         enabled: pw.text.length >= 8 && Sys.wifiConnecting === ""
                         opacity: enabled ? 1 : Theme.opacityDisabled
                         onClicked: join()
-                        Rectangle { anchors.fill: parent; radius: Math.min(width, height) / 2; color: Theme.inverse }
+                        Rectangle { anchors.fill: parent; radius: Math.min(width, height) / 2; color: Theme.accent }
                         Text {
                             anchors.centerIn: parent
                             text: "Join"
-                            color: Theme.inverseText
-                            font.family: Theme.font; font.pixelSize: Theme.fontBody; font.weight: Font.DemiBold
+                            color: Theme.textOnAccent
+                            font.family: Theme.font; font.pixelSize: Theme.fontSm; font.weight: Theme.weightSemibold
                         }
                     }
                 }
@@ -187,7 +193,7 @@ Rectangle {
 
         Item {
             width: col.width; height: Theme.listFooterHeight
-            Rectangle { anchors { left: parent.left; right: parent.right; top: parent.top; leftMargin: Theme.space6; rightMargin: Theme.space6 } height: 1; color: Theme.line }
+            Rectangle { anchors { left: parent.left; right: parent.right; top: parent.top; leftMargin: Theme.space8; rightMargin: Theme.space8 } height: 1; color: Theme.line }
             Row {
                 anchors { left: parent.left; leftMargin: Theme.space4; verticalCenter: parent.verticalCenter }
                 spacing: Theme.space4
@@ -202,7 +208,7 @@ Rectangle {
         property string label: ""
         width: fbText.implicitWidth + 20; height: Theme.listActionHeight
         hoverEnabled: true
-        Rectangle { anchors.fill: parent; radius: Math.min(width, height) / 2; color: fb.containsMouse ? Theme.tileMid : Theme.transparent }
-        Text { id: fbText; anchors.centerIn: parent; text: fb.label; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontBodyLg }
+        Rectangle { anchors.fill: parent; radius: Math.min(width, height) / 2; color: fb.containsMouse ? Theme.tile : Theme.transparent }
+        Text { id: fbText; anchors.centerIn: parent; text: fb.label; color: Theme.text; font.family: Theme.font; font.pixelSize: Theme.fontMd }
     }
 }

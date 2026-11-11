@@ -4,12 +4,16 @@ import "../../../shared/components"
 
 Item {
     id: root
+
+    readonly property int settingsChipRemove: 18
+    readonly property int settingsChipInputWidth: 150
+    readonly property int settingsChipsMinWidth: 320
     property var model: []
     property bool mono: false
     property bool numeric: false
     signal edited(var list)
 
-    implicitWidth: Theme.settingsChipsMinWidth
+    implicitWidth: root.settingsChipsMinWidth
     implicitHeight: flow.implicitHeight
 
     function same(a, b) { return String(a) === String(b); }
@@ -37,7 +41,7 @@ Item {
     Flow {
         id: flow
         width: root.width
-        spacing: Theme.space6
+        spacing: Theme.space8
 
         Repeater {
             model: root.model
@@ -47,35 +51,35 @@ Item {
                 required property var modelData
                 required property int index
 
-                height: Theme.settingsChipHeight
-                width: chipLabel.implicitWidth + Theme.space10 + Theme.settingsChipRemove + Theme.space6
-                radius: Theme.radiusXs
-                color: Theme.tileMid
+                height: SettingsMetrics.settingsChipHeight
+                width: chipLabel.implicitWidth + Theme.space12 + root.settingsChipRemove + Theme.space8
+                radius: Theme.radiusControl
+                color: Theme.tile
 
                 SettingsText {
                     id: chipLabel
-                    x: Theme.space10
+                    x: Theme.space12
                     anchors.verticalCenter: parent.verticalCenter
                     text: String(chip.modelData)
                     font.family: root.mono ? Theme.fontMono : Theme.font
-                    font.pixelSize: Theme.fontBodyLg
+                    font.pixelSize: Theme.fontMd
                 }
 
                 Rectangle {
-                    width: Theme.settingsChipRemove
-                    height: Theme.settingsChipRemove
+                    width: root.settingsChipRemove
+                    height: root.settingsChipRemove
                     radius: height / 2
                     anchors.right: parent.right
                     anchors.rightMargin: Theme.space4
                     anchors.verticalCenter: parent.verticalCenter
-                    color: removeArea.containsMouse ? Theme.tileStrong : Theme.transparent
+                    color: removeArea.containsMouse ? Theme.tilePress : Theme.transparent
 
                     Glyph {
                         anchors.centerIn: parent
                         name: "close"
                         color: Theme.dim
-                        width: Theme.icon11
-                        height: Theme.icon11
+                        width: Theme.iconSm
+                        height: Theme.iconSm
                     }
 
                     MouseArea {
@@ -90,23 +94,23 @@ Item {
         }
 
         Rectangle {
-            width: Theme.settingsChipInputWidth
-            height: Theme.settingsChipHeight
-            radius: Theme.radiusXs
-            color: Theme.inset
+            width: root.settingsChipInputWidth
+            height: SettingsMetrics.settingsChipHeight
+            radius: Theme.radiusControl
+            color: Theme.scrim
             border.width: Theme.borderThin
             border.color: input.activeFocus ? Theme.lineFocus : Theme.line
 
             TextInput {
                 id: input
                 anchors.fill: parent
-                anchors.leftMargin: Theme.space10
-                anchors.rightMargin: Theme.space10
+                anchors.leftMargin: Theme.space12
+                anchors.rightMargin: Theme.space12
                 verticalAlignment: TextInput.AlignVCenter
                 color: Theme.text
-                selectionColor: Theme.selection
+                selectionColor: Theme.tileHover
                 font.family: root.mono ? Theme.fontMono : Theme.font
-                font.pixelSize: Theme.fontBodyLg
+                font.pixelSize: Theme.fontMd
                 clip: true
                 selectByMouse: true
                 inputMethodHints: root.numeric ? Qt.ImhDigitsOnly : Qt.ImhNoPredictiveText
@@ -119,12 +123,12 @@ Item {
 
             SettingsText {
                 anchors.left: parent.left
-                anchors.leftMargin: Theme.space10
+                anchors.leftMargin: Theme.space12
                 anchors.verticalCenter: parent.verticalCenter
                 visible: input.text === ""
                 text: "+ add"
-                color: Theme.muted
-                font.pixelSize: Theme.fontBodyLg
+                color: Theme.faint
+                font.pixelSize: Theme.fontMd
             }
         }
     }

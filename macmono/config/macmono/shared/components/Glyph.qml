@@ -26,8 +26,8 @@ Canvas {
 
     onImageLoaded: requestPaint()
 
-    implicitWidth: Theme.icon20
-    implicitHeight: Theme.icon20
+    implicitWidth: Theme.iconMd
+    implicitHeight: Theme.iconMd
 
     onNameChanged: {
         if (name === "enso")

@@ -15,7 +15,7 @@ Item {
             x: 2; y: 2; height: parent.height - 4
             width: Math.max(2, (parent.width - 4) * Math.min(1, Sys.batPercent))
             radius: parent.radius * 0.45
-            color: Theme.text
+            color: Sys.batCharging ? Theme.accent : Theme.text
         }
     }
 

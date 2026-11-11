@@ -3,6 +3,8 @@ import "../../../core"
 
 Column {
     id: root
+
+    readonly property int settingsNightHeight: 120
     property int warmKelvin: 4200
     property int normalKelvin: 6500
     property bool active: false
@@ -20,7 +22,7 @@ Column {
     function strength(k) { return Math.min(0.5, Math.abs(6500 - k) / 4000 * 0.5); }
 
     Row {
-        spacing: Theme.space10
+        spacing: Theme.space12
 
         Repeater {
             model: [
@@ -31,12 +33,12 @@ Column {
                 id: half
                 required property var modelData
                 readonly property bool lit: modelData.on === root.active
-                width: (root.width - Theme.space10) / 2
-                spacing: Theme.space6
+                width: (root.width - Theme.space12) / 2
+                spacing: Theme.space8
 
                 Item {
                     width: parent.width
-                    height: Theme.settingsNightHeight
+                    height: root.settingsNightHeight
                     SettingsWallpaperImage { anchors.fill: parent; path: Sys.wallpaper; cornerRadius: Theme.radiusCard }
                     Rectangle { anchors.fill: parent; radius: Theme.radiusCard; color: root.tint(half.modelData.kelvin, root.strength(half.modelData.kelvin)) }
                     Rectangle {
@@ -44,14 +46,14 @@ Column {
                         radius: Theme.radiusCard
                         color: Theme.transparent
                         border.width: half.lit ? Theme.borderStrong : Theme.borderThin
-                        border.color: half.lit ? Theme.text : Theme.cardStroke
+                        border.color: half.lit ? Theme.text : Theme.line
                     }
                 }
                 SettingsText {
                     text: half.modelData.label + "  ·  " + half.modelData.kelvin + " K" + (half.lit ? "  ·  now" : "")
                     color: half.lit ? Theme.text : Theme.dim
-                    font.pixelSize: Theme.fontBody
-                    font.weight: half.lit ? Font.DemiBold : Font.Normal
+                    font.pixelSize: Theme.fontSm
+                    font.weight: half.lit ? Theme.weightSemibold : Theme.weightRegular
                     leftPadding: Theme.space2
                 }
             }

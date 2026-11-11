@@ -1,20 +1,29 @@
 import QtQuick
 import "../../../core"
+import "../../../shared/components"
 
 Column {
     id: root
-    spacing: Theme.settingsGroupSpacing
+
+    readonly property int settingsHeroHeight: 220
+    readonly property int settingsHeroScrimHeight: 84
+    readonly property color settingsScrim: Qt.rgba(0, 0, 0, 0.65)
+    readonly property int settingsThumbMin: 150
+    readonly property real settingsThumbRatio: 0.5625
+    readonly property int settingsThumbMax: 12
+    readonly property int settingsHoverPreviewMs: 140
+    spacing: SettingsMetrics.settingsGroupSpacing
 
     property var shown: []
     function rebuild() {
         const cur = Sys.wallpaper;
         const rest = Sys.wallpapers.filter(p => p !== cur);
         const list = cur === "" ? rest : [cur].concat(rest);
-        shown = list.slice(0, Theme.settingsThumbMax);
+        shown = list.slice(0, root.settingsThumbMax);
     }
     Connections { target: Sys; function onWallpapersChanged() { root.rebuild(); } }
-    readonly property int cols: Math.max(2, Math.floor((width + Theme.space10) / (Theme.settingsThumbMin + Theme.space10)))
-    readonly property real cellW: (width - Theme.space10 * (cols - 1)) / cols
+    readonly property int cols: Math.max(2, Math.floor((width + Theme.space12) / (root.settingsThumbMin + Theme.space12)))
+    readonly property real cellW: (width - Theme.space12 * (cols - 1)) / cols
 
     function nameOf(p) { return String(p).split("/").pop(); }
 
@@ -24,7 +33,7 @@ Column {
     readonly property bool previewing: hoverPath !== "" && hoverPath !== Sys.wallpaper
     function hoverOn(p) { pendingHover = p; hoverTimer.restart(); }
     function hoverOff() { pendingHover = ""; hoverTimer.restart(); }
-    Timer { id: hoverTimer; interval: Theme.settingsHoverPreviewMs; onTriggered: root.hoverPath = root.pendingHover }
+    Timer { id: hoverTimer; interval: root.settingsHoverPreviewMs; onTriggered: root.hoverPath = root.pendingHover }
 
     onVisibleChanged: {
         if (visible) { Sys.loadWallpapers(); rebuild(); }
@@ -33,11 +42,11 @@ Column {
     Component.onCompleted: rebuild()
 
     component Caption: SettingsText {
-        color: Theme.labelCapsText
-        font.pixelSize: Theme.labelCapsSize
-        font.weight: Font.DemiBold
-        font.letterSpacing: Theme.labelCapsTracking
-        leftPadding: Theme.settingsRowPadX
+        color: Theme.dim
+        font.pixelSize: Theme.fontXs
+        font.weight: Theme.weightSemibold
+        font.letterSpacing: Theme.trackCaps
+        leftPadding: SettingsMetrics.settingsRowPadX
     }
 
     Column {
@@ -47,24 +56,24 @@ Column {
 
         Item {
             width: parent.width
-            height: Theme.settingsHeroHeight
+            height: root.settingsHeroHeight
 
-            SettingsWallpaperImage { anchors.fill: parent; path: root.heroPath; thumb: root.previewing; cornerRadius: Theme.radius }
+            SettingsWallpaperImage { anchors.fill: parent; path: root.heroPath; thumb: root.previewing; cornerRadius: Theme.radiusCard }
 
             Rectangle {
                 anchors { left: parent.left; right: parent.right; bottom: parent.bottom }
-                height: Theme.settingsHeroScrimHeight
-                radius: Theme.radius
+                height: root.settingsHeroScrimHeight
+                radius: Theme.radiusCard
                 gradient: Gradient {
                     GradientStop { position: 0.0; color: Theme.transparent }
-                    GradientStop { position: 1.0; color: Theme.settingsScrim }
+                    GradientStop { position: 1.0; color: root.settingsScrim }
                 }
             }
             SettingsText {
-                anchors { left: parent.left; leftMargin: Theme.space16; right: randomBtn.left; rightMargin: Theme.space12; bottom: parent.bottom; bottomMargin: Theme.space14 }
+                anchors { left: parent.left; leftMargin: Theme.space16; right: randomBtn.left; rightMargin: Theme.space12; bottom: parent.bottom; bottomMargin: Theme.space16 }
                 text: root.heroPath === "" ? "No wallpaper set" : root.nameOf(root.heroPath)
                 elide: Text.ElideMiddle
-                font.weight: Font.DemiBold
+                font.weight: Theme.weightSemibold
             }
             SettingsButton {
                 id: randomBtn
@@ -72,27 +81,27 @@ Column {
                 label: "Random"
                 onClicked: Sys.randomWallpaper()
             }
-            Rectangle { anchors.fill: parent; radius: Theme.radius; color: Theme.transparent; border.width: Theme.borderThin; border.color: Theme.cardStroke }
+            Rectangle { anchors.fill: parent; radius: Theme.radiusCard; color: Theme.transparent; border.width: Theme.borderThin; border.color: Theme.line }
         }
 
         Rectangle {
             width: parent.width
-            height: monoCol.height + Theme.settingsRowPadY * 2
+            height: monoCol.height + SettingsMetrics.settingsRowPadY * 2
             radius: Theme.radiusCard
             color: Theme.tile
             border.width: Theme.borderThin
-            border.color: Theme.cardStroke
+            border.color: Theme.line
 
             Column {
                 id: monoCol
-                anchors { left: parent.left; leftMargin: Theme.settingsRowPadX; right: monoToggle.left; rightMargin: Theme.space12; verticalCenter: parent.verticalCenter }
+                anchors { left: parent.left; leftMargin: SettingsMetrics.settingsRowPadX; right: monoToggle.left; rightMargin: Theme.space12; verticalCenter: parent.verticalCenter }
                 spacing: Theme.space2
-                SettingsText { text: "Black and white"; font.weight: Font.DemiBold }
-                SettingsText { width: parent.width; text: "Show wallpapers in grayscale to match the MacMono look."; color: Theme.settingsDescText; font.pixelSize: Theme.fontBody; wrapMode: Text.WordWrap }
+                SettingsText { text: "Black and white"; font.weight: Theme.weightSemibold }
+                SettingsText { width: parent.width; text: "Show wallpapers in grayscale to match the MacMono look."; color: SettingsMetrics.settingsDescText; font.pixelSize: Theme.fontSm; wrapMode: Text.WordWrap }
             }
             SettingsToggle {
                 id: monoToggle
-                anchors { right: parent.right; rightMargin: Theme.settingsRowPadX; verticalCenter: parent.verticalCenter }
+                anchors { right: parent.right; rightMargin: SettingsMetrics.settingsRowPadX; verticalCenter: parent.verticalCenter }
                 checked: Sys.wallpaperMono
                 onToggled: value => Sys.setWallpaperMono(value)
             }
@@ -106,15 +115,15 @@ Column {
 
         SettingsText {
             visible: root.shown.length === 0
-            leftPadding: Theme.settingsRowPadX
+            leftPadding: SettingsMetrics.settingsRowPadX
             text: "No wallpapers found. Add a folder below."
             color: Theme.dim
-            font.pixelSize: Theme.fontBody
+            font.pixelSize: Theme.fontSm
         }
 
         Grid {
             columns: root.cols
-            spacing: Theme.space10
+            spacing: Theme.space12
 
             Repeater {
                 model: root.shown
@@ -124,7 +133,7 @@ Column {
                     required property string modelData
                     readonly property bool picked: modelData === Sys.wallpaper
                     width: root.cellW
-                    height: root.cellW * Theme.settingsThumbRatio
+                    height: root.cellW * root.settingsThumbRatio
                     activeFocusOnTab: true
                     onActiveFocusChanged: { if (activeFocus) root.hoverOn(modelData); else root.hoverOff(); }
                     Keys.onReturnPressed: Sys.setWallpaper(modelData)
@@ -134,13 +143,13 @@ Column {
                         anchors.fill: parent
                         path: cell.modelData
                         thumb: true
-                        cornerRadius: Theme.radiusMedium
+                        cornerRadius: Theme.radiusCard
                         opacity: (cell.picked || area.containsMouse || cell.activeFocus) ? 1.0 : Theme.opacityDim
-                        Behavior on opacity { NumberAnimation { duration: Theme.animHover } }
+                        Behavior on opacity { Tween { duration: Theme.durFast } }
                     }
                     Rectangle {
                         anchors.fill: parent
-                        radius: Theme.radiusMedium
+                        radius: Theme.radiusCard
                         color: Theme.transparent
                         border.width: cell.picked ? Theme.borderStrong : Theme.borderThin
                         border.color: cell.picked ? Theme.text : Theme.line
@@ -159,14 +168,14 @@ Column {
         }
 
         Row {
-            visible: Sys.wallpapers.length > Theme.settingsThumbMax
-            x: Theme.settingsRowPadX
+            visible: Sys.wallpapers.length > root.settingsThumbMax
+            x: SettingsMetrics.settingsRowPadX
             spacing: Theme.space12
             SettingsText {
                 anchors.verticalCenter: parent.verticalCenter
-                text: "Showing " + Theme.settingsThumbMax + " of " + Sys.wallpapers.length
+                text: "Showing " + root.settingsThumbMax + " of " + Sys.wallpapers.length
                 color: Theme.dim
-                font.pixelSize: Theme.fontBody
+                font.pixelSize: Theme.fontSm
             }
             SettingsButton {
                 label: "See all"

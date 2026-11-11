@@ -17,7 +17,7 @@ Rectangle {
     implicitHeight: view.implicitHeight + 2 * Theme.space12
     radius: Theme.radiusCard
     color: Theme.tile
-    border.width: Theme.borderThin; border.color: Theme.cardStroke
+    border.width: Theme.borderThin; border.color: Theme.line
 
     MediaPlayerView {
         id: view

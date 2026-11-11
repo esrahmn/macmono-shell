@@ -17,17 +17,17 @@ Rectangle {
 
     function hhmm(m) { return String(Math.floor(m / 60)).padStart(2, "0") + ":" + String(m % 60).padStart(2, "0"); }
 
-    height: body.height + Theme.settingsRowPadY * 2
+    height: body.height + SettingsMetrics.settingsRowPadY * 2
     radius: Theme.radiusCard
     color: Theme.tile
     border.width: Theme.borderThin
-    border.color: Theme.cardStroke
+    border.color: Theme.line
 
     Column {
         id: body
-        x: Theme.settingsRowPadX
-        y: Theme.settingsRowPadY
-        width: parent.width - Theme.settingsRowPadX * 2
+        x: SettingsMetrics.settingsRowPadX
+        y: SettingsMetrics.settingsRowPadY
+        width: parent.width - SettingsMetrics.settingsRowPadX * 2
         spacing: Theme.space8
 
         SettingsText {
@@ -37,19 +37,19 @@ Rectangle {
                 : "Quiet from " + root.hhmm(root.startMin) + " to " + root.hhmm(root.endMin)
                   + " (" + Math.floor(root.lengthMin / 60) + " h" + (root.lengthMin % 60 ? " " + root.lengthMin % 60 + " min" : "") + ")"
                   + (root.insideNow ? ", quiet now" : "")
-            font.weight: Font.DemiBold
-            font.pixelSize: Theme.fontBody
+            font.weight: Theme.weightSemibold
+            font.pixelSize: Theme.fontSm
         }
 
         Item {
             id: bar
             width: parent.width
-            height: Theme.settingsBatBar + Theme.space8
+            height: SettingsMetrics.settingsBatBar + Theme.space8
 
             Rectangle {
                 y: Theme.space4
                 width: parent.width
-                height: Theme.settingsBatBar
+                height: SettingsMetrics.settingsBatBar
                 radius: height / 2
                 color: Theme.tileHover
             }
@@ -59,8 +59,8 @@ Rectangle {
                     required property var modelData
                     x: bar.width * modelData[0] / root.dayMin
                     y: Theme.space4
-                    width: Math.max(Theme.settingsBatBar, bar.width * (modelData[1] - modelData[0]) / root.dayMin)
-                    height: Theme.settingsBatBar
+                    width: Math.max(SettingsMetrics.settingsBatBar, bar.width * (modelData[1] - modelData[0]) / root.dayMin)
+                    height: SettingsMetrics.settingsBatBar
                     radius: height / 2
                     color: Theme.text
                     opacity: root.scheduled ? 1 : 0.3
@@ -71,20 +71,20 @@ Rectangle {
                 width: Theme.borderStrong
                 height: bar.height
                 radius: width / 2
-                color: Theme.textSoft
+                color: Theme.text
             }
         }
 
         Item {
             width: parent.width
-            height: Theme.fontCaption + Theme.space4
+            height: Theme.fontXs + Theme.space4
             Repeater {
                 model: [0, 6, 12, 18, 24]
                 delegate: SettingsText {
                     required property int modelData
                     text: modelData
                     color: Theme.dim
-                    font.pixelSize: Theme.fontCaption
+                    font.pixelSize: Theme.fontXs
                     x: Math.max(0, Math.min(parent.width - width, parent.width * modelData / 24 - width / 2))
                 }
             }

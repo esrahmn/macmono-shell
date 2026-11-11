@@ -3,13 +3,15 @@ import "../../../core"
 
 Column {
     id: root
+
+    readonly property int settingsBackupShown: 5
     readonly property var svc: Sys.backup
     spacing: 0
 
     property string armed: ""
     property bool showAll: false
 
-    readonly property var shownBackups: showAll ? svc.backups : svc.backups.slice(0, Theme.settingsBackupShown)
+    readonly property var shownBackups: showAll ? svc.backups : svc.backups.slice(0, root.settingsBackupShown)
 
     function press(key, action) {
         if (armed !== key) {
@@ -42,7 +44,7 @@ Column {
 
     Timer {
         id: confirmTimer
-        interval: Theme.settingsConfirmMs
+        interval: SettingsMetrics.settingsConfirmMs
         onTriggered: root.armed = ""
     }
 
@@ -68,20 +70,20 @@ Column {
     SettingsText {
         visible: root.statusFor("create") !== ""
         width: root.width
-        leftPadding: Theme.settingsRowPadX
+        leftPadding: SettingsMetrics.settingsRowPadX
         text: root.statusFor("create")
-        color: Theme.settingsDescText
-        font.pixelSize: Theme.fontBody
+        color: SettingsMetrics.settingsDescText
+        font.pixelSize: Theme.fontSm
     }
 
     SettingsText {
         visible: root.svc.backups.length === 0
         width: root.width
-        leftPadding: Theme.settingsRowPadX
+        leftPadding: SettingsMetrics.settingsRowPadX
         topPadding: Theme.space4
         text: "No backups yet."
         color: Theme.dim
-        font.pixelSize: Theme.fontBody
+        font.pixelSize: Theme.fontSm
     }
 
 
@@ -123,15 +125,15 @@ Column {
     }
 
     Item {
-        visible: root.svc.backups.length > Theme.settingsBackupShown
+        visible: root.svc.backups.length > root.settingsBackupShown
         width: root.width
-        height: visible ? Theme.settingsListRowHeight : 0
+        height: visible ? SettingsMetrics.settingsListRowHeight : 0
 
         SettingsText {
-            anchors { left: parent.left; leftMargin: Theme.settingsRowPadX; verticalCenter: parent.verticalCenter }
+            anchors { left: parent.left; leftMargin: SettingsMetrics.settingsRowPadX; verticalCenter: parent.verticalCenter }
             text: root.showAll ? "Show less" : "Show all " + root.svc.backups.length
             color: showArea.containsMouse ? Theme.text : Theme.dim
-            font.pixelSize: Theme.fontBodyLg
+            font.pixelSize: Theme.fontMd
             font.underline: showArea.containsMouse
         }
         MouseArea {
@@ -147,22 +149,22 @@ Column {
         readonly property string msg: root.statusFor("restore") || root.statusFor("remove")
         visible: msg !== ""
         width: root.width
-        leftPadding: Theme.settingsRowPadX
+        leftPadding: SettingsMetrics.settingsRowPadX
         topPadding: Theme.space8
         text: msg
-        color: Theme.settingsDescText
-        font.pixelSize: Theme.fontBody
+        color: SettingsMetrics.settingsDescText
+        font.pixelSize: Theme.fontSm
     }
 
 
     Item {
         width: root.width
-        height: Theme.settingsGroupSpacing * 2
+        height: SettingsMetrics.settingsGroupSpacing * 2
 
         Rectangle {
-            x: Theme.settingsRowPadX
+            x: SettingsMetrics.settingsRowPadX
             y: (parent.height - height) / 2
-            width: parent.width - Theme.settingsRowPadX * 2
+            width: parent.width - SettingsMetrics.settingsRowPadX * 2
             height: Theme.borderThin
             color: Theme.line
         }
@@ -192,10 +194,10 @@ Column {
     SettingsText {
         visible: root.statusFor("reset") !== ""
         width: root.width
-        leftPadding: Theme.settingsRowPadX
+        leftPadding: SettingsMetrics.settingsRowPadX
         text: root.statusFor("reset")
-        color: Theme.settingsDescText
-        font.pixelSize: Theme.fontBody
+        color: SettingsMetrics.settingsDescText
+        font.pixelSize: Theme.fontSm
     }
 
     SettingsRow {
@@ -217,9 +219,9 @@ Column {
     SettingsText {
         visible: root.statusFor("clear") !== ""
         width: root.width
-        leftPadding: Theme.settingsRowPadX
+        leftPadding: SettingsMetrics.settingsRowPadX
         text: root.statusFor("clear")
-        color: Theme.settingsDescText
-        font.pixelSize: Theme.fontBody
+        color: SettingsMetrics.settingsDescText
+        font.pixelSize: Theme.fontSm
     }
 }

@@ -3,12 +3,16 @@ import "../../../core"
 
 Item {
     id: root
+
+    readonly property int settingsPreviewBarHeight: 24
+    readonly property int settingsPreviewPanelHeight: 84
+    readonly property int settingsPreviewPanelMax: 260
     property real panelOpacity: 0.60
     property bool clock24h: true
     property bool seconds: false
     property bool showDate: false
 
-    height: Theme.settingsPreviewHeight
+    height: SettingsMetrics.settingsPreviewHeight
 
     readonly property color fill: Qt.rgba(0, 0, 0, Math.max(0.25, Math.min(1, panelOpacity)))
 
@@ -32,47 +36,47 @@ Item {
     SettingsWallpaperImage {
         anchors.fill: parent
         path: Sys.wallpaper
-        cornerRadius: Theme.radius
+        cornerRadius: Theme.radiusCard
     }
 
     Rectangle {
         id: bar
-        anchors { top: parent.top; left: parent.left; right: parent.right; margins: Theme.space10 }
-        height: Theme.settingsPreviewBarHeight
+        anchors { top: parent.top; left: parent.left; right: parent.right; margins: Theme.space12 }
+        height: root.settingsPreviewBarHeight
         radius: height / 2
         color: root.fill
 
         Row {
-            anchors { left: parent.left; leftMargin: Theme.space10; verticalCenter: parent.verticalCenter }
-            spacing: Theme.space6
-            Rectangle { width: Theme.settingsDot; height: width; radius: width / 2; color: Theme.text; anchors.verticalCenter: parent.verticalCenter }
-            SettingsText { text: "Desktop"; font.pixelSize: Theme.fontCaption; color: Theme.textSoft; anchors.verticalCenter: parent.verticalCenter }
+            anchors { left: parent.left; leftMargin: Theme.space12; verticalCenter: parent.verticalCenter }
+            spacing: Theme.space8
+            Rectangle { width: SettingsMetrics.settingsDot; height: width; radius: width / 2; color: Theme.text; anchors.verticalCenter: parent.verticalCenter }
+            SettingsText { text: "Desktop"; font.pixelSize: Theme.fontXs; color: Theme.text; anchors.verticalCenter: parent.verticalCenter }
         }
         SettingsText {
             anchors.centerIn: parent
             text: root.clockLabel
-            font.pixelSize: Theme.fontCaption
-            font.weight: Font.DemiBold
+            font.pixelSize: Theme.fontXs
+            font.weight: Theme.weightSemibold
         }
     }
 
     Rectangle {
         anchors { horizontalCenter: parent.horizontalCenter; top: bar.bottom; topMargin: Theme.space12 }
-        width: Math.min(parent.width * 0.5, Theme.settingsPreviewPanelMax)
-        height: Theme.settingsPreviewPanelHeight
+        width: Math.min(parent.width * 0.5, root.settingsPreviewPanelMax)
+        height: root.settingsPreviewPanelHeight
         radius: Theme.radiusCard
         color: root.fill
         border.width: Theme.borderThin
-        border.color: Theme.cardStroke
+        border.color: Theme.line
 
         Column {
             anchors { fill: parent; margins: Theme.space12 }
             spacing: Theme.space8
-            SettingsText { text: "Panel"; font.pixelSize: Theme.fontBody; font.weight: Font.DemiBold }
-            Rectangle { width: parent.width; height: Theme.space8; radius: Theme.radiusIndicator * 2; color: Theme.tileHover }
-            Rectangle { width: parent.width * 0.6; height: Theme.space8; radius: Theme.radiusIndicator * 2; color: Theme.tile }
+            SettingsText { text: "Panel"; font.pixelSize: Theme.fontSm; font.weight: Theme.weightSemibold }
+            Rectangle { width: parent.width; height: Theme.space8; radius: height / 2; color: Theme.tileHover }
+            Rectangle { width: parent.width * 0.6; height: Theme.space8; radius: height / 2; color: Theme.tile }
         }
     }
 
-    Rectangle { anchors.fill: parent; radius: Theme.radius; color: Theme.transparent; border.width: Theme.borderThin; border.color: Theme.cardStroke }
+    Rectangle { anchors.fill: parent; radius: Theme.radiusCard; color: Theme.transparent; border.width: Theme.borderThin; border.color: Theme.line }
 }

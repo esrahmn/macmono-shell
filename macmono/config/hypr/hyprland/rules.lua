@@ -1,7 +1,5 @@
--- ######## Window rules ########
 
 
--- Floating
 hl.window_rule({ match = { title = "^(Open File)(.*)$" }, center = true })
 hl.window_rule({ match = { title = "^(Open File)(.*)$" }, float = true })
 hl.window_rule({ match = { title = "^(Select a File)(.*)$" }, center = true })
@@ -34,49 +32,34 @@ hl.window_rule({ match = { class = ".*bluedevilwizard" }, float = true })
 hl.window_rule({ match = { class = "org.freedesktop.impl.portal.desktop.kde" }, float = true })
 hl.window_rule({ match = { class = "org.freedesktop.impl.portal.desktop.kde" }, size = { "(monitor_w*0.60)", "(monitor_h*0.65)" } })
 
--- Move
--- stupid dolphin copy
 hl.window_rule({ match = { title = "^(Copying — Dolphin)$" }, move = { 40, 80 } })
 
--- Tiling
--- Ignore app maximize requests so restored window states do not override tiling.
 hl.window_rule({ match = { class = ".*" }, suppress_event = "maximize" })
 
--- Picture-in-Picture
 hl.window_rule({ match = { title = "^([Pp]icture[-\\s]?[Ii]n[-\\s]?[Pp]icture)(.*)$" }, float = true })
 hl.window_rule({ match = { title = "^([Pp]icture[-\\s]?[Ii]n[-\\s]?[Pp]icture)(.*)$" }, keep_aspect_ratio = true })
 hl.window_rule({ match = { title = "^([Pp]icture[-\\s]?[Ii]n[-\\s]?[Pp]icture)(.*)$" }, move = { "(monitor_w*0.73)", "(monitor_h*0.72)" } })
 hl.window_rule({ match = { title = "^([Pp]icture[-\\s]?[Ii]n[-\\s]?[Pp]icture)(.*)$" }, size = { "(monitor_w*0.25)", "(monitor_h*0.25)" } })
 hl.window_rule({ match = { title = "^([Pp]icture[-\\s]?[Ii]n[-\\s]?[Pp]icture)(.*)$" }, pin = true })
 
--- Screen sharing
 hl.window_rule({ match = { title = ".*is sharing (a window|your screen).*" }, float = true })
 hl.window_rule({ match = { title = ".*is sharing (a window|your screen).*" }, pin = true })
 hl.window_rule({ match = { title = ".*is sharing (a window|your screen).*" }, move = { "(monitor_w*.5-window_w*.5)", "(monitor_h-window_h-12)" } })
 
--- No shadow for tiled windows
 hl.window_rule({ match = { float = false }, no_shadow = true })
 
--- ######## Workspace rules ########
 hl.workspace_rule({ workspace = "special:special", gaps_out = 30 })
 
--- ######## Layer rules ########
--- Tool bantu di luar macmono: tanpa animasi.
-hl.layer_rule({ match = { namespace = "selection" }, no_anim = true })   -- slurp
+hl.layer_rule({ match = { namespace = "selection" }, no_anim = true })
 hl.layer_rule({ match = { namespace = "hyprpicker" }, no_anim = true })
 
--- ######## macmono (default shell) ########
--- Preferensi blur/opacity + layer rule namespace macmono:*.
--- (Pengaturan blur global ada di general.lua.)
 
--- Semua window: blur + sedikit transparan
 hl.window_rule({
     match = { class = ".*" },
     no_blur = false,
     opacity = "0.80 0.80",
 })
 
--- Exception: browser & game tetap solid
 hl.window_rule({
     match = { class = "^(org.vinegarhq.Sober)$" },
                no_blur = true,
@@ -108,25 +91,19 @@ hl.window_rule({
     opacity = "1.0 1.0",
 })
 
--- Layer shell macmono (namespace bukan quickshell:*)
-local mmAll   = "^macmono:.*$"
-local mmBlur  = "^macmono:(menubar|cc|notif|calendar|media|launcher|clipboard|power|traymenu|cheatsheet|settings|command-palette)$"
-local mmPanel = "^macmono:(menubar|cc|notif|calendar|media|cheatsheet|settings)$"
-local mmModal = "^macmono:(launcher|clipboard|power|traymenu|command-palette)$"
 
--- Animasi panel diurus QML; matikan animasi layer Hyprland biar blur tidak "nyangkut"
+local mmAll   = "^macmono:.*$"
+local mmBlur  = "^macmono:(menubar|cc|notif|calendar|media|launcher-menu|launcher|overview|clipboard|power|traymenu|cheatsheet|settings|command-palette)$"
+local mmPanel = "^macmono:(menubar|cc|notif|calendar|media|cheatsheet|settings)$"
+local mmModal = "^macmono:(launcher-menu|launcher|overview|clipboard|power|traymenu|command-palette)$"
+
 hl.layer_rule({ match = { namespace = mmAll }, no_anim = true })
--- xray bikin blur cuma nampilin wallpaper; pastikan mati untuk panel macmono
 hl.layer_rule({ match = { namespace = mmAll }, xray = false })
 
--- Settings adalah panel kaca floating; blur berasal dari compositor, bukan efek QML.
 hl.layer_rule({ match = { namespace = mmBlur }, blur = true })
-hl.layer_rule({ match = { namespace = "^macmono:menubar$" }, blur_popups = true, ignore_alpha = 0.2 })
 hl.layer_rule({ match = { namespace = mmPanel }, ignore_alpha = 0.2 })
 hl.layer_rule({ match = { namespace = mmModal }, ignore_alpha = 0.5 })
 hl.layer_rule({ match = { namespace = "^macmono:power$" }, ignore_alpha = 0.0 })
--- selector / wallpaper picker: full-screen preview, tanpa blur
 
--- Floating window rata-rata di tengah (kecuali PiP)
 hl.window_rule({ match = { float = true }, center = true })
 hl.window_rule({ match = { title = "^(Picture-in-Picture)$" }, center = false })

@@ -1,4 +1,1 @@
--- User overrides: window / layer rules tambahan
--- Base rule macmono (blur, opacity, layer panel) ada di hyprland/rules.lua
--- Contoh:
--- hl.window_rule({ match = { class = "^(my-app)$" }, float = true })
+

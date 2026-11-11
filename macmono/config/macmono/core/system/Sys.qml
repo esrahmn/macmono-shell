@@ -79,11 +79,10 @@ Singleton {
     property bool barVisible: true
     property bool ccOpen: false
     property string ccScreen: ""
-    property real ccClosedAt: 0
-    property bool launcherOpen: false
-    property string launcherScreen: ""
-    property bool commandPaletteOpen: false
-    property string commandPaletteScreen: ""
+    property bool launcherMenuOpen: false
+    property string launcherMenuScreen: ""
+    property bool overviewOpen: false
+    property string overviewScreen: ""
     property bool wallpaperOpen: false
     property string wallpaperScreen: ""
     property bool clipboardOpen: false
@@ -232,7 +231,7 @@ Singleton {
     property bool calendarOpen: false
     property string calendarScreen: ""
     property real calendarClosedAt: 0
-    onCalendarOpenChanged: if (!calendarOpen) calendarClosedAt = Date.now(); else notifUnread = 0
+    onCalendarOpenChanged: if (!calendarOpen) calendarClosedAt = Date.now()
     function toggleCalendar(screenName) {
         if (Date.now() - calendarClosedAt < Settings.panelReopenGuardMs) return;
         if (calendarOpen) { calendarOpen = false; return; }
@@ -241,15 +240,18 @@ Singleton {
         calendarOpen = true;
     }
 
-    readonly property int mediaPopupWidth: Theme.mediaPopupWidth
+    readonly property int mediaPopupWidth: 440
     property bool mediaOpen: false
     property string mediaScreen: ""
     property real mediaPopupRightMargin: Theme.space16
+    // Right margin that puts the popup directly under the bar visualizer (card width = visualizer strip width).
+    // MenuBar keeps it current, so Super+M opens where a click on the visualizer does.
+    property real mediaBarRightMargin: Theme.space16
     function toggleMedia(screenName, rightMargin) {
         if (mediaOpen) { mediaOpen = false; return; }
         closeCCQuiet();
         mediaScreen = screenName || focusedScreenName();
-        mediaPopupRightMargin = rightMargin ?? Theme.space16;
+        mediaPopupRightMargin = rightMargin ?? mediaBarRightMargin;
         mediaOpen = true;
     }
     property bool settingsOpen: false
@@ -314,27 +316,31 @@ Singleton {
     }
 
     function toggleCC(screenName) {
-        if (Date.now() - ccClosedAt < Settings.panelReopenGuardMs) return;
         if (ccOpen && ccScreen === screenName) { ccOpen = false; return; }
         closeCCQuiet();
         ccScreen = screenName || focusedScreenName();
         ccOpen = true;
     }
-    function closeCC() { ccOpen = false; ccClosedAt = Date.now(); }
-    onCcOpenChanged: if (ccOpen) { refresh(); calendarOpen = false; mediaOpen = false; cheatOpen = false; settingsOpen = false; }
+    function closeCC() { ccOpen = false; }
+    onCcOpenChanged: if (ccOpen) { refresh(); notifUnread = 0; calendarOpen = false; mediaOpen = false; cheatOpen = false; settingsOpen = false; launcherMenuOpen = false; }
 
     function toggleLauncher() {
-        if (launcherOpen) { launcherOpen = false; return; }
-        closeCCQuiet();
-        launcherScreen = focusedScreenName();
-        launcherOpen = true;
+        toggleLauncherMenu();
     }
-    function toggleCommandPalette() {
-        if (commandPaletteOpen) { commandPaletteOpen = false; return; }
+
+    function toggleLauncherMenu(screenName) {
+        if (launcherMenuOpen) { launcherMenuOpen = false; return; }
         closeCCQuiet();
-        settingsOpen = false;
-        commandPaletteScreen = focusedScreenName();
-        commandPaletteOpen = true;
+        launcherMenuScreen = screenName || focusedScreenName();
+        launcherMenuOpen = true;
+    }
+
+    function toggleOverview(screenName) {
+        if (overviewOpen) { overviewOpen = false; return; }
+        closeCCQuiet();
+        refreshHypr();
+        overviewScreen = screenName || focusedScreenName();
+        overviewOpen = true;
     }
 
     function toggleWallpaper() {
@@ -356,7 +362,6 @@ Singleton {
         if (!cmd) return;
         pendingDispatch = cmd;
         closeCCQuiet();
-        launcherOpen = false;
         dispatchDelay.restart();
     }
     Timer {
@@ -383,7 +388,7 @@ Singleton {
         emojiOpen = true;
     }
 
-    HyprlandOverviewService { id: hyprOverview; active: root.launcherOpen }
+    HyprlandOverviewService { id: hyprOverview; active: root.overviewOpen }
     readonly property var hyprClients: hyprOverview.clients
 
     readonly property var camApps: ["chrome", "chromium", "brave", "vivaldi", "opera", "edge", "firefox",
@@ -409,7 +414,8 @@ Singleton {
     }
     readonly property var hyprMonitors: hyprOverview.monitors
     function refreshHypr() { hyprOverview.refresh(); }
-    onLauncherOpenChanged: if (launcherOpen) { refreshHypr(); calendarOpen = false; mediaOpen = false; cheatOpen = false; }
+    onLauncherMenuOpenChanged: if (launcherMenuOpen) { calendarOpen = false; mediaOpen = false; cheatOpen = false; settingsOpen = false; }
+    onOverviewOpenChanged: if (overviewOpen) { calendarOpen = false; mediaOpen = false; cheatOpen = false; settingsOpen = false; launcherMenuOpen = false; }
 
     SystemClock { id: clock; precision: SystemClock.Minutes }
     readonly property var now: clock.date
@@ -628,7 +634,6 @@ Singleton {
     function lock() {
         if (locked) return;
         closeCCQuiet();
-        launcherOpen = false;
         clipboardOpen = false;
         wallpaperOpen = false;
         trayMenuOpen = false;
@@ -666,7 +671,7 @@ Singleton {
         function onStartRequested() { root.startCapture(); }
     }
 
-    function closeCCQuiet() { ccOpen = false; launcherOpen = false; commandPaletteOpen = false; wallpaperOpen = false; clipboardOpen = false; emojiOpen = false; powerOpen = false; trayMenuOpen = false; calendarOpen = false; mediaOpen = false; cheatOpen = false; }
+    function closeCCQuiet() { ccOpen = false; launcherMenuOpen = false; overviewOpen = false; wallpaperOpen = false; clipboardOpen = false; emojiOpen = false; powerOpen = false; trayMenuOpen = false; calendarOpen = false; mediaOpen = false; cheatOpen = false; }
     onClipboardOpenChanged: if (clipboardOpen) { calendarOpen = false; mediaOpen = false; cheatOpen = false; }
     onWallpaperOpenChanged: if (wallpaperOpen) { calendarOpen = false; mediaOpen = false; cheatOpen = false; }
     function togglePower() {

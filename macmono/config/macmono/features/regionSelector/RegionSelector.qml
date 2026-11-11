@@ -5,6 +5,11 @@ import Quickshell.Hyprland
 import "../../core"
 
 Scope {
+    id: root
+    readonly property int frameRadius: 2   // selection frame, nearly sharp corners
+
+    readonly property int selectorBadgeHeight: 24
+    readonly property int selectorHintHeight: 34
     Variants {
         model: Quickshell.screens
 
@@ -16,7 +21,7 @@ Scope {
             visible: Sys.capturing && Sys.captureScreen === modelData.name
             anchors { top: true; bottom: true; left: true; right: true }
             exclusionMode: ExclusionMode.Ignore
-            color: Theme.black
+            color: Theme.scrim
             WlrLayershell.namespace: "macmono:selector"
             WlrLayershell.layer: WlrLayer.Overlay
             WlrLayershell.keyboardFocus: WlrKeyboardFocus.Exclusive
@@ -105,7 +110,7 @@ Scope {
                 width: (win.sel?.w ?? 0) + 2
                 height: (win.sel?.h ?? 0) + 2
                 color: Theme.transparent
-                radius: Theme.radiusIndicator
+                radius: root.frameRadius
                 border.width: Theme.borderStrong
                 border.color: Theme.text
 
@@ -114,26 +119,26 @@ Scope {
                     anchors.horizontalCenter: parent.horizontalCenter
                     y: below ? parent.height + 8 : -height - 8
                     width: sizeText.implicitWidth + 16
-                    height: Theme.selectorBadgeHeight
+                    height: root.selectorBadgeHeight
                     radius: Math.min(width, height) / 2
-                    color: Theme.badge
+                    color: Theme.scrim
                     Text {
                         id: sizeText
                         anchors.centerIn: parent
                         text: Math.round((win.sel?.w ?? 0) * win.monScale) + " × " + Math.round((win.sel?.h ?? 0) * win.monScale)
                         color: Theme.text
-                        font.family: Theme.font; font.pixelSize: Theme.fontBody
+                        font.family: Theme.font; font.pixelSize: Theme.fontSm
                     }
                 }
             }
 
             Rectangle {
-                anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: Theme.space30 }
+                anchors { horizontalCenter: parent.horizontalCenter; bottom: parent.bottom; bottomMargin: Theme.space32 }
                 visible: !win.dragging
                 width: hint.implicitWidth + 28
-                height: Theme.selectorHintHeight
+                height: root.selectorHintHeight
                 radius: Math.min(width, height) / 2
-                color: Theme.badge
+                color: Theme.scrim
                 border.width: Theme.borderThin
                 border.color: Theme.line
                 Text {
@@ -141,7 +146,7 @@ Scope {
                     anchors.centerIn: parent
                     text: (Sys.captureMode === "ocr" ? "OCR · " : "") + "Drag to select an area  ·  Click a window/panel  ·  Click empty space = full screen  ·  Esc cancels"
                     color: Theme.dim
-                    font.family: Theme.font; font.pixelSize: Theme.fontBody
+                    font.family: Theme.font; font.pixelSize: Theme.fontSm
                 }
             }
 

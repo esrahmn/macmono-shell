@@ -4,8 +4,24 @@ import Quickshell
 import Quickshell.Wayland
 import Quickshell.Services.Notifications
 import "../../core"
+import "../../shared/components"
 
 Scope {
+    id: root
+
+    readonly property int notifWidth: 370
+    readonly property int notifPadX: 16
+    readonly property int notifPadTop: 20
+    readonly property int notifPadBottom: 18
+    readonly property int notifMinHeight: 0
+    readonly property int notifMaxHeight: 320
+    readonly property int notifImageSize: 56
+    readonly property int notifImageGap: 14
+    readonly property int notifCloseSize: 28
+    readonly property int notifActionHeight: 40
+    readonly property int notifTextInset: 46
+    readonly property int notifSlideFrom: 56
+    readonly property int notifDismissDelay: 280
     NotificationServer {
         id: server
         actionsSupported: true
@@ -28,7 +44,7 @@ Scope {
 
         anchors { top: true }
         margins { top: Theme.barMargin + Theme.barHeight + Theme.space8 }
-        implicitWidth: Theme.notifWidth
+        implicitWidth: root.notifWidth
         implicitHeight: list.implicitHeight
         exclusionMode: ExclusionMode.Ignore
         color: Theme.transparent
@@ -49,48 +65,25 @@ Scope {
                     required property var modelData
                     width: list.width
 
-                    implicitHeight: Math.min(Theme.notifMaxHeight,
-                                             Math.max(Theme.notifMinHeight,
-                                                      row.implicitHeight + Theme.notifPadTop + Theme.notifPadBottom))
+                    implicitHeight: Math.min(root.notifMaxHeight,
+                                             Math.max(root.notifMinHeight,
+                                                      row.implicitHeight + root.notifPadTop + root.notifPadBottom))
                     radius: Theme.radiusPanel
                     color: Theme.panel
                     border.width: Theme.borderThin
                     border.color: Theme.line
                     clip: true
-                    opacity: 0
+                    opacity: reveal.progress
 
                     property bool leaving: false
                     property string leaveMode: "dismiss"
-                    transform: Translate { id: slide; y: -Theme.notifSlideFrom }
+                    transform: Translate { y: -root.notifSlideFrom * (1 - reveal.progress) }
 
-                    ParallelAnimation {
-                        id: inAnim
-                        running: true
-                        NumberAnimation {
-                            target: slide; property: "y"
-                            from: -Theme.notifSlideFrom; to: 0
-                            duration: Theme.animOpen; easing.type: Theme.easeOut
-                        }
-                        NumberAnimation {
-                            target: card; property: "opacity"
-                            from: Theme.openFromPanel; to: 1
-                            duration: Theme.animBase; easing.type: Theme.easeOut
-                        }
-                    }
-
-                    ParallelAnimation {
-                        id: outAnim
-                        NumberAnimation {
-                            target: slide; property: "y"
-                            to: -Theme.notifSlideFrom
-                            duration: Theme.animBase; easing.type: Theme.easeIn
-                        }
-                        NumberAnimation {
-                            target: card; property: "opacity"
-                            to: 0
-                            duration: Theme.animBase; easing.type: Theme.easeIn
-                        }
-                        onFinished: {
+                    Reveal {
+                        id: reveal
+                        open: !card.leaving
+                        onSettled: (isOpen) => {
+                            if (isOpen || !card.leaving) return;
                             try {
                                 if (card.leaveMode === "expire")
                                     card.modelData.expire();
@@ -103,19 +96,18 @@ Scope {
                     function beginLeave(mode) {
                         if (card.leaving)
                             return;
-                        card.leaving = true;
                         card.leaveMode = mode;
-                        inAnim.stop();
-                        outAnim.start();
+                        card.leaving = true;
                     }
 
                     HoverHandler { id: cardHover }
 
-                    readonly property real timeoutMs: (card.modelData.expireTimeout ?? -1) > 0 ? card.modelData.expireTimeout : Settings.notifDefaultTimeoutMs
+                    // Same on-screen lifetime for every popup; the Control Center history is separate and untouched.
+                    readonly property real timeoutMs: Settings.notifDefaultTimeoutMs
 
                     Timer {
                         interval: card.timeoutMs
-                        running: !card.leaving && card.modelData.urgency !== NotificationUrgency.Critical && card.modelData.expireTimeout !== 0 && !cardHover.hovered
+                        running: !card.leaving && !cardHover.hovered
                         onTriggered: card.beginLeave("expire")
                     }
 
@@ -124,7 +116,7 @@ Scope {
 
                     Timer {
                         id: dismissLater
-                        interval: Theme.notifDismissDelay
+                        interval: root.notifDismissDelay
                         onTriggered: card.beginLeave("dismiss")
                     }
 
@@ -144,7 +136,7 @@ Scope {
                     MouseArea {
                         id: closeBtn
                         anchors { top: parent.top; right: parent.right; margins: Theme.space12 }
-                        width: Theme.notifCloseSize; height: Theme.notifCloseSize
+                        width: root.notifCloseSize; height: root.notifCloseSize
                         z: 5
                         hoverEnabled: true
                         enabled: !card.leaving
@@ -152,8 +144,8 @@ Scope {
                         Rectangle {
                             anchors.fill: parent
                             radius: Theme.radiusCard
-                            color: closeBtn.containsMouse ? Theme.tileStrong : Theme.tileMid
-                            Behavior on color { ColorAnimation { duration: Theme.animHover } }
+                            color: closeBtn.containsMouse ? Theme.tilePress : Theme.tile
+                            Behavior on color { TweenColor { duration: Theme.durFast } }
                         }
                         Canvas {
                             anchors.centerIn: parent
@@ -172,17 +164,17 @@ Scope {
                         id: row
                         anchors {
                             left: parent.left; right: parent.right; top: parent.top
-                            leftMargin: Theme.notifPadX
-                            rightMargin: Theme.notifTextInset
-                            topMargin: Theme.notifPadTop
-                            bottomMargin: Theme.notifPadBottom
+                            leftMargin: root.notifPadX
+                            rightMargin: root.notifTextInset
+                            topMargin: root.notifPadTop
+                            bottomMargin: root.notifPadBottom
                         }
-                        spacing: Theme.notifImageGap
+                        spacing: root.notifImageGap
 
                         Item {
                             id: pic
                             visible: card.img !== "" && picImg.status === Image.Ready
-                            width: Theme.notifImageSize; height: Theme.notifImageSize
+                            width: root.notifImageSize; height: root.notifImageSize
                             Image {
                                 id: picImg
                                 anchors.fill: parent
@@ -192,7 +184,7 @@ Scope {
                                 asynchronous: true
                                 visible: false
                             }
-                            Rectangle { id: picMask; anchors.fill: parent; radius: Theme.radiusMedium; visible: false; layer.enabled: true }
+                            Rectangle { id: picMask; anchors.fill: parent; radius: Theme.radiusCard; visible: false; layer.enabled: true }
                             MultiEffect {
                                 anchors.fill: parent
                                 source: picImg
@@ -207,21 +199,21 @@ Scope {
                         Column {
                             id: content
                             width: row.width - (pic.visible ? pic.width + row.spacing : 0)
-                            spacing: Theme.space6
+                            spacing: Theme.space8
 
                             Text {
                                 width: parent.width
                                 elide: Text.ElideRight
                                 text: card.modelData.appName
                                 color: Theme.dim
-                                font.family: Theme.font; font.pixelSize: Theme.fontBodyLg
+                                font.family: Theme.font; font.pixelSize: Theme.fontMd
                             }
                             Text {
                                 width: parent.width
                                 elide: Text.ElideRight
                                 text: card.modelData.summary
                                 color: Theme.text
-                                font.family: Theme.font; font.pixelSize: Theme.fontHeading; font.weight: Font.DemiBold
+                                font.family: Theme.font; font.pixelSize: Theme.fontLg; font.weight: Theme.weightSemibold
                             }
                             Text {
                                 visible: text !== ""
@@ -230,16 +222,16 @@ Scope {
                                 maximumLineCount: 3
                                 elide: Text.ElideRight
                                 text: card.modelData.body
-                                color: Theme.textSoft
-                                font.family: Theme.font; font.pixelSize: Theme.fontSubtitle
+                                color: Theme.text
+                                font.family: Theme.font; font.pixelSize: Theme.fontMd
                                 lineHeightMode: Text.FixedHeight
-                                lineHeight: Math.round(Theme.fontSubtitle * Theme.lineProse)
+                                lineHeight: Math.round(Theme.fontMd * Theme.lineProse)
                                 textFormat: Text.PlainText
                             }
 
                             Row {
                                 id: actionRow
-                                spacing: Theme.space6
+                                spacing: Theme.space8
 
                                 visible: (card.modelData.actions ?? []).some(a => a.identifier !== "default")
 
@@ -253,7 +245,7 @@ Scope {
                                         visible: modelData.identifier !== "default"
 
                                         width: (actText.text ? actText.implicitWidth : 0) + 24
-                                        height: Theme.notifActionHeight
+                                        height: root.notifActionHeight
                                         hoverEnabled: true
 
                                         onClicked: {
@@ -265,7 +257,7 @@ Scope {
                                             anchors.fill: parent
                                             radius: Theme.radiusCard
                                             color: act.containsMouse ? Theme.tileHover : Theme.tile
-                                            Behavior on color { ColorAnimation { duration: Theme.animHover } }
+                                            Behavior on color { TweenColor { duration: Theme.durFast } }
                                         }
 
                                         Text {
@@ -273,7 +265,7 @@ Scope {
                                             anchors.centerIn: parent
                                             text: modelData.text || modelData.identifier || "Action"
                                             color: Theme.text
-                                            font.family: Theme.font; font.pixelSize: Theme.fontBodyLg; font.weight: Font.Medium
+                                            font.family: Theme.font; font.pixelSize: Theme.fontMd; font.weight: Theme.weightMedium
                                         }
                                     }
                                 }

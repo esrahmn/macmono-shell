@@ -54,31 +54,31 @@ Column {
                     required property int index
 
                     width: grp.width
-                    height: Theme.settingsListRowHeight
+                    height: SettingsMetrics.settingsListRowHeight
 
                     Rectangle {
                         visible: row.index > 0
-                        x: Theme.settingsRowPadX
-                        width: row.width - Theme.settingsRowPadX * 2
+                        x: SettingsMetrics.settingsRowPadX
+                        width: row.width - SettingsMetrics.settingsRowPadX * 2
                         height: Theme.borderThin
                         color: Theme.line
                     }
 
                     SettingsText {
                         anchors {
-                            left: parent.left; leftMargin: Theme.settingsRowPadX
+                            left: parent.left; leftMargin: SettingsMetrics.settingsRowPadX
                             right: caps.left; rightMargin: Theme.space12
                             verticalCenter: parent.verticalCenter
                         }
                         elide: Text.ElideRight
                         text: row.modelData[1]
-                        font.pixelSize: Theme.fontHeading
-                        font.weight: Font.Medium
+                        font.pixelSize: Theme.fontLg
+                        font.weight: Theme.weightMedium
                     }
 
                     Row {
                         id: caps
-                        anchors { right: parent.right; rightMargin: Theme.settingsRowPadX; verticalCenter: parent.verticalCenter }
+                        anchors { right: parent.right; rightMargin: SettingsMetrics.settingsRowPadX; verticalCenter: parent.verticalCenter }
                         spacing: Theme.space4
 
                         Repeater {
@@ -90,17 +90,17 @@ Column {
 
                                 width: Math.max(Theme.cheatsheetKeycapMinWidth, capText.implicitWidth + Theme.cheatsheetKeycapPadding)
                                 height: Theme.cheatsheetKeycapHeight
-                                radius: Theme.radiusKey
-                                color: Theme.tileMid
+                                radius: Theme.radiusControl
+                                color: Theme.tile
                                 border.width: Theme.borderThin
-                                border.color: Theme.lineStrong
+                                border.color: Theme.line
 
                                 SettingsText {
                                     id: capText
                                     anchors.centerIn: parent
                                     text: cap.modelData
-                                    font.pixelSize: Theme.fontBodyLg
-                                    font.weight: Font.Medium
+                                    font.pixelSize: Theme.fontMd
+                                    font.weight: Theme.weightMedium
                                 }
                             }
                         }
@@ -113,7 +113,7 @@ Column {
     SettingsText {
         visible: root.shown.length === 0
         width: root.width
-        leftPadding: Theme.settingsRowPadX
+        leftPadding: SettingsMetrics.settingsRowPadX
         topPadding: Theme.space12
         text: "No shortcuts match “" + field.text.trim() + "”"
         color: Theme.dim

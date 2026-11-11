@@ -4,9 +4,34 @@ import QtQuick.Shapes
 import Quickshell
 import Quickshell.Io
 import "../../../core"
+import "../../../shared/components"
 
 Column {
     id: root
+
+    readonly property int aboutContentMax: 640
+    readonly property int aboutHeroGap: 36
+    readonly property int aboutLaptopWidth: 260
+    readonly property int aboutLaptopHeight: 162
+    readonly property int aboutLaptopBaseWidth: 288
+    readonly property int aboutLaptopBaseHeight: 11
+    readonly property int aboutLaptopCutoutWidth: 44
+    readonly property int aboutLaptopCutoutHeight: 7
+    readonly property int aboutLaptopNotch: 60
+    readonly property int aboutLaptopNotchDepth: 3
+    readonly property int aboutNameSize: 24
+    readonly property real aboutNameTracking: -0.5
+    readonly property int aboutStatValueSize: 18
+    readonly property int aboutStatGapX: 40
+    readonly property int aboutStatGapY: 20
+    readonly property int aboutStatPad: 12
+    readonly property int aboutLayerHeight: 40
+    readonly property int aboutLayerGap: 6
+    readonly property int aboutLayerGrowX: 10
+    readonly property int aboutLayerGrowY: 4
+    readonly property color aboutLayerHoverFill: Qt.rgba(1, 1, 1, 0.30)
+    readonly property color aboutLayerHoverStroke: Qt.rgba(1, 1, 1, 0.34)
+    readonly property int aboutStatBar: 6
     spacing: 0
 
     readonly property var d: Sys.systemDetails
@@ -194,12 +219,13 @@ Column {
 
 
     component SectionLabel: SettingsText {
-        topPadding: Theme.aboutSectionGap
+        readonly property int aboutSectionGap: 32
+        topPadding: aboutSectionGap
         bottomPadding: Theme.space12
-        color: Theme.labelCapsText
-        font.pixelSize: Theme.labelCapsSize
-        font.weight: Font.DemiBold
-        font.letterSpacing: Theme.labelCapsTracking
+        color: Theme.dim
+        font.pixelSize: Theme.fontXs
+        font.weight: Theme.weightSemibold
+        font.letterSpacing: Theme.trackCaps
     }
 
     component PillButton: Rectangle {
@@ -207,18 +233,18 @@ Column {
         property string label: ""
         property bool flat: false
         signal clicked()
-        implicitWidth: pbText.implicitWidth + Theme.settingsButtonPadX * 2
-        implicitHeight: Theme.settingsButtonHeight
-        radius: Theme.radiusXs
+        implicitWidth: pbText.implicitWidth + SettingsMetrics.settingsButtonPadX * 2
+        implicitHeight: SettingsMetrics.settingsButtonHeight
+        radius: Theme.radiusControl
         color: flat ? (pbArea.containsMouse ? Theme.tile : Theme.transparent)
-                    : (pbArea.containsMouse ? Theme.tileHover : Theme.tileMid)
-        Behavior on color { ColorAnimation { duration: Theme.animHover } }
+                    : (pbArea.containsMouse ? Theme.tileHover : Theme.tile)
+        Behavior on color { TweenColor { duration: Theme.durFast } }
         SettingsText {
             id: pbText
             anchors.centerIn: parent
             text: pb.label
-            color: pb.flat ? Theme.textSoft : Theme.text
-            font.weight: Font.Medium
+            color: pb.flat ? Theme.text : Theme.text
+            font.weight: Theme.weightMedium
         }
         MouseArea {
             id: pbArea
@@ -234,8 +260,8 @@ Column {
 
     Column {
         id: page
-        x: Theme.settingsRowPadX
-        width: Math.min(Theme.aboutContentMax, root.width - Theme.settingsRowPadX * 2)
+        x: SettingsMetrics.settingsRowPadX
+        width: Math.min(root.aboutContentMax, root.width - SettingsMetrics.settingsRowPadX * 2)
         spacing: 0
 
         Item {
@@ -245,18 +271,18 @@ Column {
 
             Item {
                 id: laptop
-                width: Theme.aboutLaptopBaseWidth
-                height: Theme.aboutLaptopHeight + Theme.aboutLaptopBaseHeight
+                width: root.aboutLaptopBaseWidth
+                height: root.aboutLaptopHeight + root.aboutLaptopBaseHeight
 
                 Item {
                     id: lid
                     x: (laptop.width - width) / 2
-                    width: Theme.aboutLaptopWidth
-                    height: Theme.aboutLaptopHeight
+                    width: root.aboutLaptopWidth
+                    height: root.aboutLaptopHeight
 
                     readonly property real lidTop: Theme.radiusCard
                     readonly property real lidBottom: Theme.space4
-                    readonly property real screenTop: Math.max(0, lidTop - Theme.aboutLaptopBezel)
+                    readonly property real screenTop: Math.max(0, lidTop - SettingsMetrics.aboutLaptopBezel)
                     readonly property real screenBottom: Theme.space2
 
                     Rectangle {
@@ -265,32 +291,32 @@ Column {
                         topRightRadius: lid.lidTop
                         bottomLeftRadius: lid.lidBottom
                         bottomRightRadius: lid.lidBottom
-                        color: Theme.aboutLaptopBezelFill
+                        color: SettingsMetrics.aboutLaptopBezelFill
                         border.width: Theme.borderThin
-                        border.color: Theme.lineStrong
+                        border.color: Theme.line
                     }
 
                     Rectangle {
                         anchors.fill: parent
-                        anchors.margins: Theme.aboutLaptopBezel
+                        anchors.margins: SettingsMetrics.aboutLaptopBezel
                         topLeftRadius: lid.screenTop
                         topRightRadius: lid.screenTop
                         bottomLeftRadius: lid.screenBottom
                         bottomRightRadius: lid.screenBottom
-                        color: Theme.inset
+                        color: Theme.scrim
                         visible: wpImage.status !== Image.Ready
                     }
                     Image {
                         id: wpImage
                         anchors.fill: parent
-                        anchors.margins: Theme.aboutLaptopBezel
+                        anchors.margins: SettingsMetrics.aboutLaptopBezel
                         visible: false
                         source: Sys.wallpaper !== "" ? "file://" + Sys.wallpaper : ""
                         fillMode: Image.PreserveAspectCrop
                         asynchronous: true
                         cache: false
-                        sourceSize.width: Theme.aboutLaptopWidth * 2
-                        sourceSize.height: Theme.aboutLaptopHeight * 2
+                        sourceSize.width: root.aboutLaptopWidth * 2
+                        sourceSize.height: root.aboutLaptopHeight * 2
                     }
                     Rectangle {
                         id: wpMask
@@ -315,12 +341,12 @@ Column {
 
                     Rectangle {
                         x: (parent.width - width) / 2
-                        y: Theme.aboutLaptopBezel
-                        width: Theme.aboutLaptopCutoutWidth
-                        height: Theme.aboutLaptopCutoutHeight
+                        y: SettingsMetrics.aboutLaptopBezel
+                        width: root.aboutLaptopCutoutWidth
+                        height: root.aboutLaptopCutoutHeight
                         bottomLeftRadius: height / 2
                         bottomRightRadius: height / 2
-                        color: Theme.aboutLaptopBezelFill
+                        color: SettingsMetrics.aboutLaptopBezelFill
                     }
                 }
 
@@ -328,20 +354,20 @@ Column {
                     id: base
                     y: lid.height - Theme.borderThin
                     width: laptop.width
-                    height: Theme.aboutLaptopBaseHeight + Theme.borderThin
+                    height: root.aboutLaptopBaseHeight + Theme.borderThin
                     preferredRendererType: Shape.CurveRenderer
 
-                    readonly property real r: Theme.radiusXs - Theme.space2
+                    readonly property real r: Theme.radiusControl - Theme.space2
                     readonly property real cx: width / 2
-                    readonly property real nw: Theme.aboutLaptopNotch
-                    readonly property real nd: Theme.aboutLaptopNotchDepth
+                    readonly property real nw: root.aboutLaptopNotch
+                    readonly property real nd: root.aboutLaptopNotchDepth
 
                     ShapePath {
                         strokeWidth: -1
                         fillGradient: LinearGradient {
                             x1: 0; y1: 0; x2: 0; y2: base.height
-                            GradientStop { position: 0.0; color: Theme.aboutLaptopBaseTop }
-                            GradientStop { position: 1.0; color: Theme.aboutLaptopBaseBottom }
+                            GradientStop { position: 0.0; color: SettingsMetrics.aboutLaptopBaseTop }
+                            GradientStop { position: 1.0; color: SettingsMetrics.aboutLaptopBaseBottom }
                         }
                         startX: 0; startY: 0
                         PathLine { x: base.cx - base.nw / 2; y: 0 }
@@ -367,29 +393,29 @@ Column {
 
             Column {
                 anchors {
-                    left: laptop.right; leftMargin: Theme.aboutHeroGap
+                    left: laptop.right; leftMargin: root.aboutHeroGap
                     right: parent.right
                     verticalCenter: parent.verticalCenter
                 }
-                spacing: Theme.space6
+                spacing: Theme.space8
 
                 SettingsText {
                     width: parent.width
                     elide: Text.ElideRight
                     text: root.computerName
-                    font.pixelSize: Theme.aboutNameSize
-                    font.weight: Font.DemiBold
-                    font.letterSpacing: Theme.aboutNameTracking
-                    font.variableAxes: ({ "opsz": 32, "wght": Font.DemiBold })
+                    font.pixelSize: root.aboutNameSize
+                    font.weight: Theme.weightSemibold
+                    font.letterSpacing: root.aboutNameTracking
+                    font.variableAxes: ({ "opsz": 32, "wght": Theme.weightSemibold })
                 }
                 SettingsText {
                     width: parent.width
                     elide: Text.ElideRight
                     text: Sys.osName + " · up " + root.uptimeText(root.tick)
                     color: Theme.dim
-                    font.pixelSize: Theme.fontSubtitle
+                    font.pixelSize: Theme.fontMd
                 }
-                Item { width: 1; height: Theme.space10 }
+                Item { width: 1; height: Theme.space12 }
                 Row {
                     spacing: Theme.space4
                     PillButton { label: root.copied ? "Copied" : "Copy system info"; onClicked: root.copyInfo() }
@@ -403,8 +429,8 @@ Column {
         Grid {
             width: page.width
             columns: 2
-            columnSpacing: Theme.aboutStatGapX
-            rowSpacing: Theme.aboutStatGapY
+            columnSpacing: root.aboutStatGapX
+            rowSpacing: root.aboutStatGapY
 
             Repeater {
                 model: root.statCells
@@ -412,8 +438,8 @@ Column {
                 delegate: Item {
                     id: cell
                     required property var modelData
-                    width: (page.width - Theme.aboutStatGapX) / 2
-                    height: cellBody.height + Theme.aboutStatPad
+                    width: (page.width - root.aboutStatGapX) / 2
+                    height: cellBody.height + root.aboutStatPad
 
                     Rectangle {
                         width: parent.width
@@ -423,7 +449,7 @@ Column {
 
                     Column {
                         id: cellBody
-                        y: Theme.aboutStatPad
+                        y: root.aboutStatPad
                         width: parent.width
 
                         SettingsText {
@@ -438,9 +464,9 @@ Column {
                             elide: Text.ElideRight
                             topPadding: Theme.space4
                             text: cell.modelData.value
-                            font.pixelSize: Theme.aboutStatValueSize
-                            font.weight: Font.DemiBold
-                            font.letterSpacing: Theme.settingsRowTracking
+                            font.pixelSize: root.aboutStatValueSize
+                            font.weight: Theme.weightSemibold
+                            font.letterSpacing: Theme.trackSnug
                         }
                         SettingsText {
                             visible: cell.modelData.sub !== ""
@@ -453,14 +479,14 @@ Column {
                         Item {
                             visible: cell.modelData.ratio >= 0
                             width: parent.width
-                            height: Theme.space14 + Theme.aboutStatBar
+                            height: Theme.space16 + root.aboutStatBar
 
                             Rectangle {
-                                y: Theme.space14
+                                y: Theme.space16
                                 width: parent.width
-                                height: Theme.aboutStatBar
+                                height: root.aboutStatBar
                                 radius: height / 2
-                                color: Theme.tileStrong
+                                color: Theme.tilePress
 
                                 Rectangle {
                                     width: parent.width * Math.max(0, cell.modelData.ratio)
@@ -482,7 +508,7 @@ Column {
             width: page.width
             height: swColumn.height
 
-            readonly property real pitch: Theme.aboutLayerHeight + Theme.aboutLayerGap
+            readonly property real pitch: root.aboutLayerHeight + root.aboutLayerGap
             property Item scroller: null
             property real anchorScroll: 0
             readonly property real scrollY: scroller ? scroller.contentY : 0
@@ -491,7 +517,7 @@ Column {
                 if (!root.visible || !sbHover.hovered) return -1;
                 const y = sbHover.point.position.y + (scrollY - anchorScroll);
                 const i = Math.floor(y / pitch);
-                return (i >= 0 && i < root.layers.length && y - i * pitch <= Theme.aboutLayerHeight) ? i : -1;
+                return (i >= 0 && i < root.layers.length && y - i * pitch <= root.aboutLayerHeight) ? i : -1;
             }
 
             Component.onCompleted: {
@@ -514,7 +540,7 @@ Column {
             Column {
                 id: swColumn
                 width: swBox.width
-                spacing: Theme.aboutLayerGap
+                spacing: root.aboutLayerGap
 
                 Repeater {
                     model: root.layers
@@ -530,7 +556,7 @@ Column {
                         readonly property bool done: root.copiedLayer === index
 
                         width: parent.width
-                        height: Theme.aboutLayerHeight
+                        height: root.aboutLayerHeight
                         z: lit ? 1 : 0
                         activeFocusOnTab: true
                         Keys.onReturnPressed: root.copyLayer(index, modelData.copy)
@@ -551,32 +577,32 @@ Column {
                         Rectangle {
                             id: face
                             property real lift: (swTap.pressed && layerRow.hot) ? 0.33 : (layerRow.lit ? 1 : 0)
-                            x: -lift * Theme.aboutLayerGrowX
-                            y: -lift * Theme.aboutLayerGrowY / 2
-                            width: parent.width + lift * Theme.aboutLayerGrowX * 2
-                            height: parent.height + lift * Theme.aboutLayerGrowY
-                            radius: Theme.radiusXs
-                            color: layerRow.lit ? Theme.aboutLayerHoverFill : [Theme.tileStrong, Theme.tileHover, Theme.tileMid, Theme.tile][layerRow.shade]
+                            x: -lift * root.aboutLayerGrowX
+                            y: -lift * root.aboutLayerGrowY / 2
+                            width: parent.width + lift * root.aboutLayerGrowX * 2
+                            height: parent.height + lift * root.aboutLayerGrowY
+                            radius: Theme.radiusControl
+                            color: layerRow.lit ? root.aboutLayerHoverFill : [Theme.tilePress, Theme.tileHover, Theme.tile, Theme.tile][layerRow.shade]
                             border.width: Theme.borderThin
-                            border.color: layerRow.lit ? Theme.aboutLayerHoverStroke : Qt.rgba(1, 1, 1, 0)
+                            border.color: layerRow.lit ? root.aboutLayerHoverStroke : Qt.rgba(1, 1, 1, 0)
 
-                            Behavior on lift { SpringAnimation { spring: Theme.aboutLayerSpring; damping: Theme.aboutLayerDamp; epsilon: 0.002 } }
-                            Behavior on color { ColorAnimation { duration: Theme.animHover } }
-                            Behavior on border.color { ColorAnimation { duration: Theme.animHover } }
+                            Behavior on lift { Tween {} }
+                            Behavior on color { TweenColor { duration: Theme.durFast } }
+                            Behavior on border.color { TweenColor { duration: Theme.durFast } }
                         }
 
                         SettingsText {
-                            anchors { left: parent.left; leftMargin: Theme.settingsRowPadX; verticalCenter: parent.verticalCenter }
+                            anchors { left: parent.left; leftMargin: SettingsMetrics.settingsRowPadX; verticalCenter: parent.verticalCenter }
                             text: layerRow.modelData.name
-                            font.pixelSize: Theme.fontTitle
-                            font.weight: layerRow.index === 0 ? Font.DemiBold : Font.Medium
+                            font.pixelSize: Theme.fontLg
+                            font.weight: layerRow.index === 0 ? Theme.weightSemibold : Theme.weightMedium
                         }
                         SettingsText {
-                            anchors { right: parent.right; rightMargin: Theme.settingsRowPadX; verticalCenter: parent.verticalCenter }
+                            anchors { right: parent.right; rightMargin: SettingsMetrics.settingsRowPadX; verticalCenter: parent.verticalCenter }
                             text: layerRow.done ? "Copied" : layerRow.modelData.value
-                            color: layerRow.lit || layerRow.done ? Theme.text : Theme.textSoft
-                            font.pixelSize: Theme.fontSubtitle
-                            Behavior on color { ColorAnimation { duration: Theme.animHover } }
+                            color: layerRow.lit || layerRow.done ? Theme.text : Theme.text
+                            font.pixelSize: Theme.fontMd
+                            Behavior on color { TweenColor { duration: Theme.durFast } }
                         }
                     }
                 }
