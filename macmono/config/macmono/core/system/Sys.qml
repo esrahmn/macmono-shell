@@ -37,6 +37,7 @@ Singleton {
         enabled: Settings.visualizerEnabled
         wanted: Settings.visualizerInBar || Settings.visualizerInPopup
         forceRun: root.visualizerPreview
+        paused: root.fullscreenActive
         gain: Settings.visualizerGain
     }
     StateStore { id: stateStore }
@@ -63,6 +64,20 @@ Singleton {
         idleMinutes: ({ lock: Settings.idleLockMin, screenOff: Settings.idleScreenOffMin, suspend: Settings.idleSuspendMin })
     }
     property alias hyprSync: hyprSyncSvc
+
+    // Hyprland events turned into state (shared/services/HyprStateService.qml).
+    HyprStateService { id: hyprStateSvc }
+    readonly property string kbLayout: hyprStateSvc.layoutCode
+    readonly property bool kbLayoutMulti: hyprStateSvc.layoutCount > 1 && hyprStateSvc.layoutCode !== ""
+    readonly property bool fullscreenActive: hyprStateSvc.fullscreen
+    Connections {
+        target: hyprStateSvc
+        function onConfigReloaded() {
+            displaySvc.refresh();
+            hyprSyncSvc.reapplyPreview();
+            if (root.overviewOpen) root.refreshHypr();
+        }
+    }
     EqualizerService { id: eqSvc }
     property alias eq: eqSvc
     SystemInfoService { id: systemInfoSvc }
@@ -562,11 +577,15 @@ Singleton {
         }
     }
 
+    // Programs the user starts (apps, xdg-open, shortcuts) run in their own systemd scope instead of
+    // inside macmono.service. Otherwise restarting or crashing the shell would kill every app that was
+    // opened from it, and the service's memory total would include those apps.
     function spawn(argv, cwd) {
         const args = Array.from(argv ?? []);
         if (args.length === 0) return;
-        if (cwd) Quickshell.execDetached({ command: args, workingDirectory: cwd });
-        else Quickshell.execDetached(args);
+        const scoped = ["systemd-run", "--user", "--scope", "--quiet", "--collect", "--slice=app.slice", "--"].concat(args);
+        if (cwd) Quickshell.execDetached({ command: scoped, workingDirectory: cwd });
+        else Quickshell.execDetached(scoped);
     }
 
     AutostartService { id: autostartService }

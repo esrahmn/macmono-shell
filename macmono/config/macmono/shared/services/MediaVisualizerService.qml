@@ -11,8 +11,12 @@ Item {
     property bool enabled: true
     property bool wanted: true
     property bool forceRun: false
+    // Set while a fullscreen window covers the bar: no point drawing a wave nobody can see.
+    property bool paused: false
     property real gain: 1.0
-    property var levels: Array(32).fill(0)
+    // Must match `bars` in features/media/config/cava-mini.conf.
+    readonly property int bars: 24
+    property var levels: Array(bars).fill(0)
 
     function updateLevels(frame) {
         const values = frame.trim().split(";").filter(value => value.length > 0).map(Number);
@@ -23,11 +27,11 @@ Item {
 
     Process {
         id: cava
-        running: root.enabled && ((root.active && root.wanted) || root.forceRun)
+        running: root.enabled && ((root.active && root.wanted && !root.paused) || root.forceRun)
         command: ["cava", "-p", Quickshell.shellDir + "/features/media/config/cava-mini.conf"]
         stdout: SplitParser {
             onRead: line => root.updateLevels(line)
         }
-        onRunningChanged: if (!running) root.levels = Array(32).fill(0)
+        onRunningChanged: if (!running) root.levels = Array(root.bars).fill(0)
     }
 }

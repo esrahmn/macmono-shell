@@ -10,6 +10,9 @@ Rectangle {
 
     required property var screenInfo
     property bool live: false
+    // Set when stopping a preview stream loses its image on this setup. Then every
+    // preview falls back to the old behavior: a live stream for as long as the overview is open.
+    property bool freezeBroken: false
     signal activated(string cmd)
 
     readonly property HyprlandMonitor hmon: Hyprland.monitorFor(screenInfo)
@@ -187,7 +190,11 @@ Rectangle {
                     capReset = true;
                     Qt.callLater(() => w.capReset = false);
                 }
-                onWantsPreviewChanged: retries = 0
+                // The stream is only needed for the first frame. After that it stops and the last
+                // frame stays on screen, so the compositor is not asked to draw every window again
+                // each frame while the overview is open.
+                property bool frozen: false
+                onWantsPreviewChanged: { retries = 0; if (!wantsPreview) frozen = false; }
                 Timer {
                     interval: Settings.overviewPreviewRetryMs
                     repeat: true
@@ -216,8 +223,16 @@ Rectangle {
                     id: preview
                     anchors.fill: parent
                     captureSource: (ov.live && Settings.overviewLivePreview && !w.capReset) ? w.toplevel : null
-                    live: true
-                    onHasContentChanged: if (!hasContent && w.wantsPreview) w.restartCapture()
+                    live: !w.frozen
+                    onHasContentChanged: {
+                        if (hasContent) {
+                            if (!ov.freezeBroken) Qt.callLater(() => { if (preview.hasContent && w.wantsPreview) w.frozen = true; });
+                        } else if (w.frozen && w.wantsPreview && !w.capReset) {
+                            ov.freezeBroken = true;
+                            w.frozen = false;
+                        }
+                        if (!hasContent && w.wantsPreview) w.restartCapture();
+                    }
                 }
 
                 Text {

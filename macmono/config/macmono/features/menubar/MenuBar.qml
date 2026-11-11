@@ -364,6 +364,15 @@ Scope {
                                 name: "coffee"
                                 color: Theme.text
                             }
+                            Text {
+                                visible: Sys.kbLayoutMulti
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: Sys.kbLayout
+                                color: Theme.text
+                                font.family: Theme.font
+                                font.pixelSize: Theme.fontSm
+                                font.weight: Theme.weightSemibold
+                            }
                             Glyph {
                                 anchors.verticalCenter: parent.verticalCenter
                                 width: Theme.iconLg; height: Theme.iconLg

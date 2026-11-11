@@ -4,7 +4,14 @@ hl.on("hyprland.start", function ()
     hl.exec_cmd("sleep 1 && dbus-update-activation-environment --systemd WAYLAND_DISPLAY XDG_CURRENT_DESKTOP HYPRLAND_INSTANCE_SIGNATURE")
 
     hl.exec_cmd("$HOME/.config/hypr/hyprland/scripts/start_geoclue_agent.sh")
-    hl.exec_cmd("qs -c $qsConfig")
+    -- MacMono jalan sebagai service systemd user (~/.config/systemd/user/macmono.service),
+    -- jadi kalau qs crash dia nyala lagi sendiri. Env sesi harus diimpor dulu, karena service
+    -- dibuat systemd dan nggak otomatis dapet env dari Hyprland (WAYLAND_DISPLAY, flatpak, tema, dll).
+    hl.exec_cmd("systemctl --user import-environment WAYLAND_DISPLAY HYPRLAND_INSTANCE_SIGNATURE "
+        .. "XDG_CURRENT_DESKTOP XDG_SESSION_TYPE XDG_DATA_DIRS XDG_MENU_PREFIX XCURSOR_THEME XCURSOR_SIZE "
+        .. "QT_QPA_PLATFORM QT_QPA_PLATFORMTHEME PATH; "
+        .. "systemctl --user reset-failed macmono.service; "
+        .. "systemctl --user restart macmono.service")
 
     hl.exec_cmd("~/.config/hypr/hyprland/scripts/launch_first_available.sh " ..
         "'/usr/lib/polkit-kde-authentication-agent-1' " ..

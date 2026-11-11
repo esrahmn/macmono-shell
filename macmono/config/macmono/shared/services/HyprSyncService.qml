@@ -73,6 +73,7 @@ Scope {
     property bool previewActive: false
     property bool previewPending: false
     property var previewVals: ({})
+    property double lastPreviewAt: 0
 
     function previewInput(v) { previewVals = v; previewActive = true; previewDebounce.restart(); }
     // Back to the saved values (cancel / close without Apply).
@@ -82,6 +83,12 @@ Scope {
         previewVals = inputValues;
         previewDebounce.restart();
     }
+    // A Hyprland reload resets runtime values to the file. Put the unsaved preview back,
+    // but skip reloads that come right after our own push so it can never loop.
+    function reapplyPreview() {
+        if (!previewActive || Date.now() - lastPreviewAt < 1500) return;
+        previewDebounce.restart();
+    }
     // Apply takes over: the saved config is about to be rewritten and reloaded anyway.
     function endPreview() { previewActive = false; previewDebounce.stop(); }
 
@@ -89,6 +96,7 @@ Scope {
 
     function runPreview() {
         if (previewProc.running) { previewPending = true; return; }
+        lastPreviewAt = Date.now();
         previewProc.command = ["hyprctl", "eval", buildInputLua(previewVals, false).replace(/\n/g, " ")];
         previewProc.running = true;
     }

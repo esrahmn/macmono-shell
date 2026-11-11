@@ -44,7 +44,7 @@ hl.bind("CTRL + SUPER + T", hl.dsp.global("quickshell:wallpaperSelectorToggle"),
     { description = "Shell: Change wallpaper" })
 hl.bind("CTRL + SUPER + ALT + T", hl.dsp.global("quickshell:wallpaperSelectorRandom"),
     { description = "Shell: Random wallpaper" })
-hl.bind("CTRL + SUPER + R", hl.dsp.exec_cmd("killall qs quickshell; qs -c $qsConfig &"),
+hl.bind("CTRL + SUPER + R", hl.dsp.exec_cmd("systemctl --user reset-failed macmono.service; systemctl --user restart macmono.service"),
     { description = "Shell: Restart widgets" })
 
 hl.bind("SUPER + SHIFT + S", hl.dsp.global("quickshell:regionScreenshot"), { description = "Utilities: Screen snip" })

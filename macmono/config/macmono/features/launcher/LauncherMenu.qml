@@ -209,7 +209,7 @@ Scope {
             root.launch(entry);
         } else if (item.kind === "action") {
             root.noteRecent(entry);
-            item.action.execute();
+            Sys.spawn(item.action.command, entry.workingDirectory);
             Sys.launcherMenuOpen = false;
         } else if (item.kind === "earlier" || item.kind === "later") {
             const i = root.favoriteEntries.findIndex(e => e.id === entry.id);
